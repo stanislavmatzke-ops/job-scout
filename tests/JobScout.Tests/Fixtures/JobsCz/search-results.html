@@ -1,0 +1,79 @@
+<!doctype html>
+<!-- Fictional search results page with the same structure as jobs.cz (/prace/...). Not real job ads. -->
+<html lang="cs">
+<head><title>Nabídka práce Praha – Jobs.cz</title></head>
+<body>
+<main>
+
+  <!-- 1) Real job card: salary tag contains &nbsp; and zero-width joiners around the dash (like jobs.cz) -->
+  <article class="SearchResultCard">
+    <header class="SearchResultCard__header">
+      <h2 data-test-ad-title="Senior .NET vývojář (m/ž)" class="SearchResultCard__title">
+        <a data-jobad-id="1000000001" data-link="jd-detail" data-jobad-index="0"
+           href="https://www.jobs.cz/rpd/1000000001/?searchId=abc&amp;rps=233"
+           class="link-primary SearchResultCard__titleLink">
+          Senior .NET vývojář (m/ž)
+        </a>
+      </h2>
+      <div data-test-ad-status="default" class="SearchResultCard__status">29. září</div>
+    </header>
+    <div class="SearchResultCard__body">
+      <span class="Tag Tag--neutral Tag--small Tag--subtle">65&nbsp;000 &zwj;–&zwj; 80&nbsp;000 Kč</span>
+      <span class="Tag Tag--neutral Tag--small Tag--subtle">Možnost občasné práce z domova</span>
+    </div>
+    <footer class="SearchResultCard__footer">
+      <ul class="SearchResultCard__footerList">
+        <li class="SearchResultCard__footerItem"><svg aria-hidden="true"></svg> <span translate="no">Ukázková firma s.r.o.</span> </li>
+        <li data-test="serp-locality" class="SearchResultCard__footerItem"><svg aria-hidden="true"></svg> Praha – Karlín </li>
+        <li class="SearchResultCard__footerItem">12 hodnocení na Atmoskopu</li>
+      </ul>
+    </footer>
+  </article>
+
+  <!-- 2) Promo card in the result list: same class, but no job detail link → must be skipped -->
+  <article class="SearchResultCard">
+    <header class="SearchResultCard__header">
+      <h2 class="SearchResultCard__title">Pracujte u nás! (reklama)</h2>
+    </header>
+    <a href="https://example.com/promo">Více informací</a>
+  </article>
+
+  <!-- 3) A different kind of article (banner) – even with a detail link it is not a SearchResultCard → skipped -->
+  <article class="Banner">
+    <a data-link="jd-detail" data-jobad-id="1000000099" href="https://www.jobs.cz/rpd/1000000099/">Banner</a>
+  </article>
+
+  <!-- 4) Second real job card, no salary -->
+  <article class="SearchResultCard">
+    <header class="SearchResultCard__header">
+      <h2 class="SearchResultCard__title">
+        <a data-jobad-id="1000000002" data-link="jd-detail" data-jobad-index="1"
+           href="https://www.jobs.cz/rpd/1000000002/?searchId=abc&amp;rps=233"
+           class="link-primary SearchResultCard__titleLink">
+          Tech Lead .NET
+        </a>
+      </h2>
+    </header>
+    <div class="SearchResultCard__body">
+      <span class="Tag Tag--neutral Tag--small Tag--subtle">Práce převážně z domova</span>
+    </div>
+    <footer class="SearchResultCard__footer">
+      <ul class="SearchResultCard__footerList">
+        <li class="SearchResultCard__footerItem"><span translate="no">Druhá ukázková a.s.</span></li>
+        <li data-test="serp-locality" class="SearchResultCard__footerItem">Brno</li>
+      </ul>
+    </footer>
+  </article>
+
+  <!-- 5) Broken card: detail link without an ID → skipped -->
+  <article class="SearchResultCard">
+    <header class="SearchResultCard__header">
+      <h2 class="SearchResultCard__title">
+        <a data-link="jd-detail" href="https://www.jobs.cz/rpd/">Nabídka bez ID</a>
+      </h2>
+    </header>
+  </article>
+
+</main>
+</body>
+</html>

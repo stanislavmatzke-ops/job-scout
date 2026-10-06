@@ -1,0 +1,18 @@
+<!doctype html>
+<!--
+  A rendered company page with a DIFFERENT template (no #vacancy-detail, no .cp-detail__content).
+  The parser must return null so the caller falls back to the snippet instead of returning garbage.
+-->
+<html lang="cs">
+<head><meta property="og:title" content="Senior vývojář | Jiná firma"></head>
+<body>
+<div class="job-posting">
+  <h1>Senior vývojář</h1>
+  <div class="job-posting__text">
+    <p>Tato stránka používá úplně jinou šablonu, kterou parser zatím nezná.
+       Text je tu dost dlouhý na to, aby prošel limitem délky, ale není ve známém kontejneru,
+       takže ho parser nesmí vrátit jako úplný detail inzerátu. Místo toho se použije útržek.</p>
+  </div>
+</div>
+</body>
+</html>

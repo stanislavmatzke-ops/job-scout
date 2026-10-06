@@ -4,4 +4,7 @@
     <Project Path="src/JobScout.Infrastructure/JobScout.Infrastructure.csproj" />
     <Project Path="src/JobScout.Worker/JobScout.Worker.csproj" />
   </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/JobScout.Tests/JobScout.Tests.csproj" />
+  </Folder>
 </Solution>
