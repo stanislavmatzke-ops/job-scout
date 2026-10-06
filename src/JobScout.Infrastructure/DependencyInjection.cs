@@ -1,5 +1,6 @@
 ﻿using Anthropic;
 using JobScout.Core.Llm;
+using JobScout.Core.Evaluation; 
 using JobScout.Infrastructure.Claude;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;

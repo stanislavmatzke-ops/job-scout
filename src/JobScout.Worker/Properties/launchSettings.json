@@ -7,6 +7,14 @@
       "environmentVariables": {
         "DOTNET_ENVIRONMENT": "Development"
       }
+    },
+    "JobScout.Worker (samples)": {
+      "commandName": "Project",
+      "dotnetRunMessages": true,
+      "commandLineArgs": "--Scout:DataDir=samples",
+      "environmentVariables": {
+        "DOTNET_ENVIRONMENT": "Development"
+      }
     }
   }
 }

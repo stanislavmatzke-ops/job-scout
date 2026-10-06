@@ -15,4 +15,9 @@
     <ProjectReference Include="..\JobScout.Core\JobScout.Core.csproj" />
     <ProjectReference Include="..\JobScout.Infrastructure\JobScout.Infrastructure.csproj" />
   </ItemGroup>
+
+  <ItemGroup>
+    <!-- Sample data (fictional) – copied next to the app so it works after publish too -->
+    <None Update="samples\**" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
 </Project>
