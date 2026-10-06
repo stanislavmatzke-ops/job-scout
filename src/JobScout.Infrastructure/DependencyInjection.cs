@@ -1,7 +1,7 @@
 ﻿using Anthropic;
-using JobScout.Core.Llm;
-using JobScout.Core.Evaluation;
 using JobScout.Core.Jobs;
+using JobScout.Core.Llm;
+using JobScout.Infrastructure.Browser;
 using JobScout.Infrastructure.Claude;
 using JobScout.Infrastructure.JobsCz;
 using Microsoft.Extensions.Configuration;
@@ -28,6 +28,7 @@ public static class DependencyInjection
             c.DefaultRequestHeaders.AcceptLanguage.ParseAdd("cs-CZ");
             c.Timeout = TimeSpan.FromSeconds(30);
         }).AddHttpMessageHandler(() => new PoliteDelayHandler(TimeSpan.FromSeconds(2)));
+        services.AddSingleton<IPageRenderer, PlaywrightPageRenderer>();
         return services;
     }
 }

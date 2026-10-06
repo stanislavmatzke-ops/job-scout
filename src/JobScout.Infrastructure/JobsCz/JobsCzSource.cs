@@ -1,11 +1,14 @@
 ﻿using JobScout.Core.Jobs;
+using JobScout.Infrastructure.Browser;
 using Microsoft.Extensions.Logging;
 
 namespace JobScout.Infrastructure.JobsCz;
 
-internal sealed class JobsCzSource(HttpClient http, ILogger<JobsCzSource> logger) : IJobSource
+internal sealed class JobsCzSource(HttpClient http, IPageRenderer renderer, ILogger<JobsCzSource> logger) : IJobSource
 {
     public string Name => JobsCzParser.SourceName;
+    // Career pages render their content with JS – wait until this element exists
+    private const string CareerPageReadySelector = ".cp-detail__content";
 
     public async Task<IReadOnlyList<JobListing>> SearchAsync(JobSearchQuery query, CancellationToken ct = default)
     {
@@ -24,15 +27,36 @@ internal sealed class JobsCzSource(HttpClient http, ILogger<JobsCzSource> logger
         using var response = await http.GetAsync($"/rpd/{externalId}/", ct);
         response.EnsureSuccessStatusCode();
 
-        // HttpClient follows redirects automatically – RequestUri is the final address
         var finalUrl = response.RequestMessage?.RequestUri ?? new Uri(http.BaseAddress!, $"/rpd/{externalId}/");
         var html = await response.Content.ReadAsStringAsync(ct);
+        var redirected = finalUrl.Host != "www.jobs.cz";
 
-        var detail = JobsCzParser.ParseDetail(html, externalId, finalUrl);
+        var detail = redirected
+            ? await RenderCareerPageAsync(externalId, finalUrl, ct) ?? JobsCzParser.ParseDetail(html, externalId, finalUrl)
+            : JobsCzParser.ParseDetail(html, externalId, finalUrl);
+
         logger.LogInformation("jobs.cz: detail {Id} – {Status}, {Length} znaků{Redirect}",
             externalId, detail.IsComplete ? "úplný" : "NEÚPLNÝ", detail.Text.Length,
-            finalUrl.Host == "www.jobs.cz" ? "" : $", přesměrováno na {finalUrl.Host}");
+            redirected ? $", kariérní stránka {finalUrl.Host}" : "");
         return detail;
+    }
+
+    private async Task<JobDetail?> RenderCareerPageAsync(string externalId, Uri url, CancellationToken ct)
+    {
+        try
+        {
+            var html = await renderer.RenderAsync(url, CareerPageReadySelector, ct);
+            var detail = JobsCzParser.ParseCareerPage(html, externalId, url);
+            if (detail is null)
+                logger.LogWarning("jobs.cz: kariérní stránka {Host} má neznámou šablonu – použiju útržek", url.Host);
+            return detail;
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            // Timeout or browser error must not drop the job – fall back to the snippet
+            logger.LogWarning(ex, "jobs.cz: vykreslení {Url} selhalo – použiju útržek", url);
+            return null;
+        }
     }
     
     // /prace/praha/?q%5B%5D=.NET%20architekt&page=2   (q%5B%5D = "q[]")

@@ -37,80 +37,114 @@ internal static partial class JobsCzParser
 
         return result;
     }
-    
+
     public static JobDetail ParseDetail(string html, string externalId, Uri finalUrl)
-{
-    var doc = Parser.ParseDocument(html);
-    var url = $"https://www.jobs.cz/rpd/{externalId}/";
-    var body = doc.QuerySelector("[data-test='jd-body-richtext']");
-
-    // Redirect to a JS-rendered company page → no body; use what the <meta> tags give us
-    if (body is null)
     {
-        var ogTitle = doc.QuerySelector("meta[property='og:title']")?.GetAttribute("content");
-        var ogDesc = doc.QuerySelector("meta[property='og:description']")?.GetAttribute("content");
-        return new JobDetail(SourceName, externalId, url,
-            Title: Clean(ogTitle ?? doc.Title),
-            Company: "",
-            Text: $"(Úplný text inzerátu není dostupný – stránka {finalUrl.Host} se načítá JavaScriptem.)\n{Clean(ogDesc)}",
-            IsComplete: false);
+        var doc = Parser.ParseDocument(html);
+        var url = $"https://www.jobs.cz/rpd/{externalId}/";
+        var body = doc.QuerySelector("[data-test='jd-body-richtext']");
+
+        // Redirect to a JS-rendered company page → no body; use what the <meta> tags give us
+        if (body is null)
+        {
+            var ogTitle = doc.QuerySelector("meta[property='og:title']")?.GetAttribute("content");
+            var ogDesc = doc.QuerySelector("meta[property='og:description']")?.GetAttribute("content");
+            return new JobDetail(SourceName, externalId, url,
+                Title: Clean(ogTitle ?? doc.Title),
+                Company: "",
+                Text:
+                $"(Úplný text inzerátu není dostupný – stránka {finalUrl.Host} se načítá JavaScriptem.)\n{Clean(ogDesc)}",
+                IsComplete: false);
+        }
+
+        var title = Clean(doc.QuerySelector("h1")?.TextContent);
+        var infoItems = doc.QuerySelectorAll("[data-test='jd-info-item']")
+            .Select(e => (
+                Label: Clean(e.QuerySelector(".accessibility-hidden")?.TextContent),
+                Value: Clean(e.QuerySelector("p")?.TextContent ?? e.TextContent)))
+            .ToList();
+
+        var company = infoItems.FirstOrDefault(i => i.Label == "Společnost").Value ?? "";
+        var location = Clean(doc.QuerySelector("[data-test='jd-info-location']")?.TextContent);
+        var benefits = doc.QuerySelectorAll("[data-test='jd-benefits']").Select(e => Clean(e.TextContent));
+
+        var sections = new[]
+        {
+            $"# {title}\nLokalita: {location}\n" +
+            string.Join('\n', infoItems.Select(i => i.Label.Length > 0 ? $"{i.Label}: {i.Value}" : i.Value)),
+            benefits.Any() ? $"Benefity: {string.Join(", ", benefits)}" : "",
+            ToPlainText(doc.QuerySelector("[data-test='jd-header-text']")),
+            ToPlainText(body),
+        };
+        var text = string.Join("\n\n", sections.Where(s => !string.IsNullOrWhiteSpace(s)));
+
+        return new JobDetail(SourceName, externalId, url, title, company, text, IsComplete: true);
+    }
+    
+    /// <summary>
+    /// Company career page (firma.jobs.cz, "Capybara" template) rendered by a browser.
+    /// Returns null when the expected content isn't there (unknown template) → caller falls back to a snippet.
+    /// </summary>
+    public static JobDetail? ParseCareerPage(string html, string externalId, Uri pageUrl)
+    {
+        var doc = Parser.ParseDocument(html);
+        var root = doc.QuerySelector("#vacancy-detail") ?? doc.QuerySelector(".cp-detail__content");
+        var body = ToPlainText(root);
+        if (body.Length < 200)
+            return null;
+
+        // og:title looks like "C#/.NET Tech Lead - Detail pozice | NAKIT"
+        var ogTitle = Clean(doc.QuerySelector("meta[property='og:title']")?.GetAttribute("content"));
+        var title = Clean(doc.QuerySelector(".hero__title")?.TextContent).TrimEnd('.');
+        if (title.Length == 0)
+            title = ogTitle.Split(" - ")[0];
+        var company = ogTitle.Contains('|') ? ogTitle[(ogTitle.LastIndexOf('|') + 1)..].Trim() : "";
+        var location = Clean(doc.QuerySelector(".hero__locality")?.TextContent);
+
+        var text = $"""
+                    # {title}
+                    Společnost: {company}
+                    Lokalita: {location}
+                    Zdroj: kariérní stránka {pageUrl.Host}
+
+                    {body}
+                    """;
+
+        return new JobDetail(SourceName, externalId, $"https://www.jobs.cz/rpd/{externalId}/",
+            title, company, text, IsComplete: true);
+    }    
+
+    // HTML → text that keeps paragraphs and bullet points (TextContent would glue everything together)
+    internal static string ToPlainText(IElement? root)
+    {
+        if (root is null) return "";
+        var sb = new StringBuilder();
+        AppendText(root, sb);
+
+        var lines = sb.ToString().Split('\n').Select(Clean).Where(l => l.Length > 0 && l != "-");
+        return string.Join('\n', lines);
     }
 
-    var title = Clean(doc.QuerySelector("h1")?.TextContent);
-    var infoItems = doc.QuerySelectorAll("[data-test='jd-info-item']")
-        .Select(e => (
-            Label: Clean(e.QuerySelector(".accessibility-hidden")?.TextContent),
-            Value: Clean(e.QuerySelector("p")?.TextContent ?? e.TextContent)))
-        .ToList();
+    private static readonly HashSet<string> BlockTags =
+        ["P", "DIV", "UL", "OL", "LI", "H1", "H2", "H3", "H4", "H5", "H6", "BR", "SECTION", "TR"];
 
-    var company = infoItems.FirstOrDefault(i => i.Label == "Společnost").Value ?? "";
-    var location = Clean(doc.QuerySelector("[data-test='jd-info-location']")?.TextContent);
-    var benefits = doc.QuerySelectorAll("[data-test='jd-benefits']").Select(e => Clean(e.TextContent));
-
-    var sections = new[]
+    private static void AppendText(INode node, StringBuilder sb)
     {
-        $"# {title}\nLokalita: {location}\n" +
-        string.Join('\n', infoItems.Select(i => i.Label.Length > 0 ? $"{i.Label}: {i.Value}" : i.Value)),
-        benefits.Any() ? $"Benefity: {string.Join(", ", benefits)}" : "",
-        ToPlainText(doc.QuerySelector("[data-test='jd-header-text']")),
-        ToPlainText(body),
-    };
-    var text = string.Join("\n\n", sections.Where(s => !string.IsNullOrWhiteSpace(s)));
-
-    return new JobDetail(SourceName, externalId, url, title, company, text, IsComplete: true);
-}
-
-// HTML → text that keeps paragraphs and bullet points (TextContent would glue everything together)
-internal static string ToPlainText(IElement? root)
-{
-    if (root is null) return "";
-    var sb = new StringBuilder();
-    AppendText(root, sb);
-
-    var lines = sb.ToString().Split('\n').Select(Clean).Where(l => l.Length > 0 && l != "-");
-    return string.Join('\n', lines);
-}
-
-private static readonly HashSet<string> BlockTags =
-    ["P", "DIV", "UL", "OL", "LI", "H1", "H2", "H3", "H4", "H5", "H6", "BR", "SECTION", "TR"];
-
-private static void AppendText(INode node, StringBuilder sb)
-{
-    foreach (var child in node.ChildNodes)
-    {
-        if (child is IText t)
+        foreach (var child in node.ChildNodes)
         {
-            sb.Append(t.Data);
-        }
-        else if (child is IElement e)
-        {
-            var isBlock = BlockTags.Contains(e.TagName);
-            sb.Append(e.TagName == "LI" ? "\n- " : isBlock ? "\n" : "");
-            AppendText(e, sb);
-            if (isBlock) sb.Append('\n');
+            if (child is IText t)
+            {
+                sb.Append(t.Data);
+            }
+            else if (child is IElement e)
+            {
+                var isBlock = BlockTags.Contains(e.TagName);
+                sb.Append(e.TagName == "LI" ? "\n- " : isBlock ? "\n" : "");
+                AppendText(e, sb);
+                if (isBlock) sb.Append('\n');
+            }
         }
     }
-}
 
     // Removes invisible characters (jobs.cz puts zero-width joiners around "–") and collapses whitespace
     internal static string Clean(string? text) =>
