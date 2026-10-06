@@ -1,5 +1,4 @@
 * text=auto
-*.cs    text diff=csharp
-*.html  text
-*.pdf   binary
-*.png   binary
+*.cs   text diff=csharp
+*.pdf  binary
+*.png  binary

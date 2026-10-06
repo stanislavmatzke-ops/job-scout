@@ -4,6 +4,8 @@ using JobScout.Core.Llm;
 using JobScout.Infrastructure.Browser;
 using JobScout.Infrastructure.Claude;
 using JobScout.Infrastructure.JobsCz;
+using JobScout.Infrastructure.Persistence;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -29,6 +31,10 @@ public static class DependencyInjection
             c.Timeout = TimeSpan.FromSeconds(30);
         }).AddHttpMessageHandler(() => new PoliteDelayHandler(TimeSpan.FromSeconds(2)));
         services.AddSingleton<IPageRenderer, PlaywrightPageRenderer>();
+        services.AddDbContext<JobScoutDbContext>(o => o.UseSqlite(
+            config.GetConnectionString("JobScout")
+            ?? throw new InvalidOperationException("Chybí ConnectionStrings:JobScout v konfiguraci.")));
+        
         return services;
     }
 }
