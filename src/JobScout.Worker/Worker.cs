@@ -1,4 +1,5 @@
 using JobScout.Core.Evaluation;
+using JobScout.Core.Jobs;
 using JobScout.Core.Llm;
 using JobScout.Core.Profile;
 
@@ -11,6 +12,7 @@ namespace JobScout.Worker;
 public class Worker(
     ProfileExtractor profileExtractor,
     JobEvaluator evaluator,
+    IJobSource jobSource,
     IConfiguration config,
     IHostEnvironment env,
     IHostApplicationLifetime lifetime,
@@ -23,6 +25,23 @@ public class Worker(
     {
         try
         {
+            if (config["Scout:Mode"] == "search")
+            {
+                var listings = await jobSource.SearchAsync(new JobSearchQuery(".NET architekt", "praha"), stoppingToken);
+                foreach (var l in listings)
+                    logger.LogInformation("{Id} | {Title} | {Company} | {Location} | {Tags}",
+                        l.ExternalId, l.Title, l.Company, l.Location, string.Join(", ", l.Tags));
+                
+                foreach (var l in listings.Take(3))
+                {
+                    var d = await jobSource.GetDetailAsync(l.ExternalId, stoppingToken);
+                    logger.LogInformation("── DETAIL {Id} (úplný: {Complete}) ──\n{Text}",
+                        d.ExternalId, d.IsComplete, d.Text.Length > 1500 ? d.Text[..1500] + "…" : d.Text);
+                }    
+                
+                return; // finally stejně zastaví aplikaci
+            }
+            
             var dataDir = ResolveDataDir();
 
             // 1) CV + notes → structured profile (in the app: once per CV upload, not per job)

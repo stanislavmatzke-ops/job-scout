@@ -1,7 +1,9 @@
 ﻿using Anthropic;
 using JobScout.Core.Llm;
-using JobScout.Core.Evaluation; 
+using JobScout.Core.Evaluation;
+using JobScout.Core.Jobs;
 using JobScout.Infrastructure.Claude;
+using JobScout.Infrastructure.JobsCz;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -18,6 +20,14 @@ public static class DependencyInjection
             .ValidateOnStart();
         services.AddSingleton<IAnthropicClient>(_ => new AnthropicClient()); // klíč z ANTHROPIC_API_KEY
         services.AddSingleton<ILlmClient, ClaudeLlmClient>();
+        services.AddHttpClient<IJobSource, JobsCzSource>(c =>
+        {
+            c.BaseAddress = new Uri("https://www.jobs.cz");
+            c.DefaultRequestHeaders.UserAgent.ParseAdd(
+                "JobScout/0.1 (personal job search assistant; learning project)");
+            c.DefaultRequestHeaders.AcceptLanguage.ParseAdd("cs-CZ");
+            c.Timeout = TimeSpan.FromSeconds(30);
+        }).AddHttpMessageHandler(() => new PoliteDelayHandler(TimeSpan.FromSeconds(2)));
         return services;
     }
 }
