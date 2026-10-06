@@ -21,6 +21,7 @@ internal static class EvaluationPrompts
         - Nevymýšlej si údaje – co v inzerátu není, označ jako unknown / prázdný řetězec.
         - Důvody a rizika si nesmí odporovat.
         - Piš spisovnou češtinou, bez slov v jiných jazycích (kromě názvů technologií).
+        - Shrnutí nejvýš 2 věty. Seznamy reasons, risks a questions: nejvýš 5 bodů, každý jedna stručná věta, seřazené od nejdůležitějšího.
         """;
 
     public const string Schema = """

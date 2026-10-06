@@ -1,5 +1,11 @@
 namespace JobScout.Core.Llm;
 
+public enum LlmTier
+{
+    Fast,
+    Smart
+}
+
 public interface ILlmClient
 {
     Task<LlmResponse> CompleteAsync(LlmRequest request, CancellationToken ct = default);
@@ -15,6 +21,9 @@ public sealed record LlmRequest(string SystemPrompt, string UserPrompt)
 
     /// <summary>Documents (e.g. a PDF CV) sent to the model before the user prompt.</summary>
     public IReadOnlyList<LlmDocument> Documents { get; init; } = [];
+
+    /// <summary>Model class – the concrete model is chosen in configuration.</summary>
+    public LlmTier Tier { get; init; } = LlmTier.Smart;
 }
 
 /// <summary>A document for the model. Supported media types: application/pdf, text/plain.</summary>

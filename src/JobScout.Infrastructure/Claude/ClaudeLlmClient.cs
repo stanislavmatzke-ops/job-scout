@@ -15,7 +15,11 @@ internal sealed class ClaudeLlmClient(IAnthropicClient client, IOptions<ClaudeOp
 
         var message = await client.Messages.Create(new MessageCreateParams
         {
-            Model = o.Model,
+            Model = request.Tier switch
+            {
+                LlmTier.Fast => o.Models.Fast,
+                _ => o.Models.Smart,
+            },
             MaxTokens = request.MaxTokens ?? o.MaxTokens,
             System = request.SystemPrompt,
             Messages = [new() { Role = Role.User, Content = BuildContent(request) }],
