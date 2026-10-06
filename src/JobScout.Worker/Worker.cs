@@ -25,29 +25,33 @@ public class Worker(
     {
         try
         {
-            if (config["Scout:Mode"] == "search")
-            {
-                var listings = await jobSource.SearchAsync(new JobSearchQuery(".NET architekt", "praha"), stoppingToken);
-                foreach (var l in listings)
-                    logger.LogInformation("{Id} | {Title} | {Company} | {Location} | {Tags}",
-                        l.ExternalId, l.Title, l.Company, l.Location, string.Join(", ", l.Tags));
-                
-                foreach (var l in listings.Take(3))
-                {
-                    var d = await jobSource.GetDetailAsync(l.ExternalId, stoppingToken);
-                    logger.LogInformation("── DETAIL {Id} (úplný: {Complete}) ──\n{Text}",
-                        d.ExternalId, d.IsComplete, d.Text.Length > 1500 ? d.Text[..1500] + "…" : d.Text);
-                }    
-                
-                return; // finally stejně zastaví aplikaci
-            }
-            
             var dataDir = ResolveDataDir();
 
             // 1) CV + notes → structured profile (in the app: once per CV upload, not per job)
             var cv = await LoadCvAsync(dataDir, stoppingToken);
             var notes = await ReadOptionalAsync(Path.Combine(dataDir, "preferences.md"), stoppingToken);
 
+            if (config["Scout:Mode"] == "search")
+            {
+                // Temporary hand-made plan – in phase 3 the AI picks categories from jobSource.Categories
+                string[] categories = ["sw-architekt", "net-vyvojar", "java-vyvojar", "vedouci-vyvoje-team-leader"];
+
+                var unique = new Dictionary<string, JobListing>();
+                foreach (var category in categories)
+                {
+                    var query = new JobSearchQuery { Category = category, Location = "Praha", MaxAge = JobAge.ThreeDays };
+                    var found = await jobSource.SearchAsync(query, maxPages: 5, stoppingToken);
+                    var added = found.Count(l => unique.TryAdd(l.ExternalId, l));
+                    logger.LogInformation("  {Category} @ Praha, 3 dny: {Found} nalezeno, {Added} nových", category, found.Count, added);
+                }
+
+                logger.LogInformation("Celkem unikátních nabídek: {Count}", unique.Count);
+                foreach (var l in unique.Values)
+                    logger.LogInformation("{Id} | {Title} | {Company} | {Location} | {Tags}",
+                        l.ExternalId, l.Title, l.Company, l.Location, string.Join(", ", l.Tags));
+                return;
+            }
+            
             var extraction = await profileExtractor.ExtractAsync(cv, notes, stoppingToken);
             LogProfile(extraction.Profile);
             LogTokens("profil", extraction.Response);

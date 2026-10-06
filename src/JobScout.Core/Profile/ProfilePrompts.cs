@@ -12,6 +12,8 @@ internal static class ProfilePrompts
         - Neuváděj jméno, kontakty ani jiné osobní údaje – profil slouží jen k porovnání s nabídkami.
         - Technologie piš krátce a standardně (např. "C#", ".NET", "Azure", "Oracle PL/SQL").
         - Piš spisovnou češtinou, bez slov v jiných jazycích (kromě názvů technologií).
+        - Vyhledávací fráze (searchKeywords) piš tak, jak by je kandidát zadal do vyhledávání na českém pracovním portálu.
+        Pokryj cílové role i hlavní technologii, každá fráze má najít jiné nabídky (ne synonyma) a nesmí být příliš obecná (ne jen "vývojář").
         """;
 
     public const string Schema = """
@@ -22,6 +24,7 @@ internal static class ProfilePrompts
             "yearsOfExperience": { "type": "integer", "description": "Celkové roky praxe v IT" },
             "seniority":         { "type": "string", "enum": ["junior", "medior", "senior", "lead", "architect"] },
             "targetRoles":       { "type": "array", "items": { "type": "string" }, "description": "Pozice, které kandidát hledá (z poznámek, jinak odvozené z CV)" },
+            "searchKeywords":    { "type": "array", "items": { "type": "string" }, "description": "3–6 krátkých vyhledávacích frází pro český pracovní portál, od nejdůležitější, česky i anglicky podle toho, jak se pozice inzerují (např. '.NET vývojář', 'softwarový architekt', 'tech lead .NET')" },
             "coreSkills":        { "type": "array", "items": { "type": "string" }, "description": "Hlavní technologie s hlubokou praxí" },
             "otherSkills":       { "type": "array", "items": { "type": "string" }, "description": "Další technologie a znalosti" },
             "domains":           { "type": "array", "items": { "type": "string" }, "description": "Obory, ve kterých kandidát pracoval (pojišťovnictví, státní správa, …)" },

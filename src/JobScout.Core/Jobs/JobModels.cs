@@ -1,7 +1,23 @@
 ﻿namespace JobScout.Core.Jobs;
 
-/// <summary>Search parameters. Location is a source-specific slug (jobs.cz: "praha", "brno").</summary>
-public sealed record JobSearchQuery(string Keywords, string? Location = null, int Page = 1);
+/// <summary>How old the job ads may be.</summary>
+public enum JobAge { Any, Day, ThreeDays }
+
+/// <summary>
+/// Search parameters. All optional – combine as needed.
+/// Category = id from IJobSource.Categories; Location = place name as people write it ("Praha"), null = whole country.
+/// </summary>
+public sealed record JobSearchQuery
+{
+    public string? Category { get; init; }
+    public string? Keywords { get; init; }
+    public string? Location { get; init; }
+    public JobAge MaxAge { get; init; } = JobAge.Any;
+    public int Page { get; init; } = 1;
+}
+
+/// <summary>A category / profession offered by a job source (e.g. jobs.cz "sw-architekt").</summary>
+public sealed record JobCategory(string Id, string Label);
 
 /// <summary>A job from the search results – a cheap overview without the full text.</summary>
 public sealed record JobListing(

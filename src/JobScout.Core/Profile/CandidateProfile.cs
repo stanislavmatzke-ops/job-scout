@@ -11,6 +11,7 @@ public sealed record CandidateProfile(
     int YearsOfExperience,
     Seniority Seniority,
     IReadOnlyList<string> TargetRoles,
+    IReadOnlyList<string> SearchKeywords,   // phrases for job portal search, most important first
     IReadOnlyList<string> CoreSkills,
     IReadOnlyList<string> OtherSkills,
     IReadOnlyList<string> Domains,
