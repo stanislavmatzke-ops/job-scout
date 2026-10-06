@@ -6,6 +6,7 @@
 
   <ItemGroup>
     <PackageReference Include="Anthropic" Version="12.53.0" />
+    <PackageReference Include="Microsoft.Extensions.Options.ConfigurationExtensions" Version="11.0.0-rc.1.26425.128" />
   </ItemGroup>
 
   <PropertyGroup>
