@@ -1,4 +1,4 @@
-namespace JobScout.Core.Evaluation;
+namespace JobScout.Application.Evaluation;
 
 internal static class EvaluationPrompts
 {

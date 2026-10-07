@@ -1,7 +1,7 @@
-using JobScout.Core.Llm;
-using JobScout.Core.Profile;
+using JobScout.Application.Llm;
+using JobScout.Application.Profiles;
 
-namespace JobScout.Core.Evaluation;
+namespace JobScout.Application.Evaluation;
 
 public sealed record JobEvaluationResult(JobEvaluation Evaluation, LlmResponse Response);
 

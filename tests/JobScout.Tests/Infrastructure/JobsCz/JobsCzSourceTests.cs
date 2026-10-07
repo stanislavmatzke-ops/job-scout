@@ -1,5 +1,6 @@
 using System.Net;
 using System.Text.RegularExpressions;
+using JobScout.Application.Jobs;
 using JobScout.Core.Jobs;
 using JobScout.Infrastructure.JobsCz;
 using JobScout.Tests.TestUtils;
@@ -32,7 +33,7 @@ public class JobsCzSourceTests
             req => StubHttpHandler.Html(req, Fixture.JobsCz("search-results.html")),
             FakePageRenderer.Returning(""));
 
-        var listings = await source.SearchAsync(new JobSearchQuery { Keywords = ".NET architekt", Location = "Praha" });
+        var listings = await source.SearchAsync(new JobSearch.JobSearchQuery { Keywords = ".NET architekt", Location = "Praha" });
 
         Assert.Equal(2, listings.Count);
         var requested = Assert.Single(http.Requests);
@@ -46,7 +47,7 @@ public class JobsCzSourceTests
         // e.g. "Praha 4" → /prace/praha-4/ doesn't exist on jobs.cz; one bad search must not stop the morning run
         var (source, _) = Create(_ => new HttpResponseMessage(HttpStatusCode.NotFound), FakePageRenderer.Returning(""));
 
-        var listings = await source.SearchAsync(new JobSearchQuery { Category = "sw-architekt", Location = "Praha 4" });
+        var listings = await source.SearchAsync(new JobSearch.JobSearchQuery { Category = "sw-architekt", Location = "Praha 4" });
 
         Assert.Empty(listings);
     }
@@ -88,7 +89,7 @@ public class JobsCzSourceTests
             _ => throw new InvalidOperationException("Page 3 must not be requested"),
         }), FakePageRenderer.Returning(""));
 
-        var listings = await source.SearchAsync(new JobSearchQuery { Category = "sw-architekt" }, maxPages: 10);
+        var listings = await source.SearchAsync(new JobSearch.JobSearchQuery { Category = "sw-architekt" }, maxPages: 10);
 
         Assert.Equal(35, listings.Count);
         Assert.Equal(2, http.Requests.Count);
@@ -104,7 +105,7 @@ public class JobsCzSourceTests
             _ => SearchPage(Enumerable.Range(31, 30)),   // page 2, and the same again for 3, 4, …
         }), FakePageRenderer.Returning(""));
 
-        var listings = await source.SearchAsync(new JobSearchQuery { Category = "sw-architekt" }, maxPages: 10);
+        var listings = await source.SearchAsync(new JobSearch.JobSearchQuery { Category = "sw-architekt" }, maxPages: 10);
 
         Assert.Equal(60, listings.Count);
         Assert.Equal(3, http.Requests.Count);   // page 3 showed nothing new → stop
@@ -118,7 +119,7 @@ public class JobsCzSourceTests
             req => StubHttpHandler.Html(req, SearchPage(Enumerable.Range(PageOf(req) * 100, 30))),
             FakePageRenderer.Returning(""));
 
-        var listings = await source.SearchAsync(new JobSearchQuery { Category = "programator" }, maxPages: 3);
+        var listings = await source.SearchAsync(new JobSearch.JobSearchQuery { Category = "programator" }, maxPages: 3);
 
         Assert.Equal(90, listings.Count);
         Assert.Equal(3, http.Requests.Count);
@@ -134,7 +135,7 @@ public class JobsCzSourceTests
             _ => SearchPage(Enumerable.Range(30, 3)),   // 30 again + 31, 32
         }), FakePageRenderer.Returning(""));
 
-        var listings = await source.SearchAsync(new JobSearchQuery { Category = "sw-architekt" }, maxPages: 5);
+        var listings = await source.SearchAsync(new JobSearch.JobSearchQuery { Category = "sw-architekt" }, maxPages: 5);
 
         Assert.Equal(32, listings.Count);
         Assert.Equal("1", listings[0].ExternalId);
@@ -227,17 +228,17 @@ public class JobsCzSourceTests
     // ---------- BuildSearchUrl & ToSlug ----------
 
     [Theory]
-    [InlineData(null, ".NET architekt", "Praha", JobAge.Any, 1, "/prace/praha/?q%5B%5D=.NET%20architekt")]
-    [InlineData(null, "C#", null, JobAge.Any, 1, "/prace/?q%5B%5D=C%23")]                       // '#' must be escaped
-    [InlineData("sw-architekt", null, "Praha", JobAge.ThreeDays, 1, "/prace/praha/sw-architekt/?date=3d")]
-    [InlineData("java-vyvojar", null, null, JobAge.Day, 2, "/prace/java-vyvojar/?date=24h&page=2")]
-    [InlineData("sw-architekt", "Azure", "Hradec Králové", JobAge.Day, 1, "/prace/hradec-kralove/sw-architekt/?q%5B%5D=Azure&date=24h")]
-    [InlineData("/net-vyvojar/", null, null, JobAge.Any, 1, "/prace/net-vyvojar/")]              // slashes around category tolerated
-    [InlineData(null, null, null, JobAge.Any, 1, "/prace/")]                                     // nothing set = all jobs
+    [InlineData(null, ".NET architekt", "Praha", JobSearch.JobAge.Any, 1, "/prace/praha/?q%5B%5D=.NET%20architekt")]
+    [InlineData(null, "C#", null, JobSearch.JobAge.Any, 1, "/prace/?q%5B%5D=C%23")]                       // '#' must be escaped
+    [InlineData("sw-architekt", null, "Praha", JobSearch.JobAge.ThreeDays, 1, "/prace/praha/sw-architekt/?date=3d")]
+    [InlineData("java-vyvojar", null, null, JobSearch.JobAge.Day, 2, "/prace/java-vyvojar/?date=24h&page=2")]
+    [InlineData("sw-architekt", "Azure", "Hradec Králové", JobSearch.JobAge.Day, 1, "/prace/hradec-kralove/sw-architekt/?q%5B%5D=Azure&date=24h")]
+    [InlineData("/net-vyvojar/", null, null, JobSearch.JobAge.Any, 1, "/prace/net-vyvojar/")]              // slashes around category tolerated
+    [InlineData(null, null, null, JobSearch.JobAge.Any, 1, "/prace/")]                                     // nothing set = all jobs
     public void BuildSearchUrl_creates_jobs_cz_search_url(
-        string? category, string? keywords, string? location, JobAge maxAge, int page, string expected)
+        string? category, string? keywords, string? location, JobSearch.JobAge maxAge, int page, string expected)
     {
-        var query = new JobSearchQuery { Category = category, Keywords = keywords, Location = location, MaxAge = maxAge, Page = page };
+        var query = new JobSearch.JobSearchQuery { Category = category, Keywords = keywords, Location = location, MaxAge = maxAge, Page = page };
 
         Assert.Equal(expected, JobsCzSource.BuildSearchUrl(query));
     }

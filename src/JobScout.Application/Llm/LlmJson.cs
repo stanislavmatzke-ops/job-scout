@@ -1,7 +1,7 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
-namespace JobScout.Core.Llm;
+namespace JobScout.Application.Llm;
 
 /// <summary>Shared JSON settings and parsing of structured LLM responses.</summary>
 public static class LlmJson

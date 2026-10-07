@@ -1,4 +1,6 @@
-namespace JobScout.Core.Evaluation;
+using JobScout.Core;
+
+namespace JobScout.Application.Evaluation;
 
 public sealed record JobEvaluation(
     int Score,

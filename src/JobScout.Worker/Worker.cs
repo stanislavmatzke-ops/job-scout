@@ -1,7 +1,8 @@
-using JobScout.Core.Evaluation;
+using JobScout.Application.Evaluation;
+using JobScout.Application.Jobs;
 using JobScout.Core.Jobs;
-using JobScout.Core.Llm;
-using JobScout.Core.Profile;
+using JobScout.Application.Llm;
+using JobScout.Application.Profiles;
 
 namespace JobScout.Worker;
 
@@ -39,7 +40,7 @@ public class Worker(
                 var unique = new Dictionary<string, JobListing>();
                 foreach (var category in categories)
                 {
-                    var query = new JobSearchQuery { Category = category, Location = "Praha", MaxAge = JobAge.ThreeDays };
+                    var query = new JobSearch.JobSearchQuery { Category = category, Location = "Praha", MaxAge = JobSearch.JobAge.ThreeDays };
                     var found = await jobSource.SearchAsync(query, maxPages: 5, stoppingToken);
                     var added = found.Count(l => unique.TryAdd(l.ExternalId, l));
                     logger.LogInformation("  {Category} @ Praha, 3 dny: {Found} nalezeno, {Added} nových", category, found.Count, added);

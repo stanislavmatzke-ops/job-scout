@@ -2,6 +2,7 @@
 using System.Net;
 using System.Text;
 using System.Text.RegularExpressions;
+using JobScout.Application.Jobs;
 using JobScout.Core.Jobs;
 using JobScout.Infrastructure.Browser;
 using Microsoft.Extensions.Logging;
@@ -10,13 +11,13 @@ namespace JobScout.Infrastructure.JobsCz;
 
 internal sealed partial class JobsCzSource(HttpClient http, IPageRenderer renderer, ILogger<JobsCzSource> logger) : IJobSource
 {
-    public IReadOnlyList<JobCategory> Categories => JobsCzCatalog.Categories;
+    public IReadOnlyList<JobSearch.JobCategory> Categories => JobsCzCatalog.Categories;
     private const int PageSize = 30;
     public string Name => JobsCzParser.SourceName;
     // Career pages render their content with JS – wait until this element exists
     private const string CareerPageReadySelector = ".cp-detail__content";
 
-    public async Task<IReadOnlyList<JobListing>> SearchAsync(JobSearchQuery query, int maxPages = 1, CancellationToken ct = default)
+    public async Task<IReadOnlyList<JobListing>> SearchAsync(JobSearch.JobSearchQuery query, int maxPages = 1, CancellationToken ct = default)
     {
         var all = new Dictionary<string, JobListing>();   // keeps order of first appearance
 
@@ -33,7 +34,7 @@ internal sealed partial class JobsCzSource(HttpClient http, IPageRenderer render
         return all.Values.ToList();
     }
     
-    private async Task<IReadOnlyList<JobListing>> SearchPageAsync(JobSearchQuery query, CancellationToken ct = default)
+    private async Task<IReadOnlyList<JobListing>> SearchPageAsync(JobSearch.JobSearchQuery query, CancellationToken ct = default)
     {
         var url = BuildSearchUrl(query);
         logger.LogInformation("jobs.cz: hledám {Url}", url);
@@ -90,7 +91,7 @@ internal sealed partial class JobsCzSource(HttpClient http, IPageRenderer render
         }
     }
     
-    internal static string BuildSearchUrl(JobSearchQuery q)
+    internal static string BuildSearchUrl(JobSearch.JobSearchQuery q)
     {
         var path = "/prace/";
         if (!string.IsNullOrWhiteSpace(q.Location)) path += ToSlug(q.Location) + "/";
@@ -98,7 +99,7 @@ internal sealed partial class JobsCzSource(HttpClient http, IPageRenderer render
 
         var parameters = new List<string>();
         if (!string.IsNullOrWhiteSpace(q.Keywords)) parameters.Add($"q%5B%5D={Uri.EscapeDataString(q.Keywords)}");
-        if (q.MaxAge != JobAge.Any) parameters.Add($"date={(q.MaxAge == JobAge.Day ? "24h" : "3d")}");
+        if (q.MaxAge != JobSearch.JobAge.Any) parameters.Add($"date={(q.MaxAge == JobSearch.JobAge.Day ? "24h" : "3d")}");
         if (q.Page > 1) parameters.Add($"page={q.Page}");
 
         return parameters.Count == 0 ? path : $"{path}?{string.Join('&', parameters)}";

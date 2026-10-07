@@ -1,6 +1,8 @@
 ﻿using Anthropic;
+using JobScout.Application.Abstractions;
+using JobScout.Application.Jobs;
 using JobScout.Core.Jobs;
-using JobScout.Core.Llm;
+using JobScout.Application.Llm;
 using JobScout.Infrastructure.Browser;
 using JobScout.Infrastructure.Claude;
 using JobScout.Infrastructure.JobsCz;
@@ -34,6 +36,8 @@ public static class DependencyInjection
         services.AddDbContext<JobScoutDbContext>(o => o.UseSqlite(
             config.GetConnectionString("JobScout")
             ?? throw new InvalidOperationException("Chybí ConnectionStrings:JobScout v konfiguraci.")));
+        // Use cases ask for IAppDbContext; it's the same scoped instance as JobScoutDbContext
+        services.AddScoped<IAppDbContext>(sp => sp.GetRequiredService<JobScoutDbContext>());
         
         return services;
     }

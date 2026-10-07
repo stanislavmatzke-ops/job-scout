@@ -1,6 +1,7 @@
-﻿using JobScout.Core.Profile;
+﻿using JobScout.Application.Profiles;
+using JobScout.Core;
 
-namespace JobScout.Core.Jobs;
+namespace JobScout.Application.Jobs;
 
 /// <summary>Profile → searches for the morning run. Pure logic: no AI, no network.</summary>
 public static class SearchPlanner
@@ -10,7 +11,7 @@ public static class SearchPlanner
 
     private static readonly string[] RemoteWords = ["remote", "home office", "z domova", "na dálku", "kdekoli"];
 
-    public static IReadOnlyList<JobSearchQuery> Plan(CandidateProfile profile)
+    public static IReadOnlyList<JobSearch.JobSearchQuery> Plan(CandidateProfile profile)
     {
         var prefs = profile.Preferences;
 
@@ -30,7 +31,7 @@ public static class SearchPlanner
             .Where(k => !string.IsNullOrWhiteSpace(k))
             .Select(k => k.Trim())
             .Distinct(StringComparer.OrdinalIgnoreCase)
-            .SelectMany(keyword => places.Select(place => new JobSearchQuery { Keywords = keyword, Location = place }))
+            .SelectMany(keyword => places.Select(place => new JobSearch.JobSearchQuery { Keywords = keyword, Location = place }))
             .Take(MaxQueries)
             .ToList();
     }

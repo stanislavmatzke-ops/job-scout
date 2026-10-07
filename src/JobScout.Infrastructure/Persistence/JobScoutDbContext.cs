@@ -1,10 +1,11 @@
-﻿using JobScout.Core.Domain;
+﻿using JobScout.Application.Abstractions;
+using JobScout.Core.Domain;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 namespace JobScout.Infrastructure.Persistence;
 
-public sealed class JobScoutDbContext(DbContextOptions<JobScoutDbContext> options) : DbContext(options)
+public sealed class JobScoutDbContext(DbContextOptions<JobScoutDbContext> options) : DbContext(options), IAppDbContext
 {
     public DbSet<User> Users => Set<User>();
     public DbSet<UserProfile> UserProfiles => Set<UserProfile>();

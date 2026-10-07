@@ -1,4 +1,4 @@
-namespace JobScout.Core.Llm;
+namespace JobScout.Application.Llm;
 
 public enum LlmTier
 {

@@ -18,6 +18,7 @@
   <ItemGroup>
     <ProjectReference Include="..\JobScout.Core\JobScout.Core.csproj" />
     <ProjectReference Include="..\JobScout.Infrastructure\JobScout.Infrastructure.csproj" />
+    <ProjectReference Include="..\JobScout.Application\JobScout.Application.csproj" />
   </ItemGroup>
 
   <ItemGroup>

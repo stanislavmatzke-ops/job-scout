@@ -2,7 +2,7 @@ using System.Text;
 using System.Text.Json;
 using Anthropic;
 using Anthropic.Models.Messages;
-using JobScout.Core.Llm;
+using JobScout.Application.Llm;
 using Microsoft.Extensions.Options;
 
 namespace JobScout.Infrastructure.Claude;

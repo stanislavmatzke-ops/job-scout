@@ -1,5 +1,4 @@
-using JobScout.Core.Evaluation;
-using JobScout.Core.Profile;
+using JobScout.Application;
 using JobScout.Infrastructure;
 using JobScout.Infrastructure.Persistence;
 using JobScout.Worker;
@@ -9,8 +8,8 @@ var builder = Host.CreateApplicationBuilder(args);
 builder.Logging.AddSimpleConsole(o => o.TimestampFormat = "HH:mm:ss ");
 builder.Services.AddHostedService<Worker>();
 builder.Services.AddInfrastructure(builder.Configuration);
-builder.Services.AddSingleton<ProfileExtractor>();
-builder.Services.AddSingleton<JobEvaluator>();
+builder.Services.AddApplication();
+builder.Services.AddInfrastructure(builder.Configuration);
 
 var host = builder.Build();
 

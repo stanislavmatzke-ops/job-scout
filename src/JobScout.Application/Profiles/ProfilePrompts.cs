@@ -1,4 +1,4 @@
-namespace JobScout.Core.Profile;
+namespace JobScout.Application.Profiles;
 
 internal static class ProfilePrompts
 {

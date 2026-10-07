@@ -1,6 +1,6 @@
-using JobScout.Core.Llm;
+using JobScout.Application.Llm;
 
-namespace JobScout.Core.Profile;
+namespace JobScout.Application.Profiles;
 
 public sealed record ProfileExtractionResult(CandidateProfile Profile, LlmResponse Response);
 

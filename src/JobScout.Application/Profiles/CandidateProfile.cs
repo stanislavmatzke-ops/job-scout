@@ -1,4 +1,6 @@
-namespace JobScout.Core.Profile;
+using JobScout.Core;
+
+namespace JobScout.Application.Profiles;
 
 public enum Seniority { Junior, Medior, Senior, Lead, Architect }
 
