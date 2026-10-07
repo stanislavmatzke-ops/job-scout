@@ -57,6 +57,9 @@ namespace JobScout.Infrastructure.Persistence.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("TEXT");
 
+                    b.Property<int?>("TriageScore")
+                        .HasColumnType("INTEGER");
+
                     b.Property<long>("UpdatedAt")
                         .HasColumnType("INTEGER");
 

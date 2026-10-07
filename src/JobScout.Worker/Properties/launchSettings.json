@@ -16,7 +16,7 @@
         "DOTNET_ENVIRONMENT": "Development"
       }
     },
-    "JobScout.Worker (search test)": {
+    "JobScout.Worker (search private)": {
       "commandName": "Project",
       "dotnetRunMessages": true,
       "commandLineArgs": "--Scout:Mode=search",

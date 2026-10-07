@@ -6,10 +6,10 @@ using Microsoft.EntityFrameworkCore;
 
 namespace JobScout.Application.Triage;
 
-public sealed record TriageDecision(string Id, bool Keep, string Reason);
+public sealed record TriageDecision(string Id, int Relevance, string Reason);
 public sealed record TriageDecisions(IReadOnlyList<TriageDecision> Decisions);
 
-public sealed record TriagedJob(JobOffer Offer, bool Keep, string Reason);
+public sealed record TriagedJob(JobOffer Offer, bool Keep, int Relevance, string Reason);
 
 public sealed record TriageResult(IReadOnlyList<TriagedJob> Jobs, IReadOnlyList<LlmResponse> Calls)
 {
@@ -24,7 +24,11 @@ public sealed record TriageResult(IReadOnlyList<TriagedJob> Jobs, IReadOnlyList<
 public sealed class TriageJobs(IAppDbContext db, ILlmClient llm, TimeProvider time)
 {
     public const int BatchSize = 40;
+    /// <summary>Relevance 1–2 = triaged out (with a reason). 3 = unsure → kept, but at the end of the evaluation queue.</summary>
+    public const int DropAtOrBelow = 2;
 
+    /// <summary>Missing, invalid or reasonless decision = "unsure".</summary>
+    public const int DefaultRelevance = 3;
     public async Task<TriageResult> ExecuteAsync(Guid userId, CandidateProfile profile, CancellationToken ct = default)
     {
         var pending = await db.JobMatches
@@ -49,16 +53,20 @@ public sealed class TriageJobs(IAppDbContext db, ILlmClient llm, TimeProvider ti
             for (var i = 0; i < batch.Length; i++)
             {
                 var match = batch[i];
-                // Missing decision or a drop without a reason → keep (never trust a silent drop)
-                if (decisions.TryGetValue((i + 1).ToString(), out var d) && !d.Keep && !string.IsNullOrWhiteSpace(d.Reason))
+                decisions.TryGetValue((i + 1).ToString(), out var d);
+                var reason = d?.Reason?.Trim() ?? "";
+
+                // Drop only a valid low score WITH a reason; anything missing or odd = unsure (3) – never trust a silent drop
+                if (d is { Relevance: >= 1 and <= DropAtOrBelow } && reason.Length > 0)
                 {
-                    match.MarkTriagedOut(d.Reason.Trim(), now);
-                    jobs.Add(new TriagedJob(match.JobOffer!, Keep: false, d.Reason.Trim()));
+                    match.MarkTriagedOut(reason, now, d.Relevance);
+                    jobs.Add(new TriagedJob(match.JobOffer!, Keep: false, d.Relevance, reason));
                 }
                 else
                 {
-                    match.Shortlist(now);
-                    jobs.Add(new TriagedJob(match.JobOffer!, Keep: true, ""));
+                    var relevance = d is { Relevance: > DropAtOrBelow and <= 5 } ? d.Relevance : DefaultRelevance;
+                    match.Shortlist(relevance, now);
+                    jobs.Add(new TriagedJob(match.JobOffer!, Keep: true, relevance, ""));
                 }
             }
 

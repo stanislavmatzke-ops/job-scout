@@ -14,6 +14,8 @@ internal static class CategoryPrompts
                                  - Přívlastky jako senior, junior, zkušený vynech; "Vedoucí …" ponech jen když jde o samostatnou profesi.
                                  - Nevymýšlej profese, které s tou kandidátovou nesouvisejí.
                                  - Pole profession opiš přesně tak, jak je v zadání.
+                                 - Obecnou nadřazenou kategorii (např. "Programátor", "IT analytik", "IT konzultant") navrhni jen tehdy,
+                                 když je to přímo kandidátova profese. Architekt ani vedoucí vývoje není "IT konzultant" ani "IT analytik".
                                  """;
 
     public const string Schema = """

@@ -45,7 +45,8 @@ public sealed class EvaluateJobsTests : IDisposable
 
     /// <summary>Creates an offer + a match in the given stage; registers a detail on the fake portal unless told otherwise.</summary>
     private string Seed(string title, MatchStage stage = MatchStage.Shortlisted, Guid? userId = null,
-        bool withDetail = true, bool completeDetail = true, string source = "jobs.cz", string? externalId = null)
+        bool withDetail = true, bool completeDetail = true, string source = "jobs.cz", string? externalId = null,
+        int relevance = 4)
     {
         var id = externalId ?? $"2001{++_nextId:D6}";
         using var db = _database.CreateContext();
@@ -57,7 +58,7 @@ public sealed class EvaluateJobsTests : IDisposable
             db.JobOffers.Add(offer);
 
         var match = new JobMatch(userId ?? _userId, offer.Id, 2, T0);
-        if (stage == MatchStage.Shortlisted) match.Shortlist(T0);
+        if (stage == MatchStage.Shortlisted) match.Shortlist(relevance, T0);
         if (stage == MatchStage.TriagedOut) match.MarkTriagedOut("mimo profil", T0);
         if (stage == MatchStage.Evaluated) match.ApplyEvaluation(5, "{}", T0);
         db.JobMatches.Add(match);
@@ -187,6 +188,22 @@ public sealed class EvaluateJobsTests : IDisposable
         Assert.Equal(2, second.Evaluated.Count);
         Assert.Equal(0, second.Remaining);
         Assert.Equal(5, _llm.Requests.Count);
+    }
+
+    [Fact]
+    public async Task Most_relevant_jobs_are_evaluated_first()
+    {
+        // The per-run limit must hit the best candidates, not whatever was inserted first
+        Seed("Analytik", relevance: 3);
+        Seed("Chief Software Architect", relevance: 5);
+        Seed("Senior .NET vývojář", relevance: 4);
+        Seed("Konzultant", relevance: 3);
+
+        var result = await EvaluateAsync(maxPerRun: 2);
+
+        Assert.Equal(new[] { "Chief Software Architect", "Senior .NET vývojář" },
+            result.Evaluated.Select(e => e.Offer.Title).ToArray());
+        Assert.Equal(2, result.Remaining);
     }
 
     // ---------- failures ----------

@@ -13,7 +13,7 @@ public sealed record PlannedSearch(string? Category, string? Keywords, string? L
 public sealed record SearchPlan(int Version, IReadOnlyDictionary<string, IReadOnlyList<PlannedSearch>> Sources)
 {
     /// <summary>Bump when the planning logic changes – stored plans are then rebuilt on the next run.</summary>
-    public const int CurrentVersion = 2;
+    public const int CurrentVersion = 3;
 
     public IReadOnlyList<PlannedSearch> For(string source) =>
         Sources.TryGetValue(source, out var searches) ? searches : [];

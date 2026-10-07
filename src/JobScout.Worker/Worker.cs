@@ -1,5 +1,6 @@
 using JobScout.Application.Evaluation;
 using JobScout.Application.Jobs;
+using JobScout.Application.Letters;
 using JobScout.Application.Llm;
 using JobScout.Application.Profiles;
 using JobScout.Application.Triage;
@@ -126,9 +127,9 @@ public class Worker(
 
             logger.LogInformation("Třídění: {Total} čekajících → ponecháno {Kept}, vyřazeno {Dropped}",
                 triage.Jobs.Count, triage.Kept, triage.Dropped);
-            foreach (var job in triage.Jobs)
-                logger.LogInformation("  {Mark} {Title} | {Company}{Reason}",
-                    job.Keep ? "✔" : "✘", job.Offer.Title, job.Offer.Company, job.Keep ? "" : $" – {job.Reason}");
+            foreach (var job in triage.Jobs.OrderByDescending(j => j.Relevance))
+                logger.LogInformation("  {Mark} {Relevance} {Title} | {Company}{Reason}",
+                    job.Keep ? "✔" : "✘", job.Relevance, job.Offer.Title, job.Offer.Company, job.Keep ? "" : $" – {job.Reason}");
             
             var evaluation = await services.GetRequiredService<EvaluateJobs>()
                 .ExecuteAsync(analyzed.User.Id, analyzed.Profile, ct: ct);
@@ -142,6 +143,18 @@ public class Worker(
             foreach (var job in evaluation.Evaluated.OrderByDescending(j => j.Evaluation.Score))
                 logger.LogInformation("  {Score}/10  {Title} | {Company} – {Summary}",
                     job.Evaluation.Score, job.Offer.Title, job.Offer.Company, job.Evaluation.Summary);
+            
+            var letters = await services.GetRequiredService<WriteCoverLetters>()
+                .ExecuteAsync(analyzed.User.Id, analyzed.Profile, ct: ct);
+            foreach (var call in letters.Calls)
+                LogTokens("dopis", call);
+
+            logger.LogInformation("Dopisy: napsáno {Count}, čeká na další běh {Remaining}", letters.Letters.Count, letters.Remaining);
+            foreach (var l in letters.Letters)
+                logger.LogInformation("""
+                                      ── DOPIS: {Title} | {Company} ({Score}/10) ──
+                                      {Letter}
+                                      """, l.Offer.Title, l.Offer.Company, l.Match.Score, l.Letter);
             
             await journal.SucceedAsync(started.Run, recorded.Found, recorded.NewForUser.Count, ct);
         }

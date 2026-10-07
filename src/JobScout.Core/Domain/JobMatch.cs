@@ -24,6 +24,7 @@ public sealed class JobMatch
     public int ProfileVersion { get; private set; }
     public MatchStage Stage { get; private set; }
     public string? TriageReason { get; private set; }
+    public int? TriageScore { get; private set; }               // 1–5 from triage; orders the evaluation queue
     public int? Score { get; private set; }
     public string? EvaluationJson { get; private set; }         // JobEvaluation from AI
     public string? CoverLetter { get; private set; }
@@ -46,17 +47,22 @@ public sealed class JobMatch
         CreatedAt = UpdatedAt = now;
     }
 
-    public void MarkTriagedOut(string reason, DateTimeOffset now)
+    public void MarkTriagedOut(string reason, DateTimeOffset now, int? relevance = null)
     {
         Stage = MatchStage.TriagedOut;
         TriageReason = reason;
+        TriageScore = relevance;
         UpdatedAt = now;
     }
     
-    /// <summary>Passed the cheap triage – waits for the detail and the full evaluation.</summary>
-    public void Shortlist(DateTimeOffset now)
+    /// <summary>Passed the cheap triage with relevance 3–5 – waits for the detail and the full evaluation.</summary>
+    public void Shortlist(int relevance, DateTimeOffset now)
     {
+        if (relevance is < 1 or > 5)
+            throw new ArgumentOutOfRangeException(nameof(relevance), relevance, "Relevance must be 1–5.");
+
         Stage = MatchStage.Shortlisted;
+        TriageScore = relevance;
         UpdatedAt = now;
     }
 

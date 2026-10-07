@@ -40,15 +40,17 @@ public sealed partial class TriageJobsTests : IDisposable
     [GeneratedRegex(@"^(\d+)\. (.+)$", RegexOptions.Multiline)]
     private static partial Regex NumberedLine();
 
-    /// <summary>Fake AI that drops every line containing one of the markers – reads the numbered list from the prompt.</summary>
+    /// <summary>
+    /// Fake AI reading the numbered list from the prompt: lines containing a marker get relevance 1 ("Jiná profese"),
+    /// all others relevance 4.
+    /// </summary>
     private static FakeLlmClient DroppingTitlesWith(params string[] markers) => new(request =>
     {
         var decisions = NumberedLine().Matches(request.UserPrompt)
-            .Select(m => new
+            .Select(m =>
             {
-                id = m.Groups[1].Value,
-                keep = !markers.Any(x => m.Groups[2].Value.Contains(x, StringComparison.OrdinalIgnoreCase)),
-                reason = "Jiná profese",
+                var drop = markers.Any(x => m.Groups[2].Value.Contains(x, StringComparison.OrdinalIgnoreCase));
+                return new { id = m.Groups[1].Value, relevance = drop ? 1 : 4, reason = drop ? "Jiná profese" : "" };
             });
         var json = JsonSerializer.Serialize(new { decisions });
         return new LlmResponse(json, "fake-haiku", "end_turn", 500, 50);
@@ -102,6 +104,40 @@ public sealed partial class TriageJobsTests : IDisposable
         var statik = (await MatchesAsync()).Single(m => m.JobOffer!.Title.Contains("statik"));
         Assert.Equal(MatchStage.TriagedOut, statik.Stage);
         Assert.Equal("Jiná profese", statik.TriageReason);
+        Assert.Equal(1, statik.TriageScore);
+        Assert.Equal(4, (await MatchesAsync()).Single(m => m.JobOffer!.Title == "Stavbyvedoucí").TriageScore);
+    }
+
+    [Theory]
+    [InlineData(3, MatchStage.Shortlisted)]     // "maybe" stays – at the end of the evaluation queue
+    [InlineData(2, MatchStage.TriagedOut)]
+    [InlineData(5, MatchStage.Shortlisted)]
+    public async Task Relevance_decides_with_drop_at_2_and_below(int relevance, MatchStage expected)
+    {
+        Seed(_userId, "Nabídka");
+        var llm = new FakeLlmClient($$"""{ "decisions": [ { "id": "1", "relevance": {{relevance}}, "reason": "Důvod" } ] }""");
+
+        await TriageAsync(llm);
+
+        var match = Assert.Single(await MatchesAsync());
+        Assert.Equal(expected, match.Stage);
+        Assert.Equal(relevance, match.TriageScore);
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(9)]
+    [InlineData(-1)]
+    public async Task Relevance_outside_the_scale_is_treated_as_unsure(int relevance)
+    {
+        Seed(_userId, "Nabídka");
+        var llm = new FakeLlmClient($$"""{ "decisions": [ { "id": "1", "relevance": {{relevance}}, "reason": "Důvod" } ] }""");
+
+        await TriageAsync(llm);
+
+        var match = Assert.Single(await MatchesAsync());
+        Assert.Equal(MatchStage.Shortlisted, match.Stage);
+        Assert.Equal(TriageJobs.DefaultRelevance, match.TriageScore);
     }
 
     [Fact]
@@ -109,30 +145,35 @@ public sealed partial class TriageJobsTests : IDisposable
     {
         // When in doubt, keep: dropping a good job is worse than one extra evaluation
         Seed(_userId, "Stavbyvedoucí", "Projektový manažer");
-        var llm = new FakeLlmClient("""{ "decisions": [ { "id": "1", "keep": true, "reason": "" } ] }""");
+        var llm = new FakeLlmClient("""{ "decisions": [ { "id": "1", "relevance": 5, "reason": "" } ] }""");
 
         var result = await TriageAsync(llm);
 
         Assert.Equal(2, result.Kept);
         Assert.All(await MatchesAsync(), m => Assert.Equal(MatchStage.Shortlisted, m.Stage));
+        // Both were created at the same time, so which one is line 1 is not defined – check the pair of scores:
+        // the answered job keeps its 5, the missing one becomes "unsure"
+        Assert.Equal(new int?[] { TriageJobs.DefaultRelevance, 5 },
+            (await MatchesAsync()).Select(m => m.TriageScore).Order().ToArray());
     }
 
     [Fact]
     public async Task Drop_without_a_reason_is_not_trusted()
     {
         Seed(_userId, "Stavbyvedoucí");
-        var llm = new FakeLlmClient("""{ "decisions": [ { "id": "1", "keep": false, "reason": "  " } ] }""");
+        var llm = new FakeLlmClient("""{ "decisions": [ { "id": "1", "relevance": 1, "reason": "  " } ] }""");
 
         await TriageAsync(llm);
 
         Assert.Equal(MatchStage.Shortlisted, await StageOfAsync("Stavbyvedoucí"));
+        Assert.Equal(TriageJobs.DefaultRelevance, (await MatchesAsync()).Single().TriageScore);
     }
 
     [Fact]
     public async Task Unknown_ids_in_the_answer_are_ignored()
     {
         Seed(_userId, "Stavbyvedoucí");
-        var llm = new FakeLlmClient("""{ "decisions": [ { "id": "99", "keep": false, "reason": "x" }, { "id": "1", "keep": true, "reason": "" } ] }""");
+        var llm = new FakeLlmClient("""{ "decisions": [ { "id": "99", "relevance": 1, "reason": "x" }, { "id": "1", "relevance": 4, "reason": "" } ] }""");
 
         var result = await TriageAsync(llm);
 
@@ -146,7 +187,7 @@ public sealed partial class TriageJobsTests : IDisposable
     public async Task Only_jobs_in_stage_found_are_triaged()
     {
         Seed(_userId, "Nová nabídka");
-        SeedWithStage(_userId, m => m.Shortlist(T0), "Už prošla");
+        SeedWithStage(_userId, m => m.Shortlist(4, T0), "Už prošla");
         SeedWithStage(_userId, m => m.MarkTriagedOut("dřív vyřazena", T0), "Už vyřazena");
         SeedWithStage(_userId, m => m.ApplyEvaluation(8, "{}", T0), "Už ohodnocena");
         var llm = DroppingTitlesWith();
@@ -246,7 +287,7 @@ public sealed partial class TriageJobsTests : IDisposable
     public async Task Truncated_answer_fails_and_changes_nothing()
     {
         Seed(_userId, "Stavbyvedoucí");
-        var llm = new FakeLlmClient("""{ "decisions": [ { "id": "1", "ke""", stopReason: "max_tokens");
+        var llm = new FakeLlmClient("""{ "decisions": [ { "id": "1", "rel""", stopReason: "max_tokens");
 
         await Assert.ThrowsAsync<InvalidOperationException>(() => TriageAsync(llm));
 

@@ -28,7 +28,8 @@ public sealed class EvaluateJobs(IAppDbContext db, IEnumerable<IJobSource> sourc
         var shortlisted = await db.JobMatches
             .Include(m => m.JobOffer)
             .Where(m => m.UserId == userId && m.Stage == MatchStage.Shortlisted)
-            .OrderBy(m => m.CreatedAt)
+            .OrderByDescending(m => m.TriageScore)      // the per-run limit hits the best candidates first
+            .ThenBy(m => m.CreatedAt)
             .ToListAsync(ct);
 
         var sourceByName = sources.ToDictionary(s => s.Name);
