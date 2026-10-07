@@ -21,6 +21,7 @@ public static class DependencyInjection
         services.AddScoped<RecordFoundJobs>();
         services.AddScoped<ScoutRunJournal>();
         services.AddScoped<TriageJobs>();
+        services.AddScoped<EvaluateJobs>();
         return services;
     }
 }

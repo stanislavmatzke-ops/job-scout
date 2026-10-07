@@ -130,6 +130,19 @@ public class Worker(
                 logger.LogInformation("  {Mark} {Title} | {Company}{Reason}",
                     job.Keep ? "✔" : "✘", job.Offer.Title, job.Offer.Company, job.Keep ? "" : $" – {job.Reason}");
             
+            var evaluation = await services.GetRequiredService<EvaluateJobs>()
+                .ExecuteAsync(analyzed.User.Id, analyzed.Profile, ct: ct);
+            foreach (var call in evaluation.Calls)
+                LogTokens("hodnocení", call);
+
+            logger.LogInformation(
+                "Hodnocení: ohodnoceno {Evaluated}, staženo detailů {Details}, nedostupných {Unavailable}, čeká na další běh {Remaining}",
+                evaluation.Evaluated.Count, evaluation.DetailsFetched, evaluation.Unavailable, evaluation.Remaining);
+
+            foreach (var job in evaluation.Evaluated.OrderByDescending(j => j.Evaluation.Score))
+                logger.LogInformation("  {Score}/10  {Title} | {Company} – {Summary}",
+                    job.Evaluation.Score, job.Offer.Title, job.Offer.Company, job.Evaluation.Summary);
+            
             await journal.SucceedAsync(started.Run, recorded.Found, recorded.NewForUser.Count, ct);
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
