@@ -19,6 +19,9 @@ Format: lightweight version of [Michael Nygard's ADR](https://cognitect.com/blog
 | [0009](0009-ids-and-time.md) | Guid v7 identifiers, time passed in as a parameter | Accepted |
 | [0010](0010-rich-domain-model.md) | Rich domain model; status history without a strict state machine | Accepted |
 | [0011](0011-authentication-bff.md) | Authentication: BFF with Microsoft/Google OIDC, invite-only | Proposed |
+| [0012](0012-multiple-sources-search-intent.md) | Multiple job sources: source-agnostic search intent, per-source search plans | Proposed |
+| [0013](0013-manual-job-ads-private.md) | Manually added job ads are private to the user | Proposed |
+| [0014](0014-dev-sign-in-test-personas.md) | Dev sign-in and test personas; the app is not IT-only | Proposed |
 
 ## Template
 
