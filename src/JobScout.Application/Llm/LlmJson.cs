@@ -21,6 +21,10 @@ public static class LlmJson
         return JsonSerializer.Deserialize<T>(response.Text, Options)
                ?? throw new InvalidOperationException($"Prázdná odpověď pro {typeof(T).Name}.");
     }
+    
+    public static T Deserialize<T>(string json) =>
+        JsonSerializer.Deserialize<T>(json, Options)
+        ?? throw new InvalidOperationException($"Prázdný JSON pro {typeof(T).Name}.");
 
     public static string Serialize<T>(T value) => JsonSerializer.Serialize(value, Options);
 }

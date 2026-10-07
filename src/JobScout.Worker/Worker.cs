@@ -11,7 +11,7 @@ namespace JobScout.Worker;
 /// Data folder layout: cv.pdf | cv.md, preferences.md (optional), jobs/*.md
 /// </summary>
 public class Worker(
-    ProfileExtractor profileExtractor,
+    IServiceScopeFactory scopeFactory,
     JobEvaluator evaluator,
     IJobSource jobSource,
     IConfiguration config,
@@ -26,10 +26,12 @@ public class Worker(
     {
         try
         {
-            var dataDir = ResolveDataDir();
+            // Until SSO (phase 5): identity "dev" + persona name, or the data folder name ("samples" / "private")
+            var persona = config["Scout:Persona"];
+            var dataDir = ResolveDataDir(persona);
+            var subject = persona ?? Path.GetFileName(dataDir);
 
-            // 1) CV + notes → structured profile (in the app: once per CV upload, not per job)
-            var cv = await LoadCvAsync(dataDir, stoppingToken);
+            var (cv, cvFileName) = await LoadCvAsync(dataDir, stoppingToken);
             var notes = await ReadOptionalAsync(Path.Combine(dataDir, "preferences.md"), stoppingToken);
 
             if (config["Scout:Mode"] == "search")
@@ -53,18 +55,34 @@ public class Worker(
                 return;
             }
             
-            var extraction = await profileExtractor.ExtractAsync(cv, notes, stoppingToken);
-            LogProfile(extraction.Profile);
-            LogTokens("profil", extraction.Response);
+            await using var scope = scopeFactory.CreateAsyncScope();
+            var analyzeProfile = scope.ServiceProvider.GetRequiredService<AnalyzeProfile>();
+
+            var analyzed = await analyzeProfile.ExecuteAsync(
+                new ProfileInput("dev", subject, subject, cvFileName, cv, notes), stoppingToken);
+
+            if (analyzed.IsNew)
+            {
+                logger.LogInformation("Nová verze profilu v{Version} pro dev:{Subject}", analyzed.Version.Version, subject);
+                LogTokens("profil", analyzed.Response!);
+            }
+            else
+                logger.LogInformation("Profil beze změny (v{Version}, dev:{Subject}) – AI se nevolala, 0 tokenů",
+                    analyzed.Version.Version, subject);
+
+            LogProfile(analyzed.Profile);
 
             // 2) each job vs. the profile
-            var jobFiles = Directory.GetFiles(Path.Combine(dataDir, "jobs"), "*.md").Order().ToList();
+            var jobsDir = Path.Combine(dataDir, "jobs");
+            var jobFiles = Directory.Exists(jobsDir)
+                ? Directory.GetFiles(jobsDir, "*.md").Order().ToList()
+                : [];
             logger.LogInformation("Nabídek k hodnocení: {Count}", jobFiles.Count);
 
             foreach (var jobFile in jobFiles)
             {
                 var jobText = await File.ReadAllTextAsync(jobFile, stoppingToken);
-                var result = await evaluator.EvaluateAsync(extraction.Profile, jobText, stoppingToken);
+                var result = await evaluator.EvaluateAsync(analyzed.Profile, jobText, stoppingToken);
 
                 LogEvaluation(Path.GetFileName(jobFile), result.Evaluation);
                 LogTokens(Path.GetFileName(jobFile), result.Response);
@@ -84,9 +102,11 @@ public class Worker(
     }
 
     // Relative path = inside the project (samples in the repo); absolute path = own data outside the repo
-    private string ResolveDataDir()
+    private string ResolveDataDir(string? persona)
     {
-        var configured = config["Scout:DataDir"] ?? "samples";
+        var configured = persona is null
+            ? config["Scout:DataDir"] ?? "samples"
+            : Path.Combine("samples", "personas", persona);
         var path = Path.GetFullPath(Path.Combine(env.ContentRootPath, configured));
         var source = Path.IsPathRooted(configured) ? "PRIVATE (vlastní data mimo repo)" : "SAMPLE (ukázková data z repa)";
 
@@ -97,7 +117,7 @@ public class Worker(
             : throw new DirectoryNotFoundException($"Složka s daty neexistuje: {path}");
     }
 
-    private async Task<LlmDocument> LoadCvAsync(string dataDir, CancellationToken ct)
+    private async Task<(LlmDocument Cv, string FileName)> LoadCvAsync(string dataDir, CancellationToken ct)
     {
         var pdf = Path.Combine(dataDir, "cv.pdf");
         var md = Path.Combine(dataDir, "cv.md");
@@ -109,7 +129,7 @@ public class Worker(
         var content = await File.ReadAllBytesAsync(path, ct);
         logger.LogInformation("CV: {File} ({MediaType}, {Kb} kB)", Path.GetFileName(path), mediaType, content.Length / 1024);
 
-        return new LlmDocument("CV", mediaType, content);
+        return (new LlmDocument("CV", mediaType, content), Path.GetFileName(path));
     }
 
     private async Task<string?> ReadOptionalAsync(string path, CancellationToken ct)

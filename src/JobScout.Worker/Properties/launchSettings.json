@@ -23,6 +23,20 @@
       "environmentVariables": {
         "DOTNET_ENVIRONMENT": "Development"
       }
+    },
+    "JobScout.Worker (persona autolakyrnik)": {
+      "commandName": "Project",
+      "commandLineArgs": "--Scout:Persona=autolakyrnik",
+      "environmentVariables": {
+        "DOTNET_ENVIRONMENT": "Development"
+      }
+    },
+    "JobScout.Worker (persona zednik)": {
+      "commandName": "Project",
+      "commandLineArgs": "--Scout:Persona=zednik",
+      "environmentVariables": {
+        "DOTNET_ENVIRONMENT": "Development"
+      }
     }
   }
 }

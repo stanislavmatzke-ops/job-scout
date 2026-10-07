@@ -9,7 +9,6 @@ builder.Logging.AddSimpleConsole(o => o.TimestampFormat = "HH:mm:ss ");
 builder.Services.AddHostedService<Worker>();
 builder.Services.AddInfrastructure(builder.Configuration);
 builder.Services.AddApplication();
-builder.Services.AddInfrastructure(builder.Configuration);
 
 var host = builder.Build();
 
