@@ -1,6 +1,6 @@
 # ADR-0003: Layering – Domain / Application / Infrastructure / hosts
 
-- Status: Accepted (restructuring in phase 3.0)
+- Status: Accepted (restructuring done in phase 3.0, 2026-10-07)
 - Date: 2026-10-07
 
 ## Context
@@ -33,3 +33,7 @@ Use cases access data through `IAppDbContext` (DbSets + `SaveChangesAsync`), imp
 - Worker and API stay thin; a use case is written and tested once.
 - Application depends on EF Core abstractions – accepted trade-off (see ADR-0008).
 - AI prompt engineering is application logic and is unit-testable with a fake `ILlmClient`.
+- **Enforced by architecture tests** (`tests/JobScout.Tests/Architecture/ArchitectureTests.cs`), run on every build:
+  Core references nothing but the runtime; Application references no adapters, database providers or vendor SDKs;
+  Infrastructure references no hosts; domain entities have no public setters and a non-public parameterless
+  constructor; every entity has an EF configuration; entity keys are never database-generated.
