@@ -44,4 +44,14 @@ public sealed class UserProfile
         var notesBytes = Encoding.UTF8.GetBytes(notes?.Trim() ?? "");
         return Convert.ToHexString(SHA256.HashData([.. cv, .. notesBytes]));
     }
+    
+    /// <summary>
+    /// Fingerprint of the input: same CV bytes + same notes + same analysis version = no new AI analysis.
+    /// The version (prompt/schema) makes stored profiles re-analyse automatically after a prompt change.
+    /// </summary>
+    public static string ComputeInputHash(byte[] cv, string? notes, int analysisVersion)
+    {
+        var tail = Encoding.UTF8.GetBytes($"{notes?.Trim()}\n#analysis-v{analysisVersion}");
+        return Convert.ToHexString(SHA256.HashData([.. cv, .. tail]));
+    }
 }

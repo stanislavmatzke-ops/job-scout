@@ -147,23 +147,29 @@ public class Worker(
     private void LogProfile(CandidateProfile p)
     {
         var pref = p.Preferences;
+        var s = p.Search;
         logger.LogInformation("""
-            ── PROFIL ──
-            {Headline}
-            Praxe: {Years} let, {Seniority}
-            Cílové role: {Roles}
-            Hlavní stack: {Core}
-            Další: {Other}
-            Obory: {Domains} | Jazyky: {Languages}
-            Preference: HO {Remote} (přijatelné: {Acceptable}), forma {Types}, min. mzda {Salary} Kč, lokality: {Locations}
-            Priority: {Priorities}
-            Vyhnout se: {Avoid}
-            """,
+                              ── PROFIL ──
+                              {Headline}
+                              Praxe: {Years} let, {Seniority}
+                              Cílové role: {Roles}
+                              Hlavní dovednosti: {Core}
+                              Další: {Other}
+                              Obory: {Domains} | Jazyky: {Languages}
+                              Preference: HO {Remote} (přijatelné: {Acceptable}), forma {Types}, min. mzda {Salary} Kč
+                              Priority: {Priorities}
+                              Vyhnout se: {Avoid}
+                              Hledat: {Professions} | zúžit: {Keywords}
+                              Kde: {Home} + {Radius} km, navíc: {Extra}
+                              """,
             p.Headline, p.YearsOfExperience, p.Seniority,
             string.Join(", ", p.TargetRoles), string.Join(", ", p.CoreSkills), string.Join(", ", p.OtherSkills),
             string.Join(", ", p.Domains), string.Join(", ", p.Languages),
-            pref.RemoteWork, string.Join("/", pref.AcceptableRemoteWork), string.Join("/", pref.EmploymentTypes), pref.MinMonthlySalaryCzk, string.Join(", ", pref.Locations),
-            string.Join(" > ", pref.Priorities), string.Join(", ", pref.Avoid));
+            pref.RemoteWork, string.Join("/", pref.AcceptableRemoteWork), string.Join("/", pref.EmploymentTypes), pref.MinMonthlySalaryCzk,
+            string.Join(" > ", pref.Priorities), string.Join(", ", pref.Avoid),
+            string.Join(", ", s.Professions), string.Join(", ", s.Keywords),
+            string.IsNullOrEmpty(s.HomeLocation) ? "neuvedeno" : s.HomeLocation, s.CommuteRadiusKm,
+            s.ExtraLocations.Count == 0 ? "–" : string.Join(", ", s.ExtraLocations));
     }
 
     private void LogEvaluation(string file, JobEvaluation e)

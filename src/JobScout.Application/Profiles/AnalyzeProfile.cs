@@ -34,7 +34,7 @@ public sealed class AnalyzeProfile(IAppDbContext db, ProfileExtractor extractor,
             db.Users.Add(user);
         }
 
-        var hash = UserProfile.ComputeInputHash(input.Cv.Content, input.Notes);
+        var hash = UserProfile.ComputeInputHash(input.Cv.Content, input.Notes, ProfilePrompts.Version);
         var latest = await db.UserProfiles
             .Where(p => p.UserId == user.Id)
             .OrderByDescending(p => p.Version)

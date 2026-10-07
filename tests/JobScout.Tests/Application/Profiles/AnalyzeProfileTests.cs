@@ -18,7 +18,6 @@ public sealed class AnalyzeProfileTests : IDisposable
           "yearsOfExperience": 12,
           "seniority": "senior",
           "targetRoles": ["autolakýrník", "vedoucí lakovny"],
-          "searchKeywords": ["autolakýrník"],
           "coreSkills": ["lakování", "míchání barev"],
           "otherSkills": ["smart repair"],
           "domains": ["autoservis"],
@@ -28,9 +27,15 @@ public sealed class AnalyzeProfileTests : IDisposable
             "acceptableRemoteWork": ["onsite"],
             "employmentTypes": ["employee"],
             "minMonthlySalaryCzk": 42000,
-            "locations": ["Kolín"],
             "priorities": ["ranní směny"],
             "avoid": ["noční směny"]
+          },
+          "search": {
+            "professions": ["autolakýrník", "lakýrník automobilů", "vedoucí lakovny"],
+            "keywords": ["Standox"],
+            "homeLocation": "Kolín",
+            "commuteRadiusKm": 30,
+            "extraLocations": []
           }
         }
         """;
@@ -125,6 +130,8 @@ public sealed class AnalyzeProfileTests : IDisposable
         Assert.Equal(LlmJson.Serialize(first.Profile), LlmJson.Serialize(second.Profile));
         Assert.Equal(42000, second.Profile.Preferences.MinMonthlySalaryCzk);
         Assert.Equal(Seniority.Senior, second.Profile.Seniority);
+        Assert.Equal("Kolín", second.Profile.Search.HomeLocation);
+        Assert.Equal(30, second.Profile.Search.CommuteRadiusKm);
     }
 
     [Fact]
@@ -246,5 +253,5 @@ public sealed class AnalyzeProfileTests : IDisposable
     }
 
     private static string Profile_hash(ProfileInput input) =>
-        JobScout.Core.Domain.UserProfile.ComputeInputHash(input.Cv.Content, input.Notes);
+        JobScout.Core.Domain.UserProfile.ComputeInputHash(input.Cv.Content, input.Notes, ProfilePrompts.Version);
 }
