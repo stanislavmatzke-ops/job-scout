@@ -17,6 +17,7 @@ public static class DependencyInjection
         services.AddScoped<CategoryResolver>();
         services.AddSingleton<CategorySuggester>();
         services.AddScoped<PlanSearch>();
+        services.AddScoped<RecordFoundJobs>();
         return services;
     }
 }

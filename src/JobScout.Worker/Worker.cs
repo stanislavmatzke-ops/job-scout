@@ -62,9 +62,14 @@ public class Worker(
 
                 var searches = planned.Plan.For(jobSource.Name);
                 var unique = new Dictionary<string, JobListing>();
+                
+                var recordFoundJobs = scope.ServiceProvider.GetRequiredService<RecordFoundJobs>();
+                var window = await recordFoundJobs.SearchWindowAsync(analyzed.User.Id, stoppingToken);
+                logger.LogInformation("Okno hledání: {Window}", window == JobSearch.JobAge.Day ? "posledních 24 h" : "poslední 3 dny (první běh)");
+                
                 foreach (var s in searches)
                 {
-                    var found = await jobSource.SearchAsync(s.ToQuery(JobSearch.JobAge.ThreeDays), maxPages: 5, stoppingToken);
+                    var found = await jobSource.SearchAsync(s.ToQuery(window), maxPages: 5, stoppingToken);
                     var added = found.Count(l => unique.TryAdd(l.ExternalId, l));
                     logger.LogInformation("  {What} @ {Where}: {Found} nalezeno, {Added} nových",
                         s.Category ?? $"text \"{s.Keywords}\"",
@@ -75,6 +80,17 @@ public class Worker(
                 logger.LogInformation("Celkem unikátních nabídek: {Count}", unique.Count);
                 foreach (var l in unique.Values)
                     logger.LogInformation("{Id} | {Title} | {Company} | {Location}", l.ExternalId, l.Title, l.Company, l.Location);
+                
+                var recorded = await recordFoundJobs.ExecuteAsync(
+                    analyzed.User.Id, analyzed.Version.Version, unique.Values.ToList(), stoppingToken);
+
+                logger.LogInformation(
+                    "Nalezeno {Found} nabídek: NOVÝCH pro dev:{Subject} {New}, už viděných {Seen} (nových v DB celkem {NewOffers})",
+                    recorded.Found, subject, recorded.NewForUser.Count, recorded.AlreadySeen, recorded.NewOffers);
+
+                foreach (var job in recorded.NewForUser)
+                    logger.LogInformation("  NOVÁ {Id} | {Title} | {Company} | {Location}",
+                        job.Offer.ExternalId, job.Offer.Title, job.Offer.Company, job.Offer.Location);
 
                 logger.LogInformation("Celkem tokenů: in={In}, out={Out}", _inputTokens, _outputTokens);
                 return;
