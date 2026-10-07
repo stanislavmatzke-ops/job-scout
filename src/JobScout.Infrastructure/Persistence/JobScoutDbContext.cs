@@ -11,6 +11,7 @@ public sealed class JobScoutDbContext(DbContextOptions<JobScoutDbContext> option
     public DbSet<UserProfile> UserProfiles => Set<UserProfile>();
     public DbSet<JobOffer> JobOffers => Set<JobOffer>();
     public DbSet<JobMatch> JobMatches => Set<JobMatch>();
+    public DbSet<SourceCategory> SourceCategories => Set<SourceCategory>(); 
 
     // Picks up every IEntityTypeConfiguration<T> in this assembly (Persistence/Configurations)
     protected override void OnModelCreating(ModelBuilder modelBuilder) =>

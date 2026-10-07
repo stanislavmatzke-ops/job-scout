@@ -169,6 +169,41 @@ namespace JobScout.Infrastructure.Persistence.Migrations
                     b.ToTable("JobOffers");
                 });
 
+            modelBuilder.Entity("JobScout.Core.Domain.SourceCategory", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("CategoryId")
+                        .HasMaxLength(200)
+                        .HasColumnType("TEXT");
+
+                    b.Property<long>("CheckedAt")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Key")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Label")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Source")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Source", "Key")
+                        .IsUnique();
+
+                    b.ToTable("SourceCategories");
+                });
+
             modelBuilder.Entity("JobScout.Core.Domain.User", b =>
                 {
                     b.Property<Guid>("Id")

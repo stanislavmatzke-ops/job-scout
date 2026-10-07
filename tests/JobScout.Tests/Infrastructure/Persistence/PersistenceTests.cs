@@ -243,4 +243,40 @@ public sealed class PersistenceTests : IDisposable
 
         Assert.Throws<DbUpdateException>(() => db.SaveChanges());
     }
+
+    // ---------- Learned catalogue (ADR-0015) ----------
+
+    [Fact]
+    public void Source_category_is_unique_per_source_and_key()
+    {
+        using (var db = _db.CreateContext())
+        {
+            db.SourceCategories.Add(new SourceCategory("jobs.cz", "Lakýrník", "lakyrnik", T0));
+            db.SaveChanges();
+        }
+
+        using var db2 = _db.CreateContext();
+        db2.SourceCategories.Add(new SourceCategory("jobs.cz", "lakýrník", "lakyrnik", T0));   // same key, other spelling
+
+        Assert.Throws<DbUpdateException>(() => db2.SaveChanges());
+    }
+
+    [Fact]
+    public void Same_key_on_another_source_is_allowed_and_negative_answer_roundtrips()
+    {
+        using (var db = _db.CreateContext())
+        {
+            db.SourceCategories.Add(new SourceCategory("jobs.cz", "Autolakýrník", null, T0));
+            db.SourceCategories.Add(new SourceCategory("prace.cz", "Autolakýrník", "autolakyrnik", T0));
+            db.SaveChanges();
+        }
+
+        using var read = _db.CreateContext();
+        var jobsCz = read.SourceCategories.Single(c => c.Source == "jobs.cz");
+
+        Assert.False(jobsCz.Exists);
+        Assert.Null(jobsCz.CategoryId);
+        Assert.Equal(T0, jobsCz.CheckedAt);
+        Assert.Equal(2, read.SourceCategories.Count());
+    }
 }

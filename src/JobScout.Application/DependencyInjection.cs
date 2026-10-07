@@ -1,4 +1,5 @@
 ﻿using JobScout.Application.Evaluation;
+using JobScout.Application.Jobs;
 using JobScout.Application.Profiles;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -13,6 +14,7 @@ public static class DependencyInjection
         services.AddSingleton<JobEvaluator>();
         services.TryAddSingleton(TimeProvider.System);
         services.AddScoped<AnalyzeProfile>();
+        services.AddScoped<CategoryResolver>();
         return services;
     }
 }

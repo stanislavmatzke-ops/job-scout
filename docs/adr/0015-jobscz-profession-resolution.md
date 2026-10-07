@@ -23,6 +23,13 @@
   `IJobSource.ResolveCategoryAsync(label)`.
 - Verification runs only when a profile version gets its search plan; the verified plan is stored with the
   profile (`UserProfile.SearchPlanJson`), so the daily run makes no extra requests.
+- **Learned catalogue (revised 7 Oct, before implementation):** every verification result is stored in a shared
+  table `SourceCategories` (Source, Slug, Label, Exists, CheckedAt) – positive *and* negative. Next time any user
+  needs the same profession on the same source, the stored answer is used (no request, no guessing). Results are
+  re-checked after a while (e.g. 90 days) because portals add and remove professions.
+- The AI is given the already **verified categories of that source** and must prefer them – so "Lakýrník" is always
+  mapped to `lakyrnik` the same way, instead of a slightly different guess every time. The catalogue grows from
+  public pages only, one profession at a time.
 - Professions with no verified category fall back to a free-text query (`q[]`) – nothing is silently dropped.
 - Search uses the home location + commute radius (`locality[radius]`) from the search intent.
 - The small verified IT list (`JobsCzCatalog`) stays as known categories (no request needed) and as examples
@@ -34,7 +41,8 @@
 - **Free text only** – measured recall is an order of magnitude lower.
 
 ## Consequences
-- A few extra polite requests per new profile version (≈ 5–15), none per day.
+- A few extra polite requests per new profile version (≈ 5–15), fewer over time as the learned catalogue grows;
+  none per day.
 - A label that happens to match a location slug (e.g. a town name) would resolve as a category – professions
   from the AI are job titles, so accepted; can be detected later by the page title if needed.
 - If jobs.cz changes its slug scheme, verification starts returning 404 and the plan falls back to free text

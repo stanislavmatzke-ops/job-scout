@@ -13,6 +13,7 @@ public interface IAppDbContext
     DbSet<UserProfile> UserProfiles { get; }
     DbSet<JobOffer> JobOffers { get; }
     DbSet<JobMatch> JobMatches { get; }
+    DbSet<SourceCategory> SourceCategories { get; } 
 
     Task<int> SaveChangesAsync(CancellationToken ct = default);
 }
