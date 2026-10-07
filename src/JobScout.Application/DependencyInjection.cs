@@ -18,6 +18,7 @@ public static class DependencyInjection
         services.AddSingleton<CategorySuggester>();
         services.AddScoped<PlanSearch>();
         services.AddScoped<RecordFoundJobs>();
+        services.AddScoped<ScoutRunJournal>();
         return services;
     }
 }

@@ -66,10 +66,4 @@ public sealed class RecordFoundJobs(IAppDbContext db, TimeProvider time)
 
         return new RecordFoundJobsResult(unique.Count, newOffers, unique.Count - fresh.Count, fresh);
     }
-
-    /// <summary>First run for a user: last 3 days; afterwards only the last day (the morning run).</summary>
-    public async Task<JobSearch.JobAge> SearchWindowAsync(Guid userId, CancellationToken ct = default) =>
-        await db.JobMatches.AnyAsync(m => m.UserId == userId, ct)
-            ? JobSearch.JobAge.Day
-            : JobSearch.JobAge.ThreeDays;
 }

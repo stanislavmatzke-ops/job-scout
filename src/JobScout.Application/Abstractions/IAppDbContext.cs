@@ -14,6 +14,7 @@ public interface IAppDbContext
     DbSet<JobOffer> JobOffers { get; }
     DbSet<JobMatch> JobMatches { get; }
     DbSet<SourceCategory> SourceCategories { get; } 
+    DbSet<ScoutRun> ScoutRuns { get; } 
 
     Task<int> SaveChangesAsync(CancellationToken ct = default);
 }

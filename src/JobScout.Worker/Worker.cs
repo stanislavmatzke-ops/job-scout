@@ -1,14 +1,16 @@
 using JobScout.Application.Evaluation;
 using JobScout.Application.Jobs;
-using JobScout.Core.Jobs;
 using JobScout.Application.Llm;
 using JobScout.Application.Profiles;
+using JobScout.Core.Jobs;
 
 namespace JobScout.Worker;
 
 /// <summary>
-/// One-shot run: CV + notes → profile, then every job in the data folder → evaluation.
-/// Data folder layout: cv.pdf | cv.md, preferences.md (optional), jobs/*.md
+/// One-shot run for one user (a persona or the data folder):
+/// CV + notes → profile (only when changed), then either
+///  - Scout:Mode=search → search plan → search → store, list only new jobs, or
+///  - default → evaluate the sample job ads in the data folder (jobs/*.md).
 /// </summary>
 public class Worker(
     IServiceScopeFactory scopeFactory,
@@ -33,7 +35,7 @@ public class Worker(
 
             var (cv, cvFileName) = await LoadCvAsync(dataDir, stoppingToken);
             var notes = await ReadOptionalAsync(Path.Combine(dataDir, "preferences.md"), stoppingToken);
-            
+
             await using var scope = scopeFactory.CreateAsyncScope();
             var analyzeProfile = scope.ServiceProvider.GetRequiredService<AnalyzeProfile>();
 
@@ -50,67 +52,11 @@ public class Worker(
                     analyzed.Version.Version, subject);
 
             LogProfile(analyzed.Profile);
-            
+
             if (config["Scout:Mode"] == "search")
-            {
-                var planSearch = scope.ServiceProvider.GetRequiredService<PlanSearch>();
-                var planned = await planSearch.ExecuteAsync(analyzed.Version, analyzed.Profile, stoppingToken);
-
-                logger.LogInformation(planned.IsNew ? "Nový plán hledání" : "Plán hledání z DB – AI ani ověřování se nevolaly");
-                foreach (var call in planned.Calls)
-                    LogTokens("plán hledání", call);
-
-                var searches = planned.Plan.For(jobSource.Name);
-                var unique = new Dictionary<string, JobListing>();
-                
-                var recordFoundJobs = scope.ServiceProvider.GetRequiredService<RecordFoundJobs>();
-                var window = await recordFoundJobs.SearchWindowAsync(analyzed.User.Id, stoppingToken);
-                logger.LogInformation("Okno hledání: {Window}", window == JobSearch.JobAge.Day ? "posledních 24 h" : "poslední 3 dny (první běh)");
-                
-                foreach (var s in searches)
-                {
-                    var found = await jobSource.SearchAsync(s.ToQuery(window), maxPages: 5, stoppingToken);
-                    var added = found.Count(l => unique.TryAdd(l.ExternalId, l));
-                    logger.LogInformation("  {What} @ {Where}: {Found} nalezeno, {Added} nových",
-                        s.Category ?? $"text \"{s.Keywords}\"",
-                        s.Location is null ? "celá ČR" : $"{s.Location} + {s.RadiusKm} km",
-                        found.Count, added);
-                }
-
-                logger.LogInformation("Celkem unikátních nabídek: {Count}", unique.Count);
-                foreach (var l in unique.Values)
-                    logger.LogInformation("{Id} | {Title} | {Company} | {Location}", l.ExternalId, l.Title, l.Company, l.Location);
-                
-                var recorded = await recordFoundJobs.ExecuteAsync(
-                    analyzed.User.Id, analyzed.Version.Version, unique.Values.ToList(), stoppingToken);
-
-                logger.LogInformation(
-                    "Nalezeno {Found} nabídek: NOVÝCH pro dev:{Subject} {New}, už viděných {Seen} (nových v DB celkem {NewOffers})",
-                    recorded.Found, subject, recorded.NewForUser.Count, recorded.AlreadySeen, recorded.NewOffers);
-
-                foreach (var job in recorded.NewForUser)
-                    logger.LogInformation("  NOVÁ {Id} | {Title} | {Company} | {Location}",
-                        job.Offer.ExternalId, job.Offer.Title, job.Offer.Company, job.Offer.Location);
-
-                logger.LogInformation("Celkem tokenů: in={In}, out={Out}", _inputTokens, _outputTokens);
-                return;
-            }
-
-            // 2) each job vs. the profile
-            var jobsDir = Path.Combine(dataDir, "jobs");
-            var jobFiles = Directory.Exists(jobsDir)
-                ? Directory.GetFiles(jobsDir, "*.md").Order().ToList()
-                : [];
-            logger.LogInformation("Nabídek k hodnocení: {Count}", jobFiles.Count);
-
-            foreach (var jobFile in jobFiles)
-            {
-                var jobText = await File.ReadAllTextAsync(jobFile, stoppingToken);
-                var result = await evaluator.EvaluateAsync(analyzed.Profile, jobText, stoppingToken);
-
-                LogEvaluation(Path.GetFileName(jobFile), result.Evaluation);
-                LogTokens(Path.GetFileName(jobFile), result.Response);
-            }
+                await SearchAsync(scope.ServiceProvider, analyzed, subject, stoppingToken);
+            else
+                await EvaluateSamplesAsync(dataDir, analyzed.Profile, stoppingToken);
 
             logger.LogInformation("Celkem tokenů: in={In}, out={Out}", _inputTokens, _outputTokens);
         }
@@ -127,6 +73,78 @@ public class Worker(
         finally
         {
             lifetime.StopApplication();
+        }
+    }
+
+    /// <summary>Search plan → run journal → search → store → list only the jobs new for this user.</summary>
+    private async Task SearchAsync(IServiceProvider services, AnalyzedProfile analyzed, string subject, CancellationToken ct)
+    {
+        var planSearch = services.GetRequiredService<PlanSearch>();
+        var planned = await planSearch.ExecuteAsync(analyzed.Version, analyzed.Profile, ct);
+
+        logger.LogInformation(planned.IsNew ? "Nový plán hledání" : "Plán hledání z DB – AI ani ověřování se nevolaly");
+        foreach (var call in planned.Calls)
+            LogTokens("plán hledání", call);
+
+        var journal = services.GetRequiredService<ScoutRunJournal>();
+        var recordFoundJobs = services.GetRequiredService<RecordFoundJobs>();
+
+        var started = await journal.StartAsync(analyzed.User.Id, ct);
+        var window = started.Window.MaxAge;
+        logger.LogInformation("Okno hledání: {Window}", window == JobSearch.JobAge.Day ? "posledních 24 h" : "poslední 3 dny");
+        if (started.Window.HasGap)
+            logger.LogWarning("Poslední úspěšný běh je starší než 3 dny – část inzerátů mohla uniknout");
+
+        try
+        {
+            var unique = new Dictionary<string, JobListing>();
+            foreach (var s in planned.Plan.For(jobSource.Name))
+            {
+                var found = await jobSource.SearchAsync(s.ToQuery(window), maxPages: 5, ct);
+                var added = found.Count(l => unique.TryAdd(l.ExternalId, l));
+                logger.LogInformation("  {What} @ {Where}: {Found} nalezeno, {Added} nových v tomto běhu",
+                    s.Category ?? $"text \"{s.Keywords}\"",
+                    s.Location is null ? "celá ČR" : $"{s.Location} + {s.RadiusKm} km",
+                    found.Count, added);
+            }
+
+            var recorded = await recordFoundJobs.ExecuteAsync(
+                analyzed.User.Id, analyzed.Version.Version, unique.Values.ToList(), ct);
+
+            logger.LogInformation(
+                "Nalezeno {Found} nabídek: NOVÝCH pro dev:{Subject} {New}, už viděných {Seen} (nových v DB celkem {NewOffers})",
+                recorded.Found, subject, recorded.NewForUser.Count, recorded.AlreadySeen, recorded.NewOffers);
+
+            foreach (var job in recorded.NewForUser)
+                logger.LogInformation("  NOVÁ {Id} | {Title} | {Company} | {Location}",
+                    job.Offer.ExternalId, job.Offer.Title, job.Offer.Company, job.Offer.Location);
+
+            await journal.SucceedAsync(started.Run, recorded.Found, recorded.NewForUser.Count, ct);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            // Record the failure even while everything is being cancelled, then let the run fail
+            await journal.FailAsync(started.Run, ex, CancellationToken.None);
+            throw;
+        }
+    }
+
+    /// <summary>Default mode: evaluate the sample job ads from the data folder (jobs/*.md) against the profile.</summary>
+    private async Task EvaluateSamplesAsync(string dataDir, CandidateProfile profile, CancellationToken ct)
+    {
+        var jobsDir = Path.Combine(dataDir, "jobs");
+        var jobFiles = Directory.Exists(jobsDir)
+            ? Directory.GetFiles(jobsDir, "*.md").Order().ToList()
+            : [];
+        logger.LogInformation("Nabídek k hodnocení: {Count}", jobFiles.Count);
+
+        foreach (var jobFile in jobFiles)
+        {
+            var jobText = await File.ReadAllTextAsync(jobFile, ct);
+            var result = await evaluator.EvaluateAsync(profile, jobText, ct);
+
+            LogEvaluation(Path.GetFileName(jobFile), result.Evaluation);
+            LogTokens(Path.GetFileName(jobFile), result.Response);
         }
     }
 
@@ -178,19 +196,19 @@ public class Worker(
         var pref = p.Preferences;
         var s = p.Search;
         logger.LogInformation("""
-                              ── PROFIL ──
-                              {Headline}
-                              Praxe: {Years} let, {Seniority}
-                              Cílové role: {Roles}
-                              Hlavní dovednosti: {Core}
-                              Další: {Other}
-                              Obory: {Domains} | Jazyky: {Languages}
-                              Preference: HO {Remote} (přijatelné: {Acceptable}), forma {Types}, min. mzda {Salary} Kč
-                              Priority: {Priorities}
-                              Vyhnout se: {Avoid}
-                              Hledat: {Professions} | zúžit: {Keywords}
-                              Kde: {Home} + {Radius} km, navíc: {Extra}
-                              """,
+            ── PROFIL ──
+            {Headline}
+            Praxe: {Years} let, {Seniority}
+            Cílové role: {Roles}
+            Hlavní dovednosti: {Core}
+            Další: {Other}
+            Obory: {Domains} | Jazyky: {Languages}
+            Preference: HO {Remote} (přijatelné: {Acceptable}), forma {Types}, min. mzda {Salary} Kč
+            Priority: {Priorities}
+            Vyhnout se: {Avoid}
+            Hledat: {Professions} | zúžit: {Keywords}
+            Kde: {Home} + {Radius} km, navíc: {Extra}
+            """,
             p.Headline, p.YearsOfExperience, p.Seniority,
             string.Join(", ", p.TargetRoles), string.Join(", ", p.CoreSkills), string.Join(", ", p.OtherSkills),
             string.Join(", ", p.Domains), string.Join(", ", p.Languages),

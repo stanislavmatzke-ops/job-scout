@@ -187,27 +187,4 @@ public sealed class RecordFoundJobsTests : IDisposable
         Assert.Empty(result.NewForUser);
         Assert.Equal(0, Count("JobOffers"));
     }
-
-    // ---------- Search window ----------
-
-    [Fact]
-    public async Task User_without_history_gets_the_first_run_window()
-    {
-        await using var db = _database.CreateContext();
-        var useCase = new RecordFoundJobs(db, _time);
-
-        Assert.Equal(JobSearch.JobAge.ThreeDays, await useCase.SearchWindowAsync(_painter));
-    }
-
-    [Fact]
-    public async Task User_with_history_gets_only_the_last_day()
-    {
-        await RecordAsync(_painter, Listing("2001000001"));
-
-        await using var db = _database.CreateContext();
-        var useCase = new RecordFoundJobs(db, _time);
-
-        Assert.Equal(JobSearch.JobAge.Day, await useCase.SearchWindowAsync(_painter));
-        Assert.Equal(JobSearch.JobAge.ThreeDays, await useCase.SearchWindowAsync(_bricklayer));   // per user
-    }
 }

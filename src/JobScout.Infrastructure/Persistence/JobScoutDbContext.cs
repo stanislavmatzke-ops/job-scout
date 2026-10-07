@@ -12,7 +12,7 @@ public sealed class JobScoutDbContext(DbContextOptions<JobScoutDbContext> option
     public DbSet<JobOffer> JobOffers => Set<JobOffer>();
     public DbSet<JobMatch> JobMatches => Set<JobMatch>();
     public DbSet<SourceCategory> SourceCategories => Set<SourceCategory>(); 
-
+    public DbSet<ScoutRun> ScoutRuns => Set<ScoutRun>(); 
     // Picks up every IEntityTypeConfiguration<T> in this assembly (Persistence/Configurations)
     protected override void OnModelCreating(ModelBuilder modelBuilder) =>
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(JobScoutDbContext).Assembly);
@@ -30,5 +30,7 @@ public sealed class JobScoutDbContext(DbContextOptions<JobScoutDbContext> option
             builder.Properties<DateTimeOffset>().HaveConversion<DateTimeOffsetToBinaryConverter>();
             builder.Properties<DateTimeOffset?>().HaveConversion<DateTimeOffsetToBinaryConverter>();
         }
+        
+        builder.Properties<ScoutRunStatus>().HaveConversion<string>().HaveMaxLength(20);
     }
 }

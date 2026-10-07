@@ -169,6 +169,42 @@ namespace JobScout.Infrastructure.Persistence.Migrations
                     b.ToTable("JobOffers");
                 });
 
+            modelBuilder.Entity("JobScout.Core.Domain.ScoutRun", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Error")
+                        .HasMaxLength(2000)
+                        .HasColumnType("TEXT");
+
+                    b.Property<long?>("FinishedAt")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("Found")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("NewForUser")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<long>("StartedAt")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId", "Status", "StartedAt");
+
+                    b.ToTable("ScoutRuns");
+                });
+
             modelBuilder.Entity("JobScout.Core.Domain.SourceCategory", b =>
                 {
                     b.Property<Guid>("Id")
@@ -309,6 +345,15 @@ namespace JobScout.Infrastructure.Persistence.Migrations
                     b.HasOne("JobScout.Core.Domain.JobMatch", null)
                         .WithMany("Events")
                         .HasForeignKey("JobMatchId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("JobScout.Core.Domain.ScoutRun", b =>
+                {
+                    b.HasOne("JobScout.Core.Domain.User", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
                 });
