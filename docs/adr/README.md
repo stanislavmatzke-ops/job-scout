@@ -22,6 +22,7 @@ Format: lightweight version of [Michael Nygard's ADR](https://cognitect.com/blog
 | [0012](0012-multiple-sources-search-intent.md) | Multiple job sources: source-agnostic search intent, per-source search plans | Proposed |
 | [0013](0013-manual-job-ads-private.md) | Manually added job ads are private to the user | Proposed |
 | [0014](0014-dev-sign-in-test-personas.md) | Dev sign-in and test personas; the app is not IT-only | Proposed |
+| [0015](0015-jobscz-profession-resolution.md) | jobs.cz professions resolved by verified URL slugs, not a full catalogue | Accepted |
 
 ## Template
 

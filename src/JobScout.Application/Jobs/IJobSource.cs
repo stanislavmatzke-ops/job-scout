@@ -12,4 +12,10 @@ public interface IJobSource
     Task<IReadOnlyList<JobListing>> SearchAsync(JobSearch.JobSearchQuery query, int maxPages = 1, CancellationToken ct = default);
 
     Task<JobDetail> GetDetailAsync(string externalId, CancellationToken ct = default);
+    
+    /// <summary>
+    /// Turns a profession name into this source's category, if the source has one (ADR-0015).
+    /// Returns null when the source doesn't know it – the caller falls back to free text.
+    /// </summary>
+    Task<JobSearch.JobCategory?> ResolveCategoryAsync(string label, CancellationToken ct = default);
 }

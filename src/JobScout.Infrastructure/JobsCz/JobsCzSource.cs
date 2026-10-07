@@ -99,6 +99,8 @@ internal sealed partial class JobsCzSource(HttpClient http, IPageRenderer render
 
         var parameters = new List<string>();
         if (!string.IsNullOrWhiteSpace(q.Keywords)) parameters.Add($"q%5B%5D={Uri.EscapeDataString(q.Keywords)}");
+        if (q.RadiusKm > 0 && !string.IsNullOrWhiteSpace(q.Location))
+            parameters.Add($"locality%5Bradius%5D={q.RadiusKm}");
         if (q.MaxAge != JobSearch.JobAge.Any) parameters.Add($"date={(q.MaxAge == JobSearch.JobAge.Day ? "24h" : "3d")}");
         if (q.Page > 1) parameters.Add($"page={q.Page}");
 
@@ -106,9 +108,9 @@ internal sealed partial class JobsCzSource(HttpClient http, IPageRenderer render
     }
     
     // "Hradec Králové" → "hradec-kralove" (jobs.cz location URL format)
-    internal static string ToSlug(string location)
+    internal static string ToSlug(string text)
     {
-        var decomposed = location.Trim().ToLowerInvariant().Normalize(NormalizationForm.FormD);
+        var decomposed = text.Trim().ToLowerInvariant().Normalize(NormalizationForm.FormD);
         var sb = new StringBuilder();
         foreach (var c in decomposed)
         {
@@ -117,6 +119,35 @@ internal sealed partial class JobsCzSource(HttpClient http, IPageRenderer render
             sb.Append(char.IsLetterOrDigit(c) ? c : '-');
         }
         return DashRuns().Replace(sb.ToString(), "-").Trim('-');
+    }
+    
+    public async Task<JobSearch.JobCategory?> ResolveCategoryAsync(string label, CancellationToken ct = default)
+    {
+        var slug = ToSlug(label);
+        if (slug.Length == 0)
+            return null;
+
+        // Already verified IT categories – no request needed
+        var known = JobsCzCatalog.Categories.FirstOrDefault(c => c.Id == slug);
+        if (known is not null)
+            return known;
+
+        var path = $"/prace/{slug}/";
+        using var response = await http.GetAsync(path, HttpCompletionOption.ResponseHeadersRead, ct);
+
+        if (response.StatusCode == HttpStatusCode.NotFound)
+        {
+            logger.LogInformation("jobs.cz: profese '{Label}' ({Slug}) neexistuje", label.Trim(), slug);
+            return null;
+        }
+        response.EnsureSuccessStatusCode();   // 5xx = outage, not "doesn't exist" – don't store a wrong plan
+
+        // 200 after a redirect elsewhere (e.g. to /prace/) is not this profession
+        if (response.RequestMessage?.RequestUri?.AbsolutePath != path)
+            return null;
+
+        logger.LogInformation("jobs.cz: profese '{Label}' → {Slug}", label.Trim(), slug);
+        return new JobSearch.JobCategory(slug, label.Trim());
     }
 
     [GeneratedRegex("-+")]

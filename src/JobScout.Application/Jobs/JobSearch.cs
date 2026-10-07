@@ -14,6 +14,9 @@ public class JobSearch
         public string? Category { get; init; }
         public string? Keywords { get; init; }
         public string? Location { get; init; }
+        
+        /// <summary>Commute radius around Location in km; 0 = the source's default. Ignored without a Location.</summary>
+        public int RadiusKm { get; init; }
         public JobAge MaxAge { get; init; } = JobAge.Any;
         public int Page { get; init; } = 1;
     }
