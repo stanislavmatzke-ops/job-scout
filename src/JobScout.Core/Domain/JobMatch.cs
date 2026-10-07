@@ -1,7 +1,7 @@
 ﻿namespace JobScout.Core.Domain;
 
-/// <summary>Where the morning pipeline got with the job.</summary>
-public enum MatchStage { Found, TriagedOut, Evaluated }
+/// <summary>Where the morning pipeline got with the job: Found → Shortlisted | TriagedOut → Evaluated.</summary>
+public enum MatchStage { Found, Shortlisted, TriagedOut, Evaluated }
 
 /// <summary>What the user did with the job.</summary>
 public enum MatchStatus
@@ -50,6 +50,13 @@ public sealed class JobMatch
     {
         Stage = MatchStage.TriagedOut;
         TriageReason = reason;
+        UpdatedAt = now;
+    }
+    
+    /// <summary>Passed the cheap triage – waits for the detail and the full evaluation.</summary>
+    public void Shortlist(DateTimeOffset now)
+    {
+        Stage = MatchStage.Shortlisted;
         UpdatedAt = now;
     }
 

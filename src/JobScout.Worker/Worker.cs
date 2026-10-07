@@ -2,6 +2,7 @@ using JobScout.Application.Evaluation;
 using JobScout.Application.Jobs;
 using JobScout.Application.Llm;
 using JobScout.Application.Profiles;
+using JobScout.Application.Triage;
 using JobScout.Core.Jobs;
 
 namespace JobScout.Worker;
@@ -118,7 +119,17 @@ public class Worker(
             foreach (var job in recorded.NewForUser)
                 logger.LogInformation("  NOVÁ {Id} | {Title} | {Company} | {Location}",
                     job.Offer.ExternalId, job.Offer.Title, job.Offer.Company, job.Offer.Location);
+            var triage = await services.GetRequiredService<TriageJobs>()
+                .ExecuteAsync(analyzed.User.Id, analyzed.Profile, ct);
+            foreach (var call in triage.Calls)
+                LogTokens("třídění", call);
 
+            logger.LogInformation("Třídění: {Total} čekajících → ponecháno {Kept}, vyřazeno {Dropped}",
+                triage.Jobs.Count, triage.Kept, triage.Dropped);
+            foreach (var job in triage.Jobs)
+                logger.LogInformation("  {Mark} {Title} | {Company}{Reason}",
+                    job.Keep ? "✔" : "✘", job.Offer.Title, job.Offer.Company, job.Keep ? "" : $" – {job.Reason}");
+            
             await journal.SucceedAsync(started.Run, recorded.Found, recorded.NewForUser.Count, ct);
         }
         catch (Exception ex) when (ex is not OperationCanceledException)

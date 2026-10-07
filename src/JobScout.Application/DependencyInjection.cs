@@ -1,6 +1,7 @@
 ﻿using JobScout.Application.Evaluation;
 using JobScout.Application.Jobs;
 using JobScout.Application.Profiles;
+using JobScout.Application.Triage;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 
@@ -19,6 +20,7 @@ public static class DependencyInjection
         services.AddScoped<PlanSearch>();
         services.AddScoped<RecordFoundJobs>();
         services.AddScoped<ScoutRunJournal>();
+        services.AddScoped<TriageJobs>();
         return services;
     }
 }
