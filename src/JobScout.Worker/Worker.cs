@@ -33,27 +33,6 @@ public class Worker(
 
             var (cv, cvFileName) = await LoadCvAsync(dataDir, stoppingToken);
             var notes = await ReadOptionalAsync(Path.Combine(dataDir, "preferences.md"), stoppingToken);
-
-            if (config["Scout:Mode"] == "search")
-            {
-                // Temporary hand-made plan – in phase 3 the AI picks categories from jobSource.Categories
-                string[] categories = ["sw-architekt", "net-vyvojar", "java-vyvojar", "vedouci-vyvoje-team-leader"];
-
-                var unique = new Dictionary<string, JobListing>();
-                foreach (var category in categories)
-                {
-                    var query = new JobSearch.JobSearchQuery { Category = category, Location = "Praha", MaxAge = JobSearch.JobAge.ThreeDays };
-                    var found = await jobSource.SearchAsync(query, maxPages: 5, stoppingToken);
-                    var added = found.Count(l => unique.TryAdd(l.ExternalId, l));
-                    logger.LogInformation("  {Category} @ Praha, 3 dny: {Found} nalezeno, {Added} nových", category, found.Count, added);
-                }
-
-                logger.LogInformation("Celkem unikátních nabídek: {Count}", unique.Count);
-                foreach (var l in unique.Values)
-                    logger.LogInformation("{Id} | {Title} | {Company} | {Location} | {Tags}",
-                        l.ExternalId, l.Title, l.Company, l.Location, string.Join(", ", l.Tags));
-                return;
-            }
             
             await using var scope = scopeFactory.CreateAsyncScope();
             var analyzeProfile = scope.ServiceProvider.GetRequiredService<AnalyzeProfile>();
@@ -71,6 +50,35 @@ public class Worker(
                     analyzed.Version.Version, subject);
 
             LogProfile(analyzed.Profile);
+            
+            if (config["Scout:Mode"] == "search")
+            {
+                var planSearch = scope.ServiceProvider.GetRequiredService<PlanSearch>();
+                var planned = await planSearch.ExecuteAsync(analyzed.Version, analyzed.Profile, stoppingToken);
+
+                logger.LogInformation(planned.IsNew ? "Nový plán hledání" : "Plán hledání z DB – AI ani ověřování se nevolaly");
+                foreach (var call in planned.Calls)
+                    LogTokens("plán hledání", call);
+
+                var searches = planned.Plan.For(jobSource.Name);
+                var unique = new Dictionary<string, JobListing>();
+                foreach (var s in searches)
+                {
+                    var found = await jobSource.SearchAsync(s.ToQuery(JobSearch.JobAge.ThreeDays), maxPages: 5, stoppingToken);
+                    var added = found.Count(l => unique.TryAdd(l.ExternalId, l));
+                    logger.LogInformation("  {What} @ {Where}: {Found} nalezeno, {Added} nových",
+                        s.Category ?? $"text \"{s.Keywords}\"",
+                        s.Location is null ? "celá ČR" : $"{s.Location} + {s.RadiusKm} km",
+                        found.Count, added);
+                }
+
+                logger.LogInformation("Celkem unikátních nabídek: {Count}", unique.Count);
+                foreach (var l in unique.Values)
+                    logger.LogInformation("{Id} | {Title} | {Company} | {Location}", l.ExternalId, l.Title, l.Company, l.Location);
+
+                logger.LogInformation("Celkem tokenů: in={In}, out={Out}", _inputTokens, _outputTokens);
+                return;
+            }
 
             // 2) each job vs. the profile
             var jobsDir = Path.Combine(dataDir, "jobs");
@@ -89,6 +97,11 @@ public class Worker(
             }
 
             logger.LogInformation("Celkem tokenů: in={In}, out={Out}", _inputTokens, _outputTokens);
+        }
+        catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
+        {
+            // Host is shutting down (Ctrl+C, Rider Stop, container restart) – not a failure
+            logger.LogWarning("Běh přerušen – aplikace se vypíná");
         }
         catch (Exception ex)
         {

@@ -1,6 +1,7 @@
 using System.Reflection;
 using System.Text.Json;
 using JobScout.Application.Evaluation;
+using JobScout.Application.Jobs;
 using JobScout.Application.Llm;
 using JobScout.Application.Profiles;
 
@@ -17,6 +18,7 @@ public class PromptSchemaTests
     {
         { ProfilePrompts.Schema, typeof(CandidateProfile) },
         { EvaluationPrompts.Schema, typeof(JobEvaluation) },
+        { CategoryPrompts.Schema, typeof(CategorySuggestions) },
     };
 
     [Theory]

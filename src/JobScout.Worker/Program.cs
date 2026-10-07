@@ -4,6 +4,7 @@ using JobScout.Infrastructure.Persistence;
 using JobScout.Worker;
 using Microsoft.EntityFrameworkCore;
 
+Console.OutputEncoding = System.Text.Encoding.UTF8;
 var builder = Host.CreateApplicationBuilder(args);
 builder.Logging.AddSimpleConsole(o => o.TimestampFormat = "HH:mm:ss ");
 builder.Services.AddHostedService<Worker>();

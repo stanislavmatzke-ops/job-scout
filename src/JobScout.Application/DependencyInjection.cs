@@ -15,6 +15,8 @@ public static class DependencyInjection
         services.TryAddSingleton(TimeProvider.System);
         services.AddScoped<AnalyzeProfile>();
         services.AddScoped<CategoryResolver>();
+        services.AddSingleton<CategorySuggester>();
+        services.AddScoped<PlanSearch>();
         return services;
     }
 }

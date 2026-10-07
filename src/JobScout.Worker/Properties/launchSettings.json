@@ -24,19 +24,15 @@
         "DOTNET_ENVIRONMENT": "Development"
       }
     },
-    "JobScout.Worker (persona autolakyrnik)": {
+    "JobScout.Worker (search autolakyrnik)": {
       "commandName": "Project",
-      "commandLineArgs": "--Scout:Persona=autolakyrnik",
-      "environmentVariables": {
-        "DOTNET_ENVIRONMENT": "Development"
-      }
+      "commandLineArgs": "--Scout:Persona=autolakyrnik --Scout:Mode=search",
+      "environmentVariables": { "DOTNET_ENVIRONMENT": "Development" }
     },
-    "JobScout.Worker (persona zednik)": {
+    "JobScout.Worker (search zednik)": {
       "commandName": "Project",
-      "commandLineArgs": "--Scout:Persona=zednik",
-      "environmentVariables": {
-        "DOTNET_ENVIRONMENT": "Development"
-      }
+      "commandLineArgs": "--Scout:Persona=zednik --Scout:Mode=search",
+      "environmentVariables": { "DOTNET_ENVIRONMENT": "Development" }
     }
   }
 }
