@@ -206,6 +206,31 @@ public sealed class EvaluateJobsTests : IDisposable
         Assert.Equal(2, result.Remaining);
     }
 
+    [Fact]
+    public async Task Relevance_2_is_not_evaluated_automatically()
+    {
+        // "Probably not, but why not" waits for the user's click in the UI – no tokens spent on it each morning
+        Seed("Senior .NET vývojář", relevance: 4);
+        Seed("Analytik", relevance: 2);
+
+        var result = await EvaluateAsync();
+
+        Assert.Equal("Senior .NET vývojář", Assert.Single(result.Evaluated).Offer.Title);
+        Assert.Single(_llm.Requests);
+        Assert.Equal(0, result.Remaining);                         // the 2 is not "remaining" for automatic runs
+        await using var db = _database.CreateContext();
+        Assert.Equal(MatchStage.Shortlisted,
+            (await db.JobMatches.Include(m => m.JobOffer).SingleAsync(m => m.JobOffer!.Title == "Analytik")).Stage);
+    }
+
+    [Fact]
+    public async Task Relevance_3_is_evaluated_automatically()
+    {
+        Seed("Programátor analytik", relevance: EvaluateJobs.MinAutoRelevance);
+
+        Assert.Single((await EvaluateAsync()).Evaluated);
+    }
+
     // ---------- failures ----------
 
     [Fact]

@@ -149,7 +149,11 @@ public class Worker(
             foreach (var call in letters.Calls)
                 LogTokens("dopis", call);
 
-            logger.LogInformation("Dopisy: napsáno {Count}, čeká na další běh {Remaining}", letters.Letters.Count, letters.Remaining);
+            logger.LogInformation("Dopisy: napsáno {Count}, nepovedlo se {Failed}, čeká na další běh {Remaining}",
+                letters.Letters.Count, letters.Failed, letters.Remaining);
+            if (letters.Failed > 0)
+                logger.LogWarning("Některé dopisy byly useknuté nebo prázdné – zkusí se znovu při dalším běhu");
+            
             foreach (var l in letters.Letters)
                 logger.LogInformation("""
                                       ── DOPIS: {Title} | {Company} ({Score}/10) ──

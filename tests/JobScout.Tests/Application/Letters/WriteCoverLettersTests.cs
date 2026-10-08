@@ -197,25 +197,68 @@ public sealed class WriteCoverLettersTests : IDisposable
     }
 
     [Fact]
-    public async Task Truncated_letter_is_rejected_and_not_stored()
+    public async Task Truncated_letter_is_not_stored_and_does_not_stop_the_run()
     {
+        // A bad letter is not worth failing the whole morning run – evaluations are already saved (8 Oct)
         var id = Seed("Architekt", 9);
         var llm = new FakeLlmClient("Dobrý den,\n\nreaguji na", stopReason: "max_tokens");
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() => WriteAsync(llm: llm));
+        var result = await WriteAsync(llm: llm);
 
-        Assert.Null((await MatchAsync(id)).CoverLetter);
+        Assert.Null((await MatchAsync(id)).CoverLetter);   // stays pending – next run tries again
+        Assert.Empty(result.Letters);
+        Assert.Equal(1, result.Failed);
+        Assert.Equal(1, result.Remaining);
     }
 
     [Fact]
-    public async Task Empty_letter_is_rejected()
+    public async Task Empty_letter_is_not_stored()
     {
         var id = Seed("Architekt", 9);
         var llm = new FakeLlmClient("   ");
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() => WriteAsync(llm: llm));
+        var result = await WriteAsync(llm: llm);
 
         Assert.Null((await MatchAsync(id)).CoverLetter);
+        Assert.Equal(1, result.Failed);
+    }
+
+    [Fact]
+    public async Task One_bad_letter_does_not_prevent_the_others()
+    {
+        Seed("Devět", 9);
+        Seed("Osm", 8);
+        var calls = 0;
+        var llm = new FakeLlmClient(_ => ++calls == 1
+            ? new LlmResponse("Dobrý den, reaguji na", "fake", "max_tokens", 5000, 2000)
+            : new LlmResponse(Letter, "fake", "end_turn", 5000, 500));
+
+        var result = await WriteAsync(llm: llm);
+
+        Assert.Single(result.Letters);
+        Assert.Equal(1, result.Failed);
+        Assert.Equal(2, result.Calls.Count);                // both calls are paid – visible for cost tracking
+    }
+
+    [Fact]
+    public async Task Api_outage_still_fails_the_run()
+    {
+        // Not a content problem – the run is marked Failed and the window doesn't move (ScoutRun)
+        Seed("Architekt", 9);
+        var llm = new FakeLlmClient(_ => throw new HttpRequestException("API nedostupné"));
+
+        await Assert.ThrowsAsync<HttpRequestException>(() => WriteAsync(llm: llm));
+    }
+
+    [Fact]
+    public async Task Letter_has_enough_room_for_czech()
+    {
+        // Czech needs noticeably more tokens per word than English – 1200 was too tight (8 Oct)
+        Seed("Architekt", 9);
+
+        await WriteAsync();
+
+        Assert.True(Assert.Single(_llm.Requests).MaxTokens >= 2000);
     }
 
     [Fact]

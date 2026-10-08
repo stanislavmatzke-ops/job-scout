@@ -7,7 +7,8 @@ using Microsoft.EntityFrameworkCore;
 namespace JobScout.Application.Letters;
 
 public sealed record WrittenLetter(JobOffer Offer, JobMatch Match, string Letter);
-public sealed record WriteCoverLettersResult(IReadOnlyList<WrittenLetter> Letters, int Remaining, IReadOnlyList<LlmResponse> Calls);
+public sealed record WriteCoverLettersResult(
+    IReadOnlyList<WrittenLetter> Letters, int Failed, int Remaining, IReadOnlyList<LlmResponse> Calls);
 
 /// <summary>
 /// Cover letter drafts for evaluated jobs with score ≥ 7, best first, at most maxPerRun per run.
@@ -35,25 +36,27 @@ public sealed class WriteCoverLetters(IAppDbContext db, ILlmClient llm, TimeProv
 
         var letters = new List<WrittenLetter>();
         var calls = new List<LlmResponse>();
+        var failed = 0;
 
         foreach (var match in pending.Take(maxPerRun))
         {
-            var response = await llm.CompleteAsync(BuildRequest(profile, match), ct);
+            var response = await llm.CompleteAsync(BuildRequest(profile, match), ct);   // API outage still throws
             calls.Add(response);
 
-            // Plain text, no JSON schema → check completeness ourselves
-            if (response.StopReason == "max_tokens")
-                throw new InvalidOperationException("Dopis byl useknut (max_tokens).");
+            // Content problem (cut off / empty) → skip this one, it stays pending for the next run
             var letter = response.Text.Trim();
-            if (letter.Length == 0)
-                throw new InvalidOperationException("Model vrátil prázdný dopis.");
+            if (response.StopReason == "max_tokens" || letter.Length == 0)
+            {
+                failed++;
+                continue;
+            }
 
             match.SetCoverLetter(letter, time.GetUtcNow());
             letters.Add(new WrittenLetter(match.JobOffer!, match, letter));
             await db.SaveChangesAsync(ct);
         }
 
-        return new WriteCoverLettersResult(letters, pending.Count - letters.Count, calls);
+        return new WriteCoverLettersResult(letters, failed, pending.Count - letters.Count, calls);
     }
 
     private static LlmRequest BuildRequest(CandidateProfile profile, JobMatch match)
@@ -81,7 +84,7 @@ public sealed class WriteCoverLetters(IAppDbContext db, ILlmClient llm, TimeProv
             Napiš návrh průvodního dopisu.
             """)
         {
-            MaxTokens = 1200,
+            MaxTokens = 2000,
             Tier = LlmTier.Smart,
         };
     }

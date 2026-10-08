@@ -22,12 +22,20 @@ public sealed class EvaluateJobs(IAppDbContext db, IEnumerable<IJobSource> sourc
     /// <summary>≈ $0.013 per evaluation (phase 1) → a run costs at most ≈ $0.20 per user.</summary>
     public const int MaxPerRun = 15;
 
+    /// <summary>
+    /// Only jobs with at least this triage relevance are evaluated automatically. Relevance 2 ("probably not, but why not")
+    /// waits in Shortlisted and is evaluated on demand from the UI – AI preselects, the user decides (8 Oct).
+    /// </summary>
+    public const int MinAutoRelevance = 3;
+
     public async Task<EvaluateJobsResult> ExecuteAsync(
         Guid userId, CandidateProfile profile, int maxPerRun = MaxPerRun, CancellationToken ct = default)
     {
         var shortlisted = await db.JobMatches
             .Include(m => m.JobOffer)
-            .Where(m => m.UserId == userId && m.Stage == MatchStage.Shortlisted)
+            // null = triaged before relevance existed → evaluate as before
+            .Where(m => m.UserId == userId && m.Stage == MatchStage.Shortlisted
+                        && (m.TriageScore == null || m.TriageScore >= MinAutoRelevance))
             .OrderByDescending(m => m.TriageScore)      // the per-run limit hits the best candidates first
             .ThenBy(m => m.CreatedAt)
             .ToListAsync(ct);

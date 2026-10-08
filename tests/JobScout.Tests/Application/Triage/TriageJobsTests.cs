@@ -109,10 +109,11 @@ public sealed partial class TriageJobsTests : IDisposable
     }
 
     [Theory]
-    [InlineData(3, MatchStage.Shortlisted)]     // "maybe" stays – at the end of the evaluation queue
-    [InlineData(2, MatchStage.TriagedOut)]
     [InlineData(5, MatchStage.Shortlisted)]
-    public async Task Relevance_decides_with_drop_at_2_and_below(int relevance, MatchStage expected)
+    [InlineData(3, MatchStage.Shortlisted)]     // "maybe" stays
+    [InlineData(2, MatchStage.Shortlisted)]     // "theoretically makes sense" stays too – at the end of the queue (8 Oct)
+    [InlineData(1, MatchStage.TriagedOut)]      // only clear nonsense is dropped
+    public async Task Only_relevance_1_is_triaged_out(int relevance, MatchStage expected)
     {
         Seed(_userId, "Nabídka");
         var llm = new FakeLlmClient($$"""{ "decisions": [ { "id": "1", "relevance": {{relevance}}, "reason": "Důvod" } ] }""");

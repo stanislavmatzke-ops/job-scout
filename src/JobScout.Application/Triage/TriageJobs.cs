@@ -24,9 +24,8 @@ public sealed record TriageResult(IReadOnlyList<TriagedJob> Jobs, IReadOnlyList<
 public sealed class TriageJobs(IAppDbContext db, ILlmClient llm, TimeProvider time)
 {
     public const int BatchSize = 40;
-    /// <summary>Relevance 1–2 = triaged out (with a reason). 3 = unsure → kept, but at the end of the evaluation queue.</summary>
-    public const int DropAtOrBelow = 2;
-
+    /// <summary>Only clear nonsense (relevance 1) is triaged out – everything that theoretically makes sense passes (8 Oct).</summary>
+    public const int DropAtOrBelow = 1;
     /// <summary>Missing, invalid or reasonless decision = "unsure".</summary>
     public const int DefaultRelevance = 3;
     public async Task<TriageResult> ExecuteAsync(Guid userId, CandidateProfile profile, CancellationToken ct = default)
