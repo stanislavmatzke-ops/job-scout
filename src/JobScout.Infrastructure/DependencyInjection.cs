@@ -23,7 +23,6 @@ public static class DependencyInjection
                 "Claude:Models:Fast a Claude:Models:Smart musí být vyplněné.")
             .ValidateOnStart();
         services.AddSingleton<IAnthropicClient>(_ => new AnthropicClient()); // klíč z ANTHROPIC_API_KEY
-        services.AddSingleton<ILlmClient, ClaudeLlmClient>();
         services.AddHttpClient<IJobSource, JobsCzSource>(c =>
         {
             c.BaseAddress = new Uri("https://www.jobs.cz");
@@ -33,11 +32,17 @@ public static class DependencyInjection
             c.Timeout = TimeSpan.FromSeconds(30);
         }).AddHttpMessageHandler(() => new PoliteDelayHandler(TimeSpan.FromSeconds(2)));
         services.AddSingleton<IPageRenderer, PlaywrightPageRenderer>();
-        services.AddDbContext<JobScoutDbContext>(o => o.UseSqlite(
+        // Factory for short-lived contexts (usage recorder) + the usual scoped context for use cases
+        services.AddDbContextFactory<JobScoutDbContext>(o => o.UseSqlite(
             config.GetConnectionString("JobScout")
             ?? throw new InvalidOperationException("Chybí ConnectionStrings:JobScout v konfiguraci.")));
+        services.AddScoped(sp => sp.GetRequiredService<IDbContextFactory<JobScoutDbContext>>().CreateDbContext());
         // Use cases ask for IAppDbContext; it's the same scoped instance as JobScoutDbContext
         services.AddScoped<IAppDbContext>(sp => sp.GetRequiredService<JobScoutDbContext>());
+        // AI client = the real Claude client wrapped in the usage recorder (decorator, ADR-0016)
+        services.AddSingleton<ClaudeLlmClient>();
+        services.AddSingleton<ILlmClient>(sp =>
+            ActivatorUtilities.CreateInstance<UsageRecordingLlmClient>(sp, sp.GetRequiredService<ClaudeLlmClient>()));
         
         return services;
     }

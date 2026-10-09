@@ -98,10 +98,29 @@ public sealed class AnalyzeProfileTests : IDisposable
         await RunAsync(Input(notes: "Jen ranní směny"));
 
         var request = Assert.Single(_llm.Requests);
+        Assert.Equal(LlmPurpose.Profile, request.Purpose);
         var document = Assert.Single(request.Documents);
         Assert.Equal("text/plain", document.MediaType);
         Assert.Contains("Jen ranní směny", request.UserPrompt);
         Assert.NotNull(request.JsonSchema);
+    }
+
+    [Fact]
+    public async Task Ai_call_is_attributed_to_the_user_for_cost_tracking()
+    {
+        // The usage recorder (ADR-0016) reads the ambient context – the user exists only in memory at that moment
+        LlmCallContext.Scope? seen = null;
+        var llm = new FakeLlmClient(_ =>
+        {
+            seen = LlmCallContext.Current;
+            return new LlmResponse(ProfileJson, "fake-model", "end_turn", 100, 50);
+        });
+
+        var result = await RunAsync(Input(), llm);
+
+        Assert.NotNull(seen);
+        Assert.Equal(result.User.Id, seen.UserId);
+        Assert.Null(LlmCallContext.Current);              // restored after the use case
     }
 
     // ---------- Analyse once ----------

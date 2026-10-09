@@ -58,7 +58,8 @@ public class Worker(
             if (config["Scout:Mode"] == "search")
                 await SearchAsync(scope.ServiceProvider, analyzed, subject, stoppingToken);
             else
-                await EvaluateSamplesAsync(dataDir, analyzed.Profile, stoppingToken);
+                using (LlmCallContext.Begin(analyzed.User.Id))
+                    await EvaluateSamplesAsync(dataDir, analyzed.Profile, stoppingToken);
 
             logger.LogInformation("Celkem tokenů: in={In}, out={Out}", _inputTokens, _outputTokens);
         }
@@ -81,8 +82,9 @@ public class Worker(
     /// <summary>Search plan → run journal → search → store → list only the jobs new for this user.</summary>
     private async Task SearchAsync(IServiceProvider services, AnalyzedProfile analyzed, string subject, CancellationToken ct)
     {
-        var planSearch = services.GetRequiredService<PlanSearch>();
-        var planned = await planSearch.ExecuteAsync(analyzed.Version, analyzed.Profile, ct);
+        SearchPlanResult planned;
+        using (LlmCallContext.Begin(analyzed.User.Id))
+            planned = await services.GetRequiredService<PlanSearch>().ExecuteAsync(analyzed.Version, analyzed.Profile, ct);
 
         logger.LogInformation(planned.IsNew ? "Nový plán hledání" : "Plán hledání z DB – AI ani ověřování se nevolaly");
         foreach (var call in planned.Calls)
@@ -92,6 +94,7 @@ public class Worker(
         var recordFoundJobs = services.GetRequiredService<RecordFoundJobs>();
 
         var started = await journal.StartAsync(analyzed.User.Id, ct);
+        using var usage = LlmCallContext.Begin(analyzed.User.Id, started.Run.Id);   // everything below is billed to this run
         var window = started.Window.MaxAge;
         logger.LogInformation("Okno hledání: {Window}", window == JobSearch.JobAge.Day ? "posledních 24 h" : "poslední 3 dny");
         if (started.Window.HasGap)
@@ -159,6 +162,12 @@ public class Worker(
                                       ── DOPIS: {Title} | {Company} ({Score}/10) ──
                                       {Letter}
                                       """, l.Offer.Title, l.Offer.Company, l.Match.Score, l.Letter);
+            
+            var cost = await services.GetRequiredService<UsageReport>().ForRunAsync(started.Run.Id, ct);
+            foreach (var line in cost.Lines)
+                logger.LogInformation("  {Purpose}: {Calls}× (chyb {Failed}), in={In}, out={Out}, ${Cost:0.0000}",
+                    line.Purpose, line.Calls, line.Failed, line.InputTokens, line.OutputTokens, line.CostMicroUsd / 1_000_000m);
+            logger.LogInformation("Náklady běhu: ${Total:0.000}", cost.TotalUsd);
             
             await journal.SucceedAsync(started.Run, recorded.Found, recorded.NewForUser.Count, ct);
         }

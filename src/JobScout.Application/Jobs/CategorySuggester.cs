@@ -32,6 +32,7 @@ public sealed class CategorySuggester(ILlmClient llm)
             JsonSchema = CategoryPrompts.Schema,
             MaxTokens = 800,
             Tier = LlmTier.Smart,
+            Purpose = LlmPurpose.SearchPlan
         };
 
         var response = await llm.CompleteAsync(request, ct);

@@ -43,6 +43,8 @@ public sealed class AnalyzeProfile(IAppDbContext db, ProfileExtractor extractor,
         if (latest is not null && latest.InputHash == hash)
             return new AnalyzedProfile(user, latest, LlmJson.Deserialize<CandidateProfile>(latest.ProfileJson), Response: null);
 
+        using var usage = LlmCallContext.Begin(user.Id);   // cost of the analysis belongs to this user
+        
         var extraction = await extractor.ExtractAsync(input.Cv, input.Notes, ct);
         var version = new UserProfile(
             user.Id, (latest?.Version ?? 0) + 1, input.CvFileName, input.Notes, hash,

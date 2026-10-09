@@ -95,7 +95,8 @@ public sealed class PlanSearchTests : IDisposable
         await RunAsync();
 
         var request = Assert.Single(_llm.Requests);
-        Assert.Equal(LlmTier.Smart, request.Tier);   // Haiku invented unrelated professions (7 Oct)
+        Assert.Equal(LlmTier.Smart, request.Tier);
+        Assert.Equal(LlmPurpose.SearchPlan, request.Purpose);   // Haiku invented unrelated professions (7 Oct)
         Assert.Contains("Autolakýrník", request.UserPrompt);
         Assert.Contains("jobs.cz", request.UserPrompt);
         Assert.NotNull(request.JsonSchema);

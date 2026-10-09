@@ -27,6 +27,7 @@ public sealed class ProfileExtractor(ILlmClient llm)
             Documents = [cv],
             JsonSchema = ProfilePrompts.Schema,
             MaxTokens = 2000,
+            Purpose = LlmPurpose.Profile
         };
 
         var response = await llm.CompleteAsync(request, ct);

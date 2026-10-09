@@ -188,6 +188,7 @@ public sealed class WriteCoverLettersTests : IDisposable
 
         var request = Assert.Single(_llm.Requests);
         Assert.Equal(LlmTier.Smart, request.Tier);
+        Assert.Equal(LlmPurpose.CoverLetter, request.Purpose);
         Assert.Null(request.JsonSchema);                        // a letter is prose, not JSON
         Assert.Contains("<profil_kandidata>", request.UserPrompt);
         Assert.Contains("Sedí na .NET a Azure.", request.UserPrompt);

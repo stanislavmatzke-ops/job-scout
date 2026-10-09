@@ -115,6 +115,7 @@ public sealed class EvaluateJobsTests : IDisposable
         await EvaluateAsync();
 
         var prompt = Assert.Single(_llm.Requests).UserPrompt;
+        Assert.Equal(LlmPurpose.Evaluation, _llm.Requests[0].Purpose);
         Assert.Contains("Stavbyvedoucí", prompt);
         Assert.Contains("Stavby s.r.o.", prompt);
         Assert.Contains("rodinné domy, Opava", prompt);

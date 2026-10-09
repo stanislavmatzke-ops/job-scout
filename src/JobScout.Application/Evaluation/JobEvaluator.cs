@@ -25,6 +25,7 @@ public sealed class JobEvaluator(ILlmClient llm)
         {
             JsonSchema = EvaluationPrompts.Schema,
             MaxTokens = 1500,
+            Purpose = LlmPurpose.Evaluation
         };
 
         var response = await llm.CompleteAsync(request, ct);

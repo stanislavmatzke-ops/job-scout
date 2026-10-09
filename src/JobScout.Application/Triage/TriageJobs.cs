@@ -98,6 +98,7 @@ public sealed class TriageJobs(IAppDbContext db, ILlmClient llm, TimeProvider ti
             JsonSchema = TriagePrompts.Schema,
             MaxTokens = 4000,
             Tier = LlmTier.Fast,
+            Purpose = LlmPurpose.Triage
         };
     }
 }

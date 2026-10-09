@@ -246,6 +246,7 @@ public sealed partial class TriageJobsTests : IDisposable
 
         var request = Assert.Single(llm.Requests);
         Assert.Equal(LlmTier.Fast, request.Tier);
+        Assert.Equal(LlmPurpose.Triage, request.Purpose);
         Assert.NotNull(request.JsonSchema);
         Assert.Contains("<profil_kandidata>", request.UserPrompt);
         Assert.Contains("Opava", request.UserPrompt);

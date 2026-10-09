@@ -86,6 +86,7 @@ public sealed class WriteCoverLetters(IAppDbContext db, ILlmClient llm, TimeProv
         {
             MaxTokens = 2000,
             Tier = LlmTier.Smart,
+            Purpose = LlmPurpose.CoverLetter
         };
     }
 }
