@@ -19,7 +19,7 @@
     "JobScout.Worker (search private)": {
       "commandName": "Project",
       "dotnetRunMessages": true,
-      "commandLineArgs": "--Scout:Mode=search",
+      "commandLineArgs": "--Scout:Mode=search --Scout:OpenReport=true",
       "environmentVariables": {
         "DOTNET_ENVIRONMENT": "Development"
       }

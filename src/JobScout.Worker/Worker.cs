@@ -5,6 +5,9 @@ using JobScout.Application.Llm;
 using JobScout.Application.Profiles;
 using JobScout.Application.Triage;
 using JobScout.Core.Jobs;
+using System.Diagnostics;
+using JobScout.Application.Reports; 
+using JobScout.Infrastructure.Reports;
 
 namespace JobScout.Worker;
 
@@ -169,6 +172,20 @@ public class Worker(
                     line.Purpose, line.Calls, line.Failed, line.InputTokens, line.OutputTokens, line.CostMicroUsd / 1_000_000m);
             logger.LogInformation("Náklady běhu: ${Total:0.000}", cost.TotalUsd);
             
+            try
+            {
+                var report = await services.GetRequiredService<BuildMorningReport>().ExecuteAsync(
+                    analyzed.User.Id, subject, started.Run.StartedAt,
+                    new ReportStats(recorded.Found, recorded.NewForUser.Count, evaluation.Evaluated.Count, letters.Letters.Count, cost.TotalUsd),
+                    ct);
+                WriteReport(report);
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException)
+            {
+                // The results are in the DB – a broken report must not mark the whole run as failed
+                logger.LogWarning(ex, "Ranní report se nepodařilo vytvořit");
+            }
+            
             await journal.SucceedAsync(started.Run, recorded.Found, recorded.NewForUser.Count, ct);
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
@@ -177,6 +194,23 @@ public class Worker(
             await journal.FailAsync(started.Run, ex, CancellationToken.None);
             throw;
         }
+    }
+    
+    /// <summary>Writes a dated report + "latest-{subject}.html" (always the newest) to Scout:ReportDir.</summary>
+    private void WriteReport(MorningReport report)
+    {
+        var dir = config["Scout:ReportDir"] ?? Path.Combine(AppContext.BaseDirectory, "reports");
+        Directory.CreateDirectory(dir);
+
+        var html = HtmlReportRenderer.Render(report);
+        var dated = Path.Combine(dir, $"report-{report.Subject}-{report.GeneratedAt.ToLocalTime():yyyy-MM-dd-HHmm}.html");
+        var latest = Path.Combine(dir, $"latest-{report.Subject}.html");
+        File.WriteAllText(dated, html);
+        File.WriteAllText(latest, html);
+        logger.LogInformation("Ranní report: {Path}", latest);
+
+        if (config.GetValue<bool>("Scout:OpenReport"))
+            Process.Start(new ProcessStartInfo(latest) { UseShellExecute = true });   // opens in the default browser
     }
 
     /// <summary>Default mode: evaluate the sample job ads from the data folder (jobs/*.md) against the profile.</summary>

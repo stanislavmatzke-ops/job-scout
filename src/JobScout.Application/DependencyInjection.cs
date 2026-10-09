@@ -3,6 +3,7 @@ using JobScout.Application.Jobs;
 using JobScout.Application.Letters;
 using JobScout.Application.Llm;
 using JobScout.Application.Profiles;
+using JobScout.Application.Reports;
 using JobScout.Application.Triage;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -26,6 +27,7 @@ public static class DependencyInjection
         services.AddScoped<EvaluateJobs>();
         services.AddScoped<WriteCoverLetters>();
         services.AddScoped<UsageReport>();
+        services.AddScoped<BuildMorningReport>();
         return services;
     }
 }
