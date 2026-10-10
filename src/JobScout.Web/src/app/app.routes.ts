@@ -1,5 +1,5 @@
 import { Routes } from '@angular/router';
-import { memberGuard, signedInGuard, signedOutGuard } from './core/guards';
+import { adminGuard, memberGuard, signedInGuard, signedOutGuard } from './core/guards';
 import { ShellComponent } from './layout/shell.component';
 
 export const routes: Routes = [
@@ -33,6 +33,12 @@ export const routes: Routes = [
             path: 'profile',
             title: 'Profil – Job Scout',
             loadComponent: () => import('./pages/profile/profile.page').then(m => m.ProfilePage),
+          },
+          {
+            path: 'admin',
+            canActivate: [adminGuard],
+            title: 'Správa – Job Scout',
+            loadComponent: () => import('./pages/admin/admin.page').then(m => m.AdminPage),
           },
           {
             path: 'matches/:id',

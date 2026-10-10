@@ -127,3 +127,13 @@ X-CSRF: 1
 Content-Type: application/json
 
 { "reason": "Z kapacitních důvodů je účet dočasně pozastaven. O obnovení přístupu můžete požádat znovu." }
+
+### ---------- 6e: invitations – the code is in the answer only this once ----------
+POST {{host}}/api/admin/invitations
+X-CSRF: 1
+Content-Type: application/json
+
+{ "note": "Petr z HR" }
+
+###
+GET {{host}}/api/admin/invitations

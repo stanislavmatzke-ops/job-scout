@@ -1,4 +1,4 @@
-﻿import { ChangeDetectionStrategy, Component, OnInit, inject, input, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnInit, inject, input, signal } from '@angular/core';
 import { Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
@@ -7,6 +7,7 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { AuthService } from '../../core/auth.service';
 import { AuthProviders } from '../../core/models';
+import { problemMessage } from '../../core/match-format';
 
 const ERRORS: Record<string, string> = {
   'invitation-invalid': 'Pozvánka je neplatná, již byla použita, nebo vypršela její platnost.',
@@ -40,8 +41,10 @@ const PROVIDER_NAMES: Record<string, string> = { microsoft: 'Microsoft', google:
           <form class="dev" (ngSubmit)="devSignIn()">
             <mat-form-field appearance="outline">
               <mat-label>Testovací persona (pouze vývojové prostředí)</mat-label>
-              <input matInput name="persona" [(ngModel)]="persona" placeholder="private, zednik, …" />
+              <input matInput name="persona" [(ngModel)]="persona" placeholder="private, zednik, boss…" />
+              <mat-hint>Jen jméno, bez „dev:“. Neexistující persona se založí jako nový uživatel.</mat-hint>
             </mat-form-field>
+            @if (devError(); as e) { <p class="error" role="alert">{{ e }}</p> }
             <button mat-stroked-button type="submit" [disabled]="!persona">Přihlásit se jako persona</button>
           </form>
         }
@@ -68,6 +71,7 @@ export class LoginPage implements OnInit {
 
   protected readonly providers = signal<AuthProviders | null>(null);
   protected persona = '';
+  protected readonly devError = signal<string | null>(null);
 
   protected errorText = () => (this.error() ? ERRORS[this.error()!] ?? 'Přihlášení se nezdařilo.' : null);
   protected providerName = (p: string) => PROVIDER_NAMES[p] ?? p;
@@ -80,8 +84,16 @@ export class LoginPage implements OnInit {
     this.auth.signInWith(provider, this.returnUrl(), this.invite());
   }
 
+  /** "dev:boss" and "Boss" mean the persona "boss" – the identity shown elsewhere has the prefix, people copy it. */
   protected async devSignIn(): Promise<void> {
-    await this.auth.devSignIn(this.persona.trim());
+    const persona = this.persona.trim().toLowerCase().replace(/^dev:/, '');
+    this.devError.set(null);
+    try {
+      await this.auth.devSignIn(persona);
+    } catch (e) {
+      this.devError.set(problemMessage(e, 'Přihlášení personou se nezdařilo.'));
+      return;
+    }
     await this.router.navigateByUrl(this.returnUrl());
   }
 }

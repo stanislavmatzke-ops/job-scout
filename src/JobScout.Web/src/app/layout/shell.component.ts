@@ -1,4 +1,4 @@
-﻿import { ChangeDetectionStrategy, Component, DestroyRef, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, DestroyRef, inject } from '@angular/core';
 import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { MatToolbarModule } from '@angular/material/toolbar';
 import { MatButtonModule } from '@angular/material/button';
@@ -16,6 +16,7 @@ import { AuthService } from '../core/auth.service';
       @if (auth.isMember()) {
         <a mat-button routerLink="/matches" routerLinkActive="active">Nabídky</a>
         <a mat-button routerLink="/profile" routerLinkActive="active">Profil</a>
+        @if (auth.me()?.isAdmin) { <a mat-button routerLink="/admin" routerLinkActive="active">Správa</a> }
       }
       <span class="spacer"></span>
       @if (auth.me(); as me) {

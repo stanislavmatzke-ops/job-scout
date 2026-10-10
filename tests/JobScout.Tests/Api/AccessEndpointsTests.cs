@@ -1,4 +1,4 @@
-using System.Net;
+﻿using System.Net;
 using System.Net.Http.Json;
 using JobScout.Core.Domain;
 using JobScout.Tests.TestUtils;
@@ -22,6 +22,8 @@ public sealed class AccessEndpointsTests : IDisposable
 
     private sealed record Me(Guid Id, string Access, string? SuspendedReason, DateTimeOffset? AccessRequestedAt,
         bool IsAdmin, string Identity);
+    private sealed record CreatedInvitation(Guid Id, string Code, DateTimeOffset ExpiresAt);
+    private sealed record InvitationRow(Guid Id, string Note, DateTimeOffset? UsedAt, string? UsedBy, bool IsUsable);
     private sealed record UserRow(Guid Id, string DisplayName, string Access, decimal CostLast30DaysUsd, string? AccessRequestMessage);
 
     /// <summary>A user in the given state who then signs in through the dev sign-in (which doesn't change an existing user).</summary>
@@ -173,5 +175,55 @@ public sealed class AccessEndpointsTests : IDisposable
         var admin = await AdminAsync();
 
         Assert.Equal(HttpStatusCode.NotFound, (await admin.PostAsync($"/api/admin/users/{Guid.NewGuid()}/approve", null)).StatusCode);
+    }
+
+    // ---------- invitations (6e) ----------
+
+    [Fact]
+    public async Task Admin_creates_an_invitation_and_sees_who_used_it()
+    {
+        var admin = await AdminAsync();
+
+        var created = await (await admin.PostAsJsonAsync("/api/admin/invitations", new { note = "  Petr z HR  " }))
+            .Content.ReadFromJsonAsync<CreatedInvitation>();
+        Assert.False(string.IsNullOrWhiteSpace(created!.Code));
+
+        var before = Assert.Single(await admin.GetFromJsonAsync<List<InvitationRow>>("/api/admin/invitations") ?? []);
+        Assert.Equal(("Petr z HR", true, (string?)null), (before.Note, before.IsUsable, before.UsedBy));
+
+        await using (var db = _factory.CreateDbContext())       // what the sign-in does with a valid code (SignInUserTests)
+        {
+            var user = new User("google", "petr-sub", "petr@example.com", "Petr", T0);
+            db.Users.Add(user);
+            var invitation = db.Invitations.Single(i => i.Id == created.Id);
+            invitation.Use(user.Id, DateTimeOffset.UtcNow);
+            await db.SaveChangesAsync();
+        }
+
+        var after = Assert.Single(await admin.GetFromJsonAsync<List<InvitationRow>>("/api/admin/invitations") ?? []);
+        Assert.Equal((false, "Petr"), (after.IsUsable, after.UsedBy));
+        Assert.NotNull(after.UsedAt);
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("   ")]
+    public async Task Invitation_without_a_note_is_400(string note)
+    {
+        var admin = await AdminAsync();
+
+        var response = await admin.PostAsJsonAsync("/api/admin/invitations", new { note });
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task Only_the_admin_creates_invitations()
+    {
+        var (normal, _) = await SignInAsAsync("pete", AccessStatus.Approved);
+
+        Assert.Equal(HttpStatusCode.Forbidden,
+            (await normal.PostAsJsonAsync("/api/admin/invitations", new { note = "kamarád" })).StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, (await normal.GetAsync("/api/admin/invitations")).StatusCode);
     }
 }

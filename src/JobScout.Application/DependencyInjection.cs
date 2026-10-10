@@ -50,6 +50,7 @@ public static class DependencyInjection
         services.AddScoped<CreateInvitation>();
         services.AddScoped<RequestAccess>();
         services.AddScoped<ListUsers>();
+        services.AddScoped<ListInvitations>();
         services.AddScoped<ApproveUser>();
         services.AddScoped<SuspendUser>();
         services.AddScoped<ListScoutUsers>();
