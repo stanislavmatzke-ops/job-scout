@@ -23,4 +23,21 @@ export class MatchesService {
   updateNotes(id: string, notes: string | null): Promise<void> {
     return firstValueFrom(this.http.put<void>(`/api/matches/${id}/notes`, { notes }));
   }
+
+  // ---------- on demand (6c) – these call the AI and take a few seconds; they return the fresh detail ----------
+
+  /** Any job of mine – waiting, triaged out, or again. */
+  evaluate(id: string): Promise<MatchDetail> {
+    return firstValueFrom(this.http.post<MatchDetail>(`/api/matches/${id}/evaluate`, null));
+  }
+
+  /** A letter for an evaluated job; replace = overwrite the existing one (maybe edited by the user). */
+  writeLetter(id: string, replace: boolean): Promise<MatchDetail> {
+    return firstValueFrom(this.http.post<MatchDetail>(`/api/matches/${id}/letter`, null, { params: { replace } }));
+  }
+
+  /** The user's own edit of the letter – no AI. */
+  updateLetter(id: string, text: string): Promise<void> {
+    return firstValueFrom(this.http.put<void>(`/api/matches/${id}/letter`, { text }));
+  }
 }

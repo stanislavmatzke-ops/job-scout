@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, effect, inject, input, signal, untracked } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, effect, inject, input, signal, untracked } from '@angular/core';
 import { DatePipe } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
 import { Router, RouterLink } from '@angular/router';
@@ -11,17 +11,25 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { MatExpansionModule } from '@angular/material/expansion';
+import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatSnackBar } from '@angular/material/snack-bar';
+import { AuthService } from '../../core/auth.service';
 import { MatchesService } from '../../core/matches.service';
 import { MatchDetail, MatchStatus } from '../../core/matches.models';
-import { STATUS_OPTIONS, employmentLabel, problemMessage, remoteLabel, scoreTone, statusLabel } from '../../core/match-format';
+import {
+  STATUS_OPTIONS, aiErrorMessage, employmentLabel, problemMessage, remoteLabel, scoreTone, statusLabel,
+} from '../../core/match-format';
+import { ConfirmService } from '../../shared/confirm-dialog';
+
+/** What the AI is doing right now – one thing at a time, so a double click never pays twice. */
+type AiWork = 'evaluate' | 'letter';
 
 @Component({
   selector: 'app-match-detail-page',
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     DatePipe, RouterLink, FormsModule, MatCardModule, MatButtonModule, MatIconModule,
-    MatFormFieldModule, MatInputModule, MatSelectModule, MatExpansionModule,
+    MatFormFieldModule, MatInputModule, MatSelectModule, MatExpansionModule, MatProgressBarModule,
   ],
   template: `
     <a mat-button routerLink="/matches"><mat-icon>arrow_back</mat-icon> Zpět na nabídky</a>
@@ -38,12 +46,24 @@ import { STATUS_OPTIONS, employmentLabel, problemMessage, remoteLabel, scoreTone
         <a mat-stroked-button [href]="d.url" target="_blank" rel="noopener"><mat-icon>open_in_new</mat-icon> Otevřít inzerát</a>
       </header>
 
+      @if (!aiEnabled()) {
+        <p class="ai-off">Funkce AI (hodnocení a psaní dopisů) jsou u pozastaveného účtu vypnuté.</p>
+      }
+
       <div class="grid">
         <section class="column">
+          <!-- ===== Evaluation ===== -->
           <mat-card appearance="outlined">
-            <mat-card-header><mat-card-title>Hodnocení</mat-card-title></mat-card-header>
+            <mat-card-header>
+              <mat-card-title>Hodnocení</mat-card-title>
+            </mat-card-header>
+            @if (working() === 'evaluate') {
+              <mat-progress-bar mode="indeterminate" />
+            }
             <mat-card-content>
-              @if (d.evaluation; as e) {
+              @if (working() === 'evaluate') {
+                <p class="muted">Načítám inzerát a hodnotím ho podle vašeho profilu – obvykle do 20 sekund…</p>
+              } @else if (d.evaluation; as e) {
                 <p class="summary">{{ e.summary }}</p>
                 <dl class="facts">
                   <dt>Mzda</dt><dd>{{ e.salary || 'Neuvedena' }}</dd>
@@ -64,26 +84,57 @@ import { STATUS_OPTIONS, employmentLabel, problemMessage, remoteLabel, scoreTone
                 }
               } @else if (d.stage === 'TriagedOut') {
                 <p>Nabídku vyřadilo automatické třídění: <em>{{ d.triageReason }}</em></p>
+                <p class="muted">Pokud si myslíte, že třídění chybovalo, nechte nabídku přesto ohodnotit.</p>
               } @else {
                 <p class="muted">Nabídka zatím nebyla ohodnocena@if (d.triageScore) { (předběžná relevance {{ d.triageScore }}/5)}.</p>
               }
             </mat-card-content>
+            <mat-card-actions>
+              <button mat-stroked-button (click)="evaluate(d)" [disabled]="!aiEnabled() || working() !== null">
+                <mat-icon>auto_awesome</mat-icon>
+                {{ d.evaluation ? 'Ohodnotit znovu' : d.stage === 'TriagedOut' ? 'Přesto ohodnotit' : 'Ohodnotit' }}
+              </button>
+            </mat-card-actions>
           </mat-card>
 
+          <!-- ===== Cover letter ===== -->
           <mat-card appearance="outlined">
             <mat-card-header><mat-card-title>Průvodní dopis</mat-card-title></mat-card-header>
+            @if (working() === 'letter') {
+              <mat-progress-bar mode="indeterminate" />
+            }
             <mat-card-content>
-              @if (d.coverLetter) {
+              @if (working() === 'letter') {
+                <p class="muted">Píšu návrh dopisu podle vašeho profilu a inzerátu…</p>
+              } @else if (editingLetter()) {
+                <mat-form-field appearance="outline" class="full">
+                  <mat-label>Text dopisu</mat-label>
+                  <textarea matInput rows="16" name="letter" maxlength="10000" [(ngModel)]="letterDraft"></textarea>
+                </mat-form-field>
+              } @else if (d.coverLetter) {
                 <pre class="letter">{{ d.coverLetter }}</pre>
-              } @else {
+              } @else if (d.stage === 'Evaluated') {
                 <p class="muted">K této nabídce zatím není připraven žádný dopis.</p>
+              } @else {
+                <p class="muted">Dopis lze napsat, jakmile bude nabídka ohodnocena – vychází z hodnocení.</p>
               }
             </mat-card-content>
-            @if (d.coverLetter) {
-              <mat-card-actions>
-                <button mat-stroked-button (click)="copyLetter(d.coverLetter)"><mat-icon>content_copy</mat-icon> Kopírovat dopis</button>
-              </mat-card-actions>
-            }
+            <mat-card-actions class="actions">
+              @if (editingLetter()) {
+                <button mat-flat-button (click)="saveLetter(d)" [disabled]="saving() || !letterDraft.trim()">Uložit dopis</button>
+                <button mat-button (click)="editingLetter.set(false)">Zrušit</button>
+              } @else {
+                @if (d.coverLetter) {
+                  <button mat-stroked-button (click)="copyLetter(d.coverLetter)"><mat-icon>content_copy</mat-icon> Kopírovat</button>
+                  <button mat-button (click)="editLetter(d)" [disabled]="working() !== null"><mat-icon>edit</mat-icon> Upravit</button>
+                }
+                @if (d.stage === 'Evaluated') {
+                  <button mat-button (click)="writeLetter(d)" [disabled]="!aiEnabled() || working() !== null">
+                    <mat-icon>auto_awesome</mat-icon> {{ d.coverLetter ? 'Napsat nový návrh' : 'Napsat dopis' }}
+                  </button>
+                }
+              }
+            </mat-card-actions>
           </mat-card>
 
           @if (d.adText) {
@@ -98,6 +149,7 @@ import { STATUS_OPTIONS, employmentLabel, problemMessage, remoteLabel, scoreTone
         </section>
 
         <aside class="column">
+          <!-- ===== Status ===== -->
           <mat-card appearance="outlined">
             <mat-card-header><mat-card-title>Stav</mat-card-title></mat-card-header>
             <mat-card-content>
@@ -117,6 +169,7 @@ import { STATUS_OPTIONS, employmentLabel, problemMessage, remoteLabel, scoreTone
             </mat-card-content>
           </mat-card>
 
+          <!-- ===== Notes ===== -->
           <mat-card appearance="outlined">
             <mat-card-header><mat-card-title>Poznámky</mat-card-title></mat-card-header>
             <mat-card-content>
@@ -128,6 +181,7 @@ import { STATUS_OPTIONS, employmentLabel, problemMessage, remoteLabel, scoreTone
             </mat-card-content>
           </mat-card>
 
+          <!-- ===== History ===== -->
           @if (d.history.length) {
             <mat-card appearance="outlined">
               <mat-card-header><mat-card-title>Historie</mat-card-title></mat-card-header>
@@ -153,6 +207,7 @@ import { STATUS_OPTIONS, employmentLabel, problemMessage, remoteLabel, scoreTone
     .head-text { flex: 1; min-width: 240px; }
     h1 { margin: 0; font-size: 1.6rem; }
     .meta { opacity: 0.7; margin-top: 4px; }
+    .ai-off { padding: 8px 12px; border-radius: 8px; background: var(--mat-sys-surface-container-high); }
     .grid { display: grid; grid-template-columns: 2fr 1fr; gap: 16px; align-items: start; }
     .column { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
     .summary { font-size: 1.05rem; }
@@ -163,6 +218,7 @@ import { STATUS_OPTIONS, employmentLabel, problemMessage, remoteLabel, scoreTone
     .reasons li::marker { content: '✓  '; color: #2e7d32; }
     .risks li::marker { content: '!  '; color: #c62828; }
     .letter, .ad { white-space: pre-wrap; font-family: inherit; margin: 0; }
+    .actions { flex-wrap: wrap; gap: 4px; }
     .full { width: 100%; }
     .history { padding-left: 18px; margin: 0; }
     .history li { margin-bottom: 8px; }
@@ -173,9 +229,11 @@ import { STATUS_OPTIONS, employmentLabel, problemMessage, remoteLabel, scoreTone
 })
 export class MatchDetailPage {
   private readonly matches = inject(MatchesService);
+  private readonly auth = inject(AuthService);
   private readonly router = inject(Router);
   private readonly clipboard = inject(Clipboard);
   private readonly snackBar = inject(MatSnackBar);
+  private readonly confirm = inject(ConfirmService);
 
   /** :id from the route (component input binding). */
   readonly id = input.required<string>();
@@ -183,6 +241,11 @@ export class MatchDetailPage {
   protected readonly detail = signal<MatchDetail | null>(null);
   protected readonly loadError = signal<string | null>(null);
   protected readonly saving = signal(false);
+  protected readonly working = signal<AiWork | null>(null);
+  protected readonly editingLetter = signal(false);
+
+  /** Only Approved users may spend AI tokens (ADR-0017) – the API enforces it, the UI just doesn't offer it. */
+  protected readonly aiEnabled = computed(() => this.auth.me()?.access === 'Approved');
 
   protected readonly statuses = STATUS_OPTIONS;
   protected readonly statusLabel = statusLabel;
@@ -190,15 +253,56 @@ export class MatchDetailPage {
   protected readonly employmentLabel = employmentLabel;
   protected readonly tone = scoreTone;
 
-  // Form fields – plain fields are enough with [(ngModel)]; reset from the loaded detail
+  // Form fields – plain fields are enough with [(ngModel)]; reset from every loaded detail
   protected newStatus: MatchStatus = 'New';
   protected statusNote = '';
   protected notes = '';
+  protected letterDraft = '';
 
   constructor() {
     effect(() => {
       const id = this.id();
       untracked(() => this.load(id));
+    });
+  }
+
+  // ---------- AI on demand ----------
+
+  protected async evaluate(d: MatchDetail): Promise<void> {
+    await this.runAi('evaluate', d.id, async () => {
+      this.show(await this.matches.evaluate(d.id));
+      this.toast('Nabídka byla ohodnocena.');
+    });
+  }
+
+  protected async writeLetter(d: MatchDetail): Promise<void> {
+    const replace = d.coverLetter !== null;
+    if (replace && !(await this.confirm.ask({
+      title: 'Napsat nový návrh dopisu?',
+      message: 'Stávající dopis včetně vašich úprav bude nahrazen novým návrhem.',
+      confirm: 'Napsat nový návrh',
+    }))) {
+      return;
+    }
+
+    await this.runAi('letter', d.id, async () => {
+      this.show(await this.matches.writeLetter(d.id, replace));
+      this.toast('Návrh dopisu je připraven.');
+    });
+  }
+
+  // ---------- the user's own changes ----------
+
+  protected editLetter(d: MatchDetail): void {
+    this.letterDraft = d.coverLetter ?? '';
+    this.editingLetter.set(true);
+  }
+
+  protected async saveLetter(d: MatchDetail): Promise<void> {
+    await this.save(async () => {
+      await this.matches.updateLetter(d.id, this.letterDraft.trim());
+      await this.load(d.id);
+      this.toast('Dopis byl uložen.');
     });
   }
 
@@ -227,13 +331,11 @@ export class MatchDetailPage {
     this.toast(this.clipboard.copy(text) ? 'Dopis byl zkopírován do schránky.' : 'Dopis se nepodařilo zkopírovat.');
   }
 
+  // ---------- plumbing ----------
+
   private async load(id: string): Promise<void> {
     try {
-      const d = await this.matches.detail(id);
-      this.newStatus = d.status;
-      this.statusNote = '';
-      this.notes = d.notes ?? '';
-      this.detail.set(d);                                   // set last – this redraws the page
+      this.show(await this.matches.detail(id));
       this.loadError.set(null);
     } catch (error) {
       this.loadError.set(error instanceof HttpErrorResponse && error.status === 404
@@ -242,18 +344,41 @@ export class MatchDetailPage {
     }
   }
 
+  /** Every fresh detail (load, evaluation, new letter) resets the form fields. */
+  private show(d: MatchDetail): void {
+    this.newStatus = d.status;
+    this.statusNote = '';
+    this.notes = d.notes ?? '';
+    this.editingLetter.set(false);
+    this.detail.set(d);                                     // set last – this redraws the page
+  }
+
+  private async runAi(work: AiWork, id: string, action: () => Promise<void>): Promise<void> {
+    if (this.working()) return;                             // one AI call at a time
+    this.working.set(work);
+    try {
+      await action();
+    } catch (error) {
+      this.toast(aiErrorMessage(error), 6000);
+      // 410 = the ad was removed from the portal – the API moved the job to "Vyřazené", show it
+      if (error instanceof HttpErrorResponse && error.status === 410) await this.load(id);
+    } finally {
+      this.working.set(null);
+    }
+  }
+
   private async save(action: () => Promise<void>): Promise<void> {
     this.saving.set(true);
     try {
       await action();
     } catch (error) {
-      this.toast(problemMessage(error, 'Změnu se nepodařilo uložit. Zkuste to prosím znovu.'));
+      this.toast(problemMessage(error, 'Změnu se nepodařilo uložit. Zkuste to prosím znovu.'), 6000);
     } finally {
       this.saving.set(false);
     }
   }
 
-  private toast(message: string): void {
-    this.snackBar.open(message, undefined, { duration: 3000 });
+  private toast(message: string, duration = 3000): void {
+    this.snackBar.open(message, undefined, { duration });
   }
 }

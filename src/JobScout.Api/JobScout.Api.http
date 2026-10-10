@@ -117,7 +117,7 @@ X-CSRF: 1
 GET {{host}}/api/admin/users
 
 ### Approve (or resume a suspended user) – paste the id from the list
-@userId = 01a125b4-c54e-72d2-b73b-385abff2e66c
+@userId = 01a115d3-4d2c-798c-9461-1b756f5aca4e
 POST {{host}}/api/admin/users/{{userId}}/approve
 X-CSRF: 1
 

@@ -6,7 +6,7 @@ export interface ViewTab { view: MatchView; param: string; label: string; countK
 export const VIEWS: ViewTab[] = [
   { view: 'Open', param: 'open', label: 'K rozhodnutí', countKey: 'open',
     empty: 'Žádné nabídky nečekají na vaše rozhodnutí. Nové přibudou po ranním vyhledávání.' },
-  { view: 'InProgress', param: 'inprogress', label: 'Rozpracované', countKey: 'inProgress',
+  { view: 'InProgress', param: 'inprogress', label: 'V procesu', countKey: 'inProgress',
     empty: 'Zatím jste na žádnou nabídku nereagovali.' },
   { view: 'Closed', param: 'closed', label: 'Uzavřené', countKey: 'closed',
     empty: 'Žádné uzavřené nabídky.' },
@@ -55,4 +55,14 @@ export function scoreTone(score: number | null): 'good' | 'maybe' | 'weak' | 'pe
 /** The API's ProblemDetails.detail is written for users – show it; otherwise a generic message. */
 export function problemMessage(error: unknown, fallback: string): string {
   return error instanceof HttpErrorResponse && typeof error.error?.detail === 'string' ? error.error.detail : fallback;
+}
+
+/**
+ * Errors of the AI buttons. The API already says what happened (409 no CV / not evaluated, 410 ad removed,
+ * 502 letter cut off, 503 portal down) – we only add a text for 403, which comes without a body.
+ */
+export function aiErrorMessage(error: unknown): string {
+  if (error instanceof HttpErrorResponse && error.status === 403)
+    return 'Funkce AI nejsou pro váš účet momentálně dostupné.';
+  return problemMessage(error, 'Akce se nezdařila. Zkuste to prosím znovu.');
 }

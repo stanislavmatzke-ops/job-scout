@@ -51,4 +51,35 @@ describe('MatchesService', () => {
 
     await saving;
   });
+
+  // ---------- on demand (6c) ----------
+
+  it('evaluates and returns the fresh detail', async () => {
+    const evaluating = service.evaluate('abc');
+    const req = http.expectOne('/api/matches/abc/evaluate');
+    expect(req.request.method).toBe('POST');
+    req.flush({ id: 'abc', score: 6 });
+
+    expect((await evaluating).score).toBe(6);
+  });
+
+  it('writes a letter – replacing only when asked', async () => {
+    const writing = service.writeLetter('abc', true);
+    const req = http.expectOne(r => r.url === '/api/matches/abc/letter');
+    expect(req.request.method).toBe('POST');
+    expect(req.request.params.get('replace')).toBe('true');
+    req.flush({ id: 'abc', coverLetter: 'Dobrý den, …' });
+
+    expect((await writing).coverLetter).toBe('Dobrý den, …');
+  });
+
+  it('saves the edited letter', async () => {
+    const saving = service.updateLetter('abc', 'Dobrý den, upraveno.');
+    const req = http.expectOne('/api/matches/abc/letter');
+    expect(req.request.method).toBe('PUT');
+    expect(req.request.body).toEqual({ text: 'Dobrý den, upraveno.' });
+    req.flush(null, { status: 204, statusText: 'No Content' });
+
+    await saving;
+  });
 });

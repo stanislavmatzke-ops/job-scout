@@ -1,5 +1,5 @@
 import { HttpErrorResponse } from '@angular/common/http';
-import { STATUS_OPTIONS, VIEWS, parseView, problemMessage, scoreTone, statusLabel } from './match-format';
+import { STATUS_OPTIONS, VIEWS, aiErrorMessage, parseView, problemMessage, scoreTone, statusLabel } from './match-format';
 
 describe('match-format', () => {
   it('reads the tab from the URL, case-insensitive, Open by default', () => {
@@ -34,5 +34,12 @@ describe('match-format', () => {
     expect(problemMessage(problem, 'Nepodařilo se.')).toBe('Nejprve nahrajte své CV.');
     expect(problemMessage(new HttpErrorResponse({ status: 500 }), 'Nepodařilo se.')).toBe('Nepodařilo se.');
     expect(problemMessage(new Error('x'), 'Nepodařilo se.')).toBe('Nepodařilo se.');
+  });
+
+  it('explains AI errors – the API text, or our own for 403 which has no body', () => {
+    const gone = new HttpErrorResponse({ status: 410, error: { detail: 'Inzerát již na portálu není k dispozici.' } });
+    expect(aiErrorMessage(gone)).toBe('Inzerát již na portálu není k dispozici.');
+    expect(aiErrorMessage(new HttpErrorResponse({ status: 403 }))).toContain('nejsou pro váš účet');
+    expect(aiErrorMessage(new HttpErrorResponse({ status: 500 }))).toContain('nezdařila');
   });
 });
