@@ -14,6 +14,7 @@ const empty: ProfileView = {
 
 describe('ProfilePage', () => {
   let http: HttpTestingController;
+  let current: { detectChanges(): void; whenStable(): Promise<unknown> };
 
   async function render(view: ProfileView) {
     TestBed.configureTestingModule({
@@ -25,6 +26,7 @@ describe('ProfilePage', () => {
     });
     http = TestBed.inject(HttpTestingController);
     const fixture = TestBed.createComponent(ProfilePage);
+    current = fixture;
     fixture.detectChanges();
     http.expectOne('/api/profile').flush(view);
     await new Promise(resolve => setTimeout(resolve));
@@ -57,5 +59,20 @@ describe('ProfilePage', () => {
     input.dispatchEvent(new Event('change'));
     await new Promise(resolve => setTimeout(resolve));
     TestBed.inject(HttpTestingController).expectNone('/api/profile/cv');
+  });
+
+  it('after the very first CV says that the first search runs right now (6h)', async () => {
+    const page = await render(empty);
+    const input = page.querySelector('input[type="file"]') as HTMLInputElement;
+    Object.defineProperty(input, 'files', { value: [new File(['# Jana'], 'cv.md')] });
+
+    input.dispatchEvent(new Event('change'));
+    await new Promise(resolve => setTimeout(resolve));
+    http.expectOne('/api/profile/cv').flush({ ...empty, hasCv: true, version: 1, cvFileName: 'cv.md' });
+    await new Promise(resolve => setTimeout(resolve));
+    await current.whenStable();
+    current.detectChanges();
+
+    expect(page.textContent).toContain('právě pro vás hledáme první nabídky');
   });
 });

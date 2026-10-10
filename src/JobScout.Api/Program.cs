@@ -3,6 +3,7 @@ using JobScout.Api.Auth;
 using JobScout.Api.Matches;
 using JobScout.Api.Me;
 using JobScout.Api.Profile;
+using JobScout.Api.Scouting;
 using JobScout.Application;
 using JobScout.Infrastructure;
 using JobScout.Infrastructure.Persistence;
@@ -12,6 +13,7 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddInfrastructure(builder.Configuration);
 builder.Services.AddApplication();
+builder.Services.AddFirstSearch(builder.Configuration);   // 6h – the first search right after the first CV
 builder.Services.AddJobScoutAuth(builder.Configuration, builder.Environment);
 builder.Services.AddProblemDetails();
 builder.Services.AddHealthChecks();
@@ -42,6 +44,7 @@ app.MapMeEndpoints();
 app.MapMatchEndpoints();
 app.MapProfileEndpoints();
 app.MapAdminEndpoints();
+app.MapScoutEndpoints();
 
 await app.RunAsync();
 

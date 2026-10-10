@@ -4,6 +4,7 @@ import { HttpTestingController, provideHttpClientTesting } from '@angular/common
 import { provideRouter } from '@angular/router';
 import { MatchesPage } from './matches.page';
 import { MatchList } from '../../core/matches.models';
+import { ScoutStatus } from '../../core/scout.service';
 
 const list: MatchList = {
   view: 'Open',
@@ -36,12 +37,15 @@ describe('MatchesPage', () => {
 
   afterEach(() => http.verify());
 
-  async function render(view?: string, response: MatchList = list) {
+  async function render(view?: string, response: MatchList = list,
+                        scout: ScoutStatus = { searching: false, lastSearchAt: '2026-10-10T05:30:00Z' }) {
     const fixture = TestBed.createComponent(MatchesPage);
     if (view) fixture.componentRef.setInput('view', view);
     fixture.detectChanges();
     const req = http.expectOne(r => r.url === '/api/matches');
     req.flush(response);
+    http.expectOne('/api/scout/status').flush(scout);
+    await new Promise(resolve => setTimeout(resolve));
     await fixture.whenStable();
     fixture.detectChanges();
     return { fixture, text: (fixture.nativeElement as HTMLElement).textContent ?? '', req };
@@ -83,5 +87,43 @@ describe('MatchesPage', () => {
     const { text } = await render('closed', { ...list, view: 'Closed', items: [] });
 
     expect(text).toContain('Žádné uzavřené nabídky');
+  });
+
+  // ---------- 6h: the first search runs in the background ----------
+
+  const empty = { view: 'Open' as const, items: [], counts: { open: 0, inProgress: 0, closed: 0, triagedOut: 0 } };
+
+  it('says that jobs are searched for every morning, and when the last search was', async () => {
+    const { fixture } = await render();
+
+    const text = (fixture.nativeElement as HTMLElement).textContent ?? '';
+    expect(text).toContain('hledáme každé ráno');
+    expect(text).toContain('Naposledy');
+  });
+
+  it('while the first search runs, says so and reloads the list when it ends', async () => {
+    vi.useFakeTimers();
+    try {
+      const fixture = TestBed.createComponent(MatchesPage);
+      fixture.detectChanges();
+      http.expectOne(r => r.url === '/api/matches').flush(empty);
+      http.expectOne('/api/scout/status').flush({ searching: true, lastSearchAt: null });
+      await vi.advanceTimersByTimeAsync(0);
+      fixture.detectChanges();
+      expect((fixture.nativeElement as HTMLElement).textContent).toContain('Hledáme pro vás nabídky');
+
+      await vi.advanceTimersByTimeAsync(15_000);
+      http.expectOne('/api/scout/status').flush({ searching: false, lastSearchAt: '2026-10-10T16:10:00Z' });
+      await vi.advanceTimersByTimeAsync(0);
+      http.expectOne(r => r.url === '/api/matches').flush(list);       // the new jobs
+      await vi.advanceTimersByTimeAsync(0);
+      fixture.detectChanges();
+
+      const text = (fixture.nativeElement as HTMLElement).textContent ?? '';
+      expect(text).not.toContain('Hledáme pro vás nabídky');
+      expect(text).toContain('Solution Architect');
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

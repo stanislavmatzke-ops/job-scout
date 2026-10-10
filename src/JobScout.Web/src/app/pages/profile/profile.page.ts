@@ -39,6 +39,14 @@ type Work = 'cv' | 'notes';
         <p class="ai-off">Nahrání životopisu a změna poznámek spouští analýzu pomocí AI – u pozastaveného účtu jsou vypnuté.</p>
       }
 
+      @if (firstSearch()) {
+        <p class="info" role="status">
+          <mat-icon>travel_explore</mat-icon>
+          Profil je hotový a právě pro vás hledáme první nabídky – obvykle to trvá několik minut.
+          Najdete je na stránce <a routerLink="/matches">Nabídky</a>. Další nové nabídky pak hledáme každé ráno.
+        </p>
+      }
+
       @if (v.outdatedEvaluations > 0) {
         <p class="info">
           <mat-icon>info</mat-icon>
@@ -71,9 +79,10 @@ type Work = 'cv' | 'notes';
               } @else {
                 <h3>Začněte nahráním životopisu</h3>
                 <p>
-                  Z životopisu a vašich poznámek AI sestaví profil – co umíte, jakou práci hledáte a kde.
-                  Podle něj pak každé ráno vyhledáme nové nabídky, ohodnotíme je a k nejvhodnějším připravíme návrh
-                  průvodního dopisu. Nic se neodesílá – o každé reakci rozhodujete vy.
+                  Nahrajte svůj životopis, abychom pro vás mohli najít vhodné pozice. Z životopisu a vašich poznámek
+                  AI sestaví profil – co umíte, jakou práci hledáte a kde. První nabídky začneme hledat hned po nahrání,
+                  další pak každé ráno: ohodnotíme je a k nejvhodnějším připravíme návrh průvodního dopisu.
+                  Nic se neodesílá – o každé reakci rozhodujete vy.
                 </p>
               }
               @if (fileError(); as message) { <p class="error">{{ message }}</p> }
@@ -210,6 +219,8 @@ export class ProfilePage implements OnInit {
   protected readonly loadError = signal(false);
   protected readonly working = signal<Work | null>(null);
   protected readonly fileError = signal<string | null>(null);
+  /** The very first profile was just created → the server started the first search (6h). */
+  protected readonly firstSearch = signal(false);
   protected readonly aiEnabled = computed(() => this.auth.me()?.access === 'Approved');
 
   protected notes = '';
@@ -260,6 +271,7 @@ export class ProfilePage implements OnInit {
     try {
       const after = await call();
       this.show(after);
+      if (before === null && after.version !== null) this.firstSearch.set(true);
       this.toast(after.version === before
         ? 'Nic se nezměnilo – profil zůstává stejný.'
         : 'Profil byl vyhodnocen. Nové nabídky budeme hledat a hodnotit podle něj.');

@@ -1,6 +1,7 @@
-﻿using System.Security.Claims;
+using System.Security.Claims;
 using JobScout.Api.Auth;
 using JobScout.Application.Profiles;
+using JobScout.Application.Scouting;
 using JobScout.Core.Domain;
 
 namespace JobScout.Api.Profile;
@@ -17,7 +18,8 @@ public static class ProfileEndpoints
         profile.MapGet("", async (ClaimsPrincipal user, GetProfile get, CancellationToken ct) =>
             Results.Ok(await get.ExecuteAsync(user.GetUserId(), ct)));
 
-        profile.MapPut("/cv", async (IFormFile? file, ClaimsPrincipal user, UploadCv upload, GetProfile get, CancellationToken ct) =>
+        profile.MapPut("/cv", async (IFormFile? file, ClaimsPrincipal user, UploadCv upload, StartFirstScout firstScout,
+            GetProfile get, CancellationToken ct) =>
         {
             if (file is null)
                 return Results.Problem("Chybí soubor s CV (pole „file“).", statusCode: StatusCodes.Status400BadRequest);
@@ -35,9 +37,10 @@ public static class ProfileEndpoints
                 return Results.Problem(ex.Message, statusCode: StatusCodes.Status400BadRequest);
             }
 
+            await firstScout.ExecuteAsync(user.GetUserId(), ct);       // a new user doesn't wait for the morning (6h)
             return Results.Ok(await get.ExecuteAsync(user.GetUserId(), ct));
         })
-        .DisableAntiforgery()    // CSRF protection for the whole API comes in 5e
+        .DisableAntiforgery()    // CSRF: the X-CSRF header for the whole API (5e)
         .RequireAuthorization(Policies.Active);
 
         profile.MapPut("/notes", async (UpdateProfileNotesRequest body, ClaimsPrincipal user,

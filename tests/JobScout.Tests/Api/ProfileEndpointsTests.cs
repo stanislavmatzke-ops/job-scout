@@ -1,4 +1,4 @@
-using System.Net;
+﻿using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using JobScout.Application.Llm;
@@ -137,5 +137,20 @@ public sealed class ProfileEndpointsTests : IDisposable
             new StringContent(json, System.Text.Encoding.UTF8, "application/json"));
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    // ---------- 6h: the jobs page asks whether the first search still runs ----------
+
+    private sealed record ScoutStatus(bool Searching, DateTimeOffset? LastSearchAt);
+
+    [Fact]
+    public async Task Scout_status_of_a_new_user()
+    {
+        var browser = await SignInAsync();
+
+        var status = await browser.GetFromJsonAsync<ScoutStatus>("/api/scout/status");
+
+        Assert.Equal((false, (DateTimeOffset?)null), (status!.Searching, status.LastSearchAt));
+        Assert.Equal(HttpStatusCode.Unauthorized, (await _factory.CreateBrowser().GetAsync("/api/scout/status")).StatusCode);
     }
 }

@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, computed, effect, inject, input, signal, untracked } from '@angular/core';
+import { ChangeDetectionStrategy, Component, DestroyRef, computed, effect, inject, input, signal, untracked } from '@angular/core';
 import { DatePipe } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { MatTabsModule } from '@angular/material/tabs';
@@ -10,6 +10,7 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatchesService } from '../../core/matches.service';
 import { MatchList, MatchListItem, MatchView } from '../../core/matches.models';
 import { VIEWS, parseView, scoreTone, statusLabel } from '../../core/match-format';
+import { SCOUT_POLL_MS, ScoutService, ScoutStatus } from '../../core/scout.service';
 
 @Component({
   selector: 'app-matches-page',
@@ -17,6 +18,23 @@ import { VIEWS, parseView, scoreTone, statusLabel } from '../../core/match-forma
   imports: [RouterLink, DatePipe, MatTabsModule, MatCardModule, MatIconModule, MatButtonModule, MatProgressBarModule, MatTooltipModule],
   template: `
     <h1>Nabídky</h1>
+    @if (scout(); as s) {
+      @if (s.searching) {
+        <mat-card appearance="outlined" class="searching" role="status">
+          <mat-progress-bar mode="indeterminate" />
+          <mat-card-content>
+            <strong>Hledáme pro vás nabídky.</strong>
+            Prohledáváme portály, AI nalezené inzeráty třídí a ty nejvhodnější hodnotí – obvykle to trvá několik minut.
+            Seznam se obnoví sám, stránku můžete klidně zavřít.
+          </mat-card-content>
+        </mat-card>
+      } @else {
+        <p class="schedule">
+          Nové nabídky pro vás hledáme každé ráno.
+          @if (s.lastSearchAt) { Naposledy {{ s.lastSearchAt | date: 'd. M. y H:mm' }}. }
+        </p>
+      }
+    }
 
     <nav mat-tab-nav-bar [tabPanel]="panel">
       @for (tab of tabs; track tab.view) {
@@ -69,6 +87,9 @@ import { VIEWS, parseView, scoreTone, statusLabel } from '../../core/match-forma
     </mat-tab-nav-panel>
   `,
   styles: `
+    .searching { margin-bottom: 16px; overflow: hidden; }
+    .searching mat-card-content { padding-top: 12px; }
+    .schedule { margin: -8px 0 16px; opacity: 0.7; font-size: 0.9em; }
     .count { margin-left: 6px; padding: 0 8px; border-radius: 10px; background: var(--mat-sys-surface-container-high); font-size: 0.8em; }
     .items { display: flex; flex-direction: column; gap: 12px; padding-top: 16px; }
     .item { display: flex; flex-direction: row; align-items: flex-start; gap: 16px; padding: 16px; }
@@ -86,6 +107,8 @@ import { VIEWS, parseView, scoreTone, statusLabel } from '../../core/match-forma
 })
 export class MatchesPage {
   private readonly matches = inject(MatchesService);
+  private readonly scoutService = inject(ScoutService);
+  private pollTimer: ReturnType<typeof setTimeout> | undefined;
 
   /** ?view=… from the URL (component input binding) – tabs are links, so Back and bookmarks work. */
   readonly view = input<string>();
@@ -96,6 +119,7 @@ export class MatchesPage {
   protected readonly list = signal<MatchList | null>(null);
   protected readonly loading = signal(false);
   protected readonly failed = signal(false);
+  protected readonly scout = signal<ScoutStatus | null>(null);
 
   protected readonly statusLabel = statusLabel;
 
@@ -105,6 +129,26 @@ export class MatchesPage {
       const view = this.current();
       untracked(() => this.load(view));
     });
+    void this.checkScout();
+    inject(DestroyRef).onDestroy(() => clearTimeout(this.pollTimer));
+  }
+
+  /**
+   * While the first search runs (6h), ask again every few seconds; when it ends, reload the list.
+   * The status is only a hint – if it can't be loaded, the page works without it.
+   */
+  private async checkScout(): Promise<void> {
+    const wasSearching = this.scout()?.searching ?? false;
+    try {
+      const status = await this.scoutService.status();
+      this.scout.set(status);
+      if (status.searching)
+        this.pollTimer = setTimeout(() => void this.checkScout(), SCOUT_POLL_MS);
+      else if (wasSearching)
+        await this.load(this.current());
+    } catch {
+      // no status → no banner; the jobs still show
+    }
   }
 
   /** No jobs in any tab – most likely a new user without a CV. */

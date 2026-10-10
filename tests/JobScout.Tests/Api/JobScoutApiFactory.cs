@@ -55,6 +55,7 @@ public sealed class JobScoutApiFactory(
         // No real Microsoft/Google sign-in in tests – even if your user secrets configure them
         builder.UseSetting("Auth:Microsoft:ClientId", "");
         builder.UseSetting("Auth:Google:ClientId", "");
+        builder.UseSetting("Scout:FirstSearch:Enabled", "false");   // no background searches racing the tests (6h)
         foreach (var (key, value) in settings ?? new Dictionary<string, string>())
             builder.UseSetting(key, value);
 
