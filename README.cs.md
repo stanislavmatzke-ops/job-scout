@@ -1,5 +1,6 @@
 # Job Scout
 
+[![CI](https://github.com/stanislavmatzke-ops/job-scout/actions/workflows/ci.yml/badge.svg)](https://github.com/stanislavmatzke-ops/job-scout/actions/workflows/ci.yml)
 *[English version](README.md)*
 
 **AI asistent pro hledání práce postavený na .NET 10 a Claude.** Každé ráno projde pracovní portály a najde
