@@ -4,11 +4,12 @@ using Microsoft.EntityFrameworkCore;
 
 namespace JobScout.Application.Users;
 
-public enum SignInStatus { SignedIn, InvitationRequired, InvitationInvalid }
+public enum SignInStatus { SignedIn, InvitationInvalid }
 
 public sealed record SignInResult(SignInStatus Status, User? User = null);
 
-public sealed record SignInRequest(string Provider, string Subject, string Email, string DisplayName, string? InviteCode = null);
+public sealed record SignInRequest(
+    string Provider, string Subject, string Email, string DisplayName, string? InviteCode = null, bool IsAdmin = false);
 
 /// <summary>
 /// Sign-in: find the user by provider + subject (ADR-0011 – never by e-mail). A known user always gets in and their
@@ -27,17 +28,17 @@ public sealed class SignInUser(IAppDbContext db, TimeProvider time)
 
         if (user is not null)
         {
-            user.UpdateContact(request.Email, request.DisplayName);   // a spare invitation is NOT used up
+            user.UpdateContact(request.Email, request.DisplayName);
+            user.RecordSignIn(now);
+            if (request.IsAdmin && user.Access != AccessStatus.Approved)
+                user.Approve(now);                                   // the owner is never locked out
             await db.SaveChangesAsync(ct);
-            return new SignInResult(SignInStatus.SignedIn, user);
+            return new SignInResult(SignInStatus.SignedIn, user);    // a spare invitation is NOT used up
         }
 
         Invitation? invitation = null;
-        if (request.Provider != DevProvider)
+        if (!string.IsNullOrWhiteSpace(request.InviteCode))
         {
-            if (string.IsNullOrWhiteSpace(request.InviteCode))
-                return new SignInResult(SignInStatus.InvitationRequired);
-
             var hash = Invitation.HashCode(request.InviteCode);
             invitation = await db.Invitations.SingleOrDefaultAsync(i => i.CodeHash == hash, ct);
             if (invitation is null || !invitation.IsUsable(now))
@@ -45,6 +46,11 @@ public sealed class SignInUser(IAppDbContext db, TimeProvider time)
         }
 
         user = new User(request.Provider, request.Subject, request.Email, request.DisplayName, now);
+        user.RecordSignIn(now);
+        // Approved straight away: invited, a test persona, or the admin – everyone else asks for access (ADR-0017)
+        if (invitation is not null || request.Provider == DevProvider || request.IsAdmin)
+            user.Approve(now);
+
         db.Users.Add(user);
         invitation?.Use(user.Id, now);
         await db.SaveChangesAsync(ct);

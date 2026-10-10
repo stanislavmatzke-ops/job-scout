@@ -24,6 +24,7 @@ Format: lightweight version of [Michael Nygard's ADR](https://cognitect.com/blog
 | [0014](0014-dev-sign-in-test-personas.md) | Dev sign-in and test personas; the app is not IT-only | Accepted |
 | [0015](0015-jobscz-profession-resolution.md) | jobs.cz professions resolved by verified URL slugs, not a full catalogue | Accepted |
 | [0016](0016-llm-cost-tracking.md) | LLM cost tracking: recording decorator, ambient context, micro-dollars | Accepted |
+| [0017](0017-access-requests-admin-approval.md) | Access by request and admin approval; suspending users to cap AI costs | Proposed |
 
 ## Template
 

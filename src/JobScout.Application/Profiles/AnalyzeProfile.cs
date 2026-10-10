@@ -1,5 +1,6 @@
 ﻿using JobScout.Application.Abstractions;
 using JobScout.Application.Llm;
+using JobScout.Application.Users;
 using JobScout.Core.Domain;
 using Microsoft.EntityFrameworkCore;
 
@@ -31,6 +32,8 @@ public sealed class AnalyzeProfile(IAppDbContext db, ProfileExtractor extractor,
         if (user is null)
         {
             user = new User(input.Provider, input.Subject, email: "", input.DisplayName, now);
+            if (input.Provider == SignInUser.DevProvider)
+                user.Approve(now);                                   // Worker personas (ADR-0014)
             db.Users.Add(user);
         }
 

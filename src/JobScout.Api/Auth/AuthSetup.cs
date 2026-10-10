@@ -1,6 +1,8 @@
 ﻿using System.Security.Claims;
+using JobScout.Core.Domain;
 using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.IdentityModel.Protocols.OpenIdConnect;
 using Microsoft.IdentityModel.Validators;
 
@@ -82,7 +84,18 @@ public static class AuthSetup
         }
 
         services.AddSingleton(new ExternalProviders(external));
-        services.AddAuthorization();
+        services.AddSingleton(config.GetSection("Auth").Get<AdminOptions>() ?? new AdminOptions());
+        services.AddScoped<IAuthorizationHandler, AccessHandler>();
+        services.AddScoped<IAuthorizationHandler, AdminHandler>();
+        services.AddAuthorizationBuilder()
+            .SetDefaultPolicy(new AuthorizationPolicyBuilder()
+                .RequireAuthenticatedUser()
+                .AddRequirements(new AccessRequirement(AccessStatus.Approved, AccessStatus.Suspended))
+                .Build())
+            .AddPolicy(Policies.SignedIn, p => p.RequireAuthenticatedUser())
+            .AddPolicy(Policies.Active, p => p.RequireAuthenticatedUser()
+                .AddRequirements(new AccessRequirement(AccessStatus.Approved)))
+            .AddPolicy(Policies.Admin, p => p.RequireAuthenticatedUser().AddRequirements(new AdminRequirement()));
 
         return services;
     }

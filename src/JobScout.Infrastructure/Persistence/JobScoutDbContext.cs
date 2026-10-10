@@ -27,6 +27,7 @@ public sealed class JobScoutDbContext(DbContextOptions<JobScoutDbContext> option
         builder.Properties<MatchStage>().HaveConversion<string>().HaveMaxLength(20);
         builder.Properties<MatchStatus>().HaveConversion<string>().HaveMaxLength(20);
         builder.Properties<GrammaticalGender>().HaveConversion<string>().HaveMaxLength(20);
+        builder.Properties<AccessStatus>().HaveConversion<string>().HaveMaxLength(20);
 
         // SQLite stores DateTimeOffset as text and can't ORDER BY it → store as a sortable number.
         // PostgreSQL (Azure) has native timestamptz, so this applies to SQLite only.

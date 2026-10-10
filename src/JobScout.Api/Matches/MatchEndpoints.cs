@@ -75,7 +75,7 @@ public static class MatchEndpoints
                 _ => Results.Problem("Portál teď neodpovídá, zkus to za chvíli.",
                     statusCode: StatusCodes.Status503ServiceUnavailable)
             };
-        });
+        }).RequireAuthorization(Policies.Active);
 
         matches.MapPost("/{id:guid}/letter", async (Guid id, bool? replace, ClaimsPrincipal user,
             WriteCoverLetterNow write, GetMatchDetail get, CancellationToken ct) =>
@@ -95,7 +95,7 @@ public static class MatchEndpoints
                 _ => Results.Problem("AI dopis nedopsala, zkus to znovu.",
                     statusCode: StatusCodes.Status502BadGateway)
             };
-        });
+        }).RequireAuthorization(Policies.Active);
 
         matches.MapPut("/{id:guid}/letter", async (Guid id, UpdateLetterRequest body, ClaimsPrincipal user,
             UpdateCoverLetter update, CancellationToken ct) =>

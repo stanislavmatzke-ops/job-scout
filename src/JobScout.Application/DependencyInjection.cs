@@ -1,4 +1,5 @@
-﻿using JobScout.Application.Evaluation;
+﻿using JobScout.Application.Admin;
+using JobScout.Application.Evaluation;
 using JobScout.Application.Jobs;
 using JobScout.Application.Letters;
 using JobScout.Application.Llm;
@@ -47,6 +48,10 @@ public static class DependencyInjection
         services.AddScoped<UpdateProfileNotes>();
         services.AddScoped<UpdateProfileSettings>();
         services.AddScoped<CreateInvitation>();
+        services.AddScoped<RequestAccess>();
+        services.AddScoped<ListUsers>();
+        services.AddScoped<ApproveUser>();
+        services.AddScoped<SuspendUser>();
         return services;
     }
 }

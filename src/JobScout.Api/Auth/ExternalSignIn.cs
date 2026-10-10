@@ -34,9 +34,12 @@ public static class ExternalSignIn
         SignInResult? result = null;
         if (identity is not null)
         {
-            var signIn = context.HttpContext.RequestServices.GetRequiredService<SignInUser>();
+            var services = context.HttpContext.RequestServices;
+            var signIn = services.GetRequiredService<SignInUser>();
+            var admins = services.GetRequiredService<AdminOptions>();
             result = await signIn.ExecuteAsync(
-                new SignInRequest(provider, identity.Subject, identity.Email, identity.DisplayName, invite),
+                new SignInRequest(provider, identity.Subject, identity.Email, identity.DisplayName, invite,
+                    IsAdmin: admins.IsAdmin(provider, identity.Subject)),
                 context.HttpContext.RequestAborted);
         }
 
@@ -44,7 +47,6 @@ public static class ExternalSignIn
         {
             var error = result?.Status switch
             {
-                SignInStatus.InvitationRequired => "invitation-required",
                 SignInStatus.InvitationInvalid => "invitation-invalid",
                 _ => "no-identity"
             };

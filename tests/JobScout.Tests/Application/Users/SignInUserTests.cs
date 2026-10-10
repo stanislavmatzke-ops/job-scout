@@ -6,8 +6,9 @@ using Microsoft.EntityFrameworkCore;
 namespace JobScout.Tests.Application.Users;
 
 /// <summary>
-/// Sign-in = find the user by provider + subject (never by e-mail). A known user always gets in.
-/// A NEW Microsoft/Google identity needs a valid invitation (ADR-0011); dev personas don't (dev sign-in exists only outside Production).
+/// Sign-in = find the user by provider + subject (never by e-mail). Anyone may sign in (ADR-0017):
+/// a new identity is created as Pending and asks for access. Approved straight away: a valid invitation (ADR-0011),
+/// a dev persona (ADR-0014), or an admin from configuration.
 /// </summary>
 public sealed class SignInUserTests : IDisposable
 {
@@ -19,13 +20,12 @@ public sealed class SignInUserTests : IDisposable
     public void Dispose() => _database.Dispose();
 
     private async Task<SignInResult> SignInAsync(string provider, string subject, string email = "", string name = "Test",
-        string? invite = null)
+        string? invite = null, bool isAdmin = false)
     {
         await using var db = _database.CreateContext();
-        return await new SignInUser(db, _time).ExecuteAsync(new SignInRequest(provider, subject, email, name, invite));
+        return await new SignInUser(db, _time).ExecuteAsync(new SignInRequest(provider, subject, email, name, invite, isAdmin));
     }
 
-    /// <summary>Creates an invitation and returns its code (what the invited person gets in the link).</summary>
     private string Invite(DateTimeOffset? at = null)
     {
         using var db = _database.CreateContext();
@@ -35,51 +35,48 @@ public sealed class SignInUserTests : IDisposable
         return code;
     }
 
-    private int UserCount()
+    private User StoredUser()
     {
         using var db = _database.CreateContext();
-        return db.Users.Count();
+        return db.Users.Single();
     }
 
-    // ---------- new people need an invitation ----------
+    // ---------- new people ----------
 
     [Fact]
-    public async Task New_identity_without_invitation_is_turned_away()
+    public async Task New_identity_signs_in_and_waits_for_approval()
     {
-        var result = await SignInAsync("google", "g-123", "jana@example.com");
-
-        Assert.Equal(SignInStatus.InvitationRequired, result.Status);
-        Assert.Null(result.User);
-        Assert.Equal(0, UserCount());
-    }
-
-    [Fact]
-    public async Task Valid_invitation_creates_the_user_and_is_used_up()
-    {
-        var code = Invite();
-
-        var result = await SignInAsync("google", "g-123", "jana@example.com", "Jana", invite: code);
+        var result = await SignInAsync("google", "g-123", "jana@example.com", "Jana");
 
         Assert.Equal(SignInStatus.SignedIn, result.Status);
-        await using var db = _database.CreateContext();
-        var user = await db.Users.SingleAsync();
+        var user = StoredUser();
         Assert.Equal(("google", "g-123", "jana@example.com", "Jana"), (user.Provider, user.Subject, user.Email, user.DisplayName));
-        Assert.Equal(result.User!.Id, user.Id);
-        var invitation = await db.Invitations.SingleAsync();
-        Assert.Equal(user.Id, invitation.UsedByUserId);
-        Assert.Equal(T0, invitation.UsedAt);
+        Assert.Equal(AccessStatus.Pending, user.Access);
+        Assert.Equal(T0, user.LastSignInAt);
     }
 
     [Fact]
-    public async Task Invitation_works_only_once()
+    public async Task Valid_invitation_approves_straight_away_and_is_used_up()
+    {
+        var result = await SignInAsync("google", "g-123", invite: Invite());
+
+        Assert.Equal(SignInStatus.SignedIn, result.Status);
+        Assert.Equal(AccessStatus.Approved, StoredUser().Access);
+        await using var db = _database.CreateContext();
+        var invitation = await db.Invitations.SingleAsync();
+        Assert.Equal(result.User!.Id, invitation.UsedByUserId);
+    }
+
+    [Fact]
+    public async Task Used_or_unknown_invitation_is_reported_and_nobody_is_created()
     {
         var code = Invite();
-        await SignInAsync("google", "g-123", invite: code);
+        await SignInAsync("google", "g-1", invite: code);
 
-        var second = await SignInAsync("microsoft", "m-999", invite: code);
-
-        Assert.Equal(SignInStatus.InvitationInvalid, second.Status);
-        Assert.Equal(1, UserCount());
+        Assert.Equal(SignInStatus.InvitationInvalid, (await SignInAsync("microsoft", "m-9", invite: code)).Status);
+        Assert.Equal(SignInStatus.InvitationInvalid, (await SignInAsync("microsoft", "m-9", invite: "made-up")).Status);
+        await using var db = _database.CreateContext();
+        Assert.Equal(1, await db.Users.CountAsync());
     }
 
     [Fact]
@@ -88,63 +85,74 @@ public sealed class SignInUserTests : IDisposable
         var code = Invite(T0 - Invitation.ValidFor - TimeSpan.FromMinutes(1));
 
         Assert.Equal(SignInStatus.InvitationInvalid, (await SignInAsync("google", "g-123", invite: code)).Status);
-        Assert.Equal(0, UserCount());
     }
 
     [Fact]
-    public async Task Unknown_code_is_invalid()
+    public async Task Admin_from_configuration_is_approved()
     {
-        Assert.Equal(SignInStatus.InvitationInvalid, (await SignInAsync("google", "g-123", invite: "made-up")).Status);
+        await SignInAsync("microsoft", "m-admin", isAdmin: true);
+
+        Assert.Equal(AccessStatus.Approved, StoredUser().Access);
+    }
+
+    [Fact]
+    public async Task Dev_persona_is_approved()
+    {
+        await SignInAsync(SignInUser.DevProvider, "zednik", name: "zednik");
+
+        Assert.Equal(AccessStatus.Approved, StoredUser().Access);
     }
 
     // ---------- known people ----------
 
     [Fact]
-    public async Task Known_user_gets_in_without_invitation_and_contact_is_refreshed()
+    public async Task Known_user_keeps_their_access_and_contact_is_refreshed()
     {
-        var first = await SignInAsync("microsoft", "m-1", "old@example.com", "Old Name", invite: Invite());
+        var first = await SignInAsync("microsoft", "m-1", "old@example.com", "Old Name");
         _time.Now = T0.AddDays(30);
 
         var again = await SignInAsync("microsoft", "m-1", "new@example.com", "New Name");
 
-        Assert.Equal(SignInStatus.SignedIn, again.Status);
         Assert.Equal(first.User!.Id, again.User!.Id);
-        await using var db = _database.CreateContext();
-        var user = await db.Users.SingleAsync();
+        var user = StoredUser();
         Assert.Equal(("new@example.com", "New Name"), (user.Email, user.DisplayName));
+        Assert.Equal(AccessStatus.Pending, user.Access);            // signing in again doesn't approve anybody
+        Assert.Equal(T0.AddDays(30), user.LastSignInAt);
     }
 
     [Fact]
-    public async Task Known_user_does_not_use_up_an_invitation_by_accident()
+    public async Task Suspended_user_stays_suspended_after_sign_in()
     {
         await SignInAsync("google", "g-1", invite: Invite());
-        var spare = Invite();
+        await using (var db = _database.CreateContext())
+        {
+            (await db.Users.SingleAsync()).Suspend("Kapacita", T0);
+            await db.SaveChangesAsync();
+        }
 
-        await SignInAsync("google", "g-1", invite: spare);
+        await SignInAsync("google", "g-1", invite: Invite());           // even with another invitation
 
-        Assert.Equal(SignInStatus.SignedIn, (await SignInAsync("google", "g-2", invite: spare)).Status);
+        Assert.Equal(AccessStatus.Suspended, StoredUser().Access);
+    }
+
+    [Fact]
+    public async Task Admin_who_was_pending_gets_approved_on_sign_in()
+    {
+        // e.g. the owner signed in before being added to Auth:Admins
+        await SignInAsync("microsoft", "m-owner");
+
+        await SignInAsync("microsoft", "m-owner", isAdmin: true);
+
+        Assert.Equal(AccessStatus.Approved, StoredUser().Access);
     }
 
     [Fact]
     public async Task Same_email_at_another_provider_is_another_user()
     {
-        // Identity is provider + subject – an e-mail can be re-used or spoofed, so it never identifies a user (ADR-0011)
-        var google = await SignInAsync("google", "g-1", "jana@example.com", invite: Invite());
+        var google = await SignInAsync("google", "g-1", "jana@example.com");
         var microsoft = await SignInAsync("microsoft", "m-1", "jana@example.com");
 
-        Assert.Equal(SignInStatus.InvitationRequired, microsoft.Status);
-        Assert.NotNull(google.User);
-    }
-
-    // ---------- dev personas ----------
-
-    [Fact]
-    public async Task Dev_persona_needs_no_invitation()
-    {
-        var result = await SignInAsync(SignInUser.DevProvider, "zednik", name: "zednik");
-
-        Assert.Equal(SignInStatus.SignedIn, result.Status);
-        Assert.Equal(1, UserCount());
+        Assert.NotEqual(google.User!.Id, microsoft.User!.Id);
     }
 
     [Fact]

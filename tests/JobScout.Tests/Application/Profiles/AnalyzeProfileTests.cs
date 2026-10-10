@@ -1,6 +1,7 @@
 using System.Text;
 using JobScout.Application.Llm;
 using JobScout.Application.Profiles;
+using JobScout.Core.Domain;
 using JobScout.Tests.TestUtils;
 using Microsoft.EntityFrameworkCore;
 
@@ -72,6 +73,7 @@ public sealed class AnalyzeProfileTests : IDisposable
         Assert.Equal(1, result.Version.Version);
         Assert.Equal("dev", result.User.Provider);
         Assert.Equal("autolakyrnik", result.User.Subject);
+        Assert.Equal(AccessStatus.Approved, result.User.Access);
         Assert.Equal(1, Count("Users"));
         Assert.Equal(1, Count("UserProfiles"));
     }

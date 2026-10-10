@@ -364,6 +364,21 @@ namespace JobScout.Infrastructure.Persistence.Migrations
                     b.Property<Guid>("Id")
                         .HasColumnType("TEXT");
 
+                    b.Property<string>("Access")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("AccessRequestMessage")
+                        .HasMaxLength(1000)
+                        .HasColumnType("TEXT");
+
+                    b.Property<long?>("AccessRequestedAt")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<long?>("ApprovedAt")
+                        .HasColumnType("INTEGER");
+
                     b.Property<long>("CreatedAt")
                         .HasColumnType("INTEGER");
 
@@ -382,6 +397,9 @@ namespace JobScout.Infrastructure.Persistence.Migrations
                         .HasMaxLength(20)
                         .HasColumnType("TEXT");
 
+                    b.Property<long?>("LastSignInAt")
+                        .HasColumnType("INTEGER");
+
                     b.Property<string>("Provider")
                         .IsRequired()
                         .HasMaxLength(20)
@@ -390,6 +408,13 @@ namespace JobScout.Infrastructure.Persistence.Migrations
                     b.Property<string>("Subject")
                         .IsRequired()
                         .HasMaxLength(200)
+                        .HasColumnType("TEXT");
+
+                    b.Property<long?>("SuspendedAt")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("SuspendedReason")
+                        .HasMaxLength(500)
                         .HasColumnType("TEXT");
 
                     b.HasKey("Id");

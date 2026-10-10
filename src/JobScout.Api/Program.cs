@@ -1,3 +1,4 @@
+using JobScout.Api.Admin;
 using JobScout.Api.Auth;
 using JobScout.Api.Matches;
 using JobScout.Api.Me;
@@ -40,6 +41,7 @@ app.MapAuthEndpoints();
 app.MapMeEndpoints();
 app.MapMatchEndpoints();
 app.MapProfileEndpoints();
+app.MapAdminEndpoints();
 
 await app.RunAsync();
 
