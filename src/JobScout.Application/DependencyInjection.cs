@@ -52,6 +52,8 @@ public static class DependencyInjection
         services.AddScoped<ListUsers>();
         services.AddScoped<ApproveUser>();
         services.AddScoped<SuspendUser>();
+        services.AddScoped<ListScoutUsers>();
+        services.AddScoped<PrepareScoutProfile>();
         return services;
     }
 }

@@ -8,6 +8,14 @@
         "DOTNET_ENVIRONMENT": "Development"
       }
     },
+    "JobScout.Worker (daily)": {
+      "commandName": "Project",
+      "dotnetRunMessages": true,
+      "commandLineArgs": "--Scout:Mode=daily --Scout:OpenReport=true",
+      "environmentVariables": {
+        "DOTNET_ENVIRONMENT": "Development"
+      }
+    },
     "JobScout.Worker (invite)": {
       "commandName": "Project",
       "dotnetRunMessages": true,

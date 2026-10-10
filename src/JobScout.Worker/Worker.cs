@@ -6,6 +6,10 @@ using JobScout.Application.Reports;
 using JobScout.Infrastructure.Reports;
 using JobScout.Application.Scouting;
 using JobScout.Application.Users;
+using System.Globalization;
+using System.Text;
+using JobScout.Application.Scouting;
+using JobScout.Core.Domain;
 
 namespace JobScout.Worker;
 
@@ -30,6 +34,11 @@ public class Worker(
             if (config["Scout:Mode"] == "invite")
             {
                 await CreateInvitationAsync(stoppingToken);
+                return;
+            }
+            if (config["Scout:Mode"] == "daily")
+            {
+                await DailyAsync(stoppingToken);
                 return;
             }
             // Until SSO (phase 5): identity "dev" + persona name, or the data folder name ("samples" / "private")
@@ -275,5 +284,59 @@ public class Worker(
                               Microsoft: {Microsoft}
                               Odkaz se už nikde neukáže – v DB je jen otisk kódu.
                               """, note, created.ExpiresAt.ToLocalTime(), google, microsoft);
+    }
+
+    /// <summary>
+    /// Scout:Mode=daily – the morning run for every approved user with a profile (the cloud job, phase 7).
+    /// One scope per user: one failure can't poison the next user's data.
+    /// </summary>
+    private async Task DailyAsync(CancellationToken ct)
+    {
+        var includeDev = config.GetValue<bool>("Scout:IncludeDevUsers");
+
+        IReadOnlyList<Guid> userIds;
+        await using (var scope = scopeFactory.CreateAsyncScope())
+            userIds = await scope.ServiceProvider.GetRequiredService<ListScoutUsers>().ExecuteAsync(includeDev, ct);
+        logger.LogInformation("Ranní běh pro {Count} uživatelů{Dev}", userIds.Count, includeDev ? " (včetně dev person)" : "");
+
+        var failed = 0;
+        foreach (var userId in userIds)
+        {
+            await using var scope = scopeFactory.CreateAsyncScope();
+            try
+            {
+                var prepared = await scope.ServiceProvider.GetRequiredService<PrepareScoutProfile>().ExecuteAsync(userId, ct);
+                if (prepared is null)
+                    continue;
+
+                var subject = ReportSubject(prepared.User);
+                logger.LogInformation("══ {Subject} ({Provider}) – profil v{Version}{New} ══",
+                    prepared.User.DisplayName, prepared.User.Provider, prepared.Version.Version,
+                    prepared.IsNew ? ", nově přeanalyzovaný" : "");
+
+                await SearchAsync(scope.ServiceProvider, prepared, subject, ct);
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException)
+            {
+                failed++;
+                logger.LogError(ex, "Běh pro uživatele {UserId} selhal – pokračuji dalším", userId);
+            }
+        }
+
+        logger.LogInformation("Ranní běh hotový: {Ok} v pořádku, {Failed} selhalo", userIds.Count - failed, failed);
+        if (failed > 0)
+            Environment.ExitCode = 1;
+    }
+
+    /// <summary>File-name-safe report name: "google-stanislav-matzke".</summary>
+    private static string ReportSubject(User user)
+    {
+        var name = new string(user.DisplayName.ToLowerInvariant()
+                .Normalize(NormalizationForm.FormD)                       // "š" → "s" + háček …
+                .Where(c => CharUnicodeInfo.GetUnicodeCategory(c) != UnicodeCategory.NonSpacingMark)   // … háček pryč
+                .Select(c => char.IsAsciiLetterOrDigit(c) ? c : '-')
+                .ToArray())
+            .Trim('-');
+        return $"{user.Provider}-{(name.Length > 0 ? name : user.Id.ToString("N")[..8])}";
     }
 }
