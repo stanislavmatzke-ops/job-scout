@@ -14,7 +14,7 @@ public sealed record WriteCoverLettersResult(
 /// Cover letter drafts for evaluated jobs with score ≥ 7, best first, at most maxPerRun per run.
 /// Never overwrites an existing letter (the user may have edited it). Nothing is ever sent.
 /// </summary>
-public sealed class WriteCoverLetters(IAppDbContext db, ILlmClient llm, TimeProvider time)
+public sealed class WriteCoverLetters(IAppDbContext db, CoverLetterWriter writer, TimeProvider time)
 {
     public const int MinScore = 7;
     public const int MaxPerRun = 5;
@@ -40,53 +40,21 @@ public sealed class WriteCoverLetters(IAppDbContext db, ILlmClient llm, TimeProv
 
         foreach (var match in pending.Take(maxPerRun))
         {
-            var response = await llm.CompleteAsync(BuildRequest(profile, match), ct);   // API outage still throws
-            calls.Add(response);
+            var draft = await writer.WriteAsync(profile, match, ct);
+            calls.Add(draft.Response);
 
-            // Content problem (cut off / empty) → skip this one, it stays pending for the next run
-            var letter = response.Text.Trim();
-            if (response.StopReason == "max_tokens" || letter.Length == 0)
+            if (draft.Letter is null)
             {
-                failed++;
+                failed++;                                   // stays pending for the next run
                 continue;
             }
 
-            match.SetCoverLetter(letter, time.GetUtcNow());
-            letters.Add(new WrittenLetter(match.JobOffer!, match, letter));
+            match.SetCoverLetter(draft.Letter, time.GetUtcNow());
+            letters.Add(new WrittenLetter(match.JobOffer!, match, draft.Letter));
             await db.SaveChangesAsync(ct);
         }
 
         return new WriteCoverLettersResult(letters, failed, pending.Count - letters.Count, calls);
     }
 
-    private static LlmRequest BuildRequest(CandidateProfile profile, JobMatch match)
-    {
-        var offer = match.JobOffer!;
-        return new LlmRequest(
-            CoverLetterPrompts.System,
-            $"""
-            <profil_kandidata>
-            {LlmJson.Serialize(profile)}
-            </profil_kandidata>
-
-            <hodnoceni>
-            {match.EvaluationJson}
-            </hodnoceni>
-
-            <nabidka>
-            Pozice: {offer.Title}
-            Firma: {offer.Company}
-            Místo: {offer.Location}
-
-            {offer.DetailText}
-            </nabidka>
-
-            Napiš návrh průvodního dopisu.
-            """)
-        {
-            MaxTokens = 2000,
-            Tier = LlmTier.Smart,
-            Purpose = LlmPurpose.CoverLetter
-        };
-    }
 }

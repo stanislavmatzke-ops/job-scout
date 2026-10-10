@@ -99,8 +99,8 @@ public sealed class RunScoutTests : IDisposable
             sources,
             new RecordFoundJobs(db, _time),
             new TriageJobs(db, _llm, _time),
-            new EvaluateJobs(db, sources, new JobEvaluator(_llm), _time),
-            new WriteCoverLetters(db, _llm, _time),
+            new EvaluateJobs(db, new MatchEvaluator(sources, new JobEvaluator(_llm), _time)),
+            new WriteCoverLetters(db, new CoverLetterWriter(_llm), _time),
             new UsageReport(db),
             NullLogger<RunScout>.Instance);
 

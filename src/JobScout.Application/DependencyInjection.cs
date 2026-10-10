@@ -37,6 +37,11 @@ public static class DependencyInjection
         services.AddScoped<GetMatchDetail>();
         services.AddScoped<ChangeMatchStatus>();
         services.AddScoped<UpdateMatchNotes>();
+        services.AddScoped<MatchEvaluator>();          // scoped: uses job sources (typed HttpClients)
+        services.AddSingleton<CoverLetterWriter>();
+        services.AddScoped<EvaluateMatchNow>();
+        services.AddScoped<WriteCoverLetterNow>();
+        services.AddScoped<UpdateCoverLetter>();
         return services;
     }
 }

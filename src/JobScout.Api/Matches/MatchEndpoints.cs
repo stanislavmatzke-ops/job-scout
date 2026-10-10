@@ -7,6 +7,7 @@ namespace JobScout.Api.Matches;
 
 public sealed record ChangeStatusRequest(MatchStatus? Status, string? Note);   // nullable: a missing status must be 400, not "New"
 public sealed record UpdateNotesRequest(string? Notes);
+public sealed record UpdateLetterRequest(string? Text);
 
 public static class MatchEndpoints
 {
@@ -47,6 +48,61 @@ public static class MatchEndpoints
             try
             {
                 return await update.ExecuteAsync(user.GetUserId(), id, body.Notes, ct)
+                    ? Results.NoContent()
+                    : Results.NotFound();
+            }
+            catch (ArgumentException ex)
+            {
+                return Results.Problem(ex.Message, statusCode: StatusCodes.Status400BadRequest);
+            }
+        });
+
+                // ---------- on demand (5c): each answer tells the UI what to show ----------
+
+        matches.MapPost("/{id:guid}/evaluate", async (Guid id, ClaimsPrincipal user, EvaluateMatchNow evaluate,
+            GetMatchDetail get, CancellationToken ct) =>
+        {
+            var userId = user.GetUserId();
+            var result = await evaluate.ExecuteAsync(userId, id, ct);
+            return result.Status switch
+            {
+                EvaluateNowStatus.Evaluated => Results.Ok(await get.ExecuteAsync(userId, id, ct)),
+                EvaluateNowStatus.NotFound => Results.NotFound(),
+                EvaluateNowStatus.NoProfile => Results.Problem("Nejdřív nahraj CV – bez profilu není podle čeho hodnotit.",
+                    statusCode: StatusCodes.Status409Conflict),
+                EvaluateNowStatus.AdRemoved => Results.Problem("Inzerát už na portálu není.",
+                    statusCode: StatusCodes.Status410Gone),
+                _ => Results.Problem("Portál teď neodpovídá, zkus to za chvíli.",
+                    statusCode: StatusCodes.Status503ServiceUnavailable)
+            };
+        });
+
+        matches.MapPost("/{id:guid}/letter", async (Guid id, bool? replace, ClaimsPrincipal user,
+            WriteCoverLetterNow write, GetMatchDetail get, CancellationToken ct) =>
+        {
+            var userId = user.GetUserId();
+            var result = await write.ExecuteAsync(userId, id, replace ?? false, ct);
+            return result.Status switch
+            {
+                WriteLetterStatus.Written => Results.Ok(await get.ExecuteAsync(userId, id, ct)),
+                WriteLetterStatus.NotFound => Results.NotFound(),
+                WriteLetterStatus.NotEvaluated => Results.Problem("Nejdřív nabídku ohodnoť – dopis staví na hodnocení.",
+                    statusCode: StatusCodes.Status409Conflict),
+                WriteLetterStatus.AlreadyWritten => Results.Problem("Dopis už existuje. Pro nový pošli ?replace=true.",
+                    statusCode: StatusCodes.Status409Conflict),
+                WriteLetterStatus.NoProfile => Results.Problem("Nejdřív nahraj CV.",
+                    statusCode: StatusCodes.Status409Conflict),
+                _ => Results.Problem("AI dopis nedopsala, zkus to znovu.",
+                    statusCode: StatusCodes.Status502BadGateway)
+            };
+        });
+
+        matches.MapPut("/{id:guid}/letter", async (Guid id, UpdateLetterRequest body, ClaimsPrincipal user,
+            UpdateCoverLetter update, CancellationToken ct) =>
+        {
+            try
+            {
+                return await update.ExecuteAsync(user.GetUserId(), id, body.Text, ct)
                     ? Results.NoContent()
                     : Results.NotFound();
             }

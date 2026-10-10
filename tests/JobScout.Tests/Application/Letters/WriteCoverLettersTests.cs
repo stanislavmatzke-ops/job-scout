@@ -62,7 +62,7 @@ public sealed class WriteCoverLettersTests : IDisposable
     private async Task<WriteCoverLettersResult> WriteAsync(int? maxPerRun = null, FakeLlmClient? llm = null)
     {
         await using var db = _database.CreateContext();
-        return await new WriteCoverLetters(db, llm ?? _llm, _time)
+        return await new WriteCoverLetters(db, new CoverLetterWriter(llm ?? _llm), _time)
             .ExecuteAsync(_userId, TestProfiles.With(["Softwarový architekt"], "Praha", 0), maxPerRun ?? WriteCoverLetters.MaxPerRun);
     }
 

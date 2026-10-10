@@ -73,7 +73,7 @@ public sealed class EvaluateJobsTests : IDisposable
     private async Task<EvaluateJobsResult> EvaluateAsync(Guid? userId = null, FakeLlmClient? llm = null, int? maxPerRun = null)
     {
         await using var db = _database.CreateContext();
-        var useCase = new EvaluateJobs(db, [_jobsCz], new JobEvaluator(llm ?? _llm), _time);
+        var useCase = new EvaluateJobs(db, new MatchEvaluator([_jobsCz], new JobEvaluator(llm ?? _llm), _time));
         return await useCase.ExecuteAsync(userId ?? _userId, TestProfiles.With(["Zedník", "Stavbyvedoucí"], "Opava", 40),
             maxPerRun ?? EvaluateJobs.MaxPerRun);
     }

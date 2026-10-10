@@ -10,6 +10,8 @@ public static class LlmJson
     public static readonly JsonSerializerOptions Options = new(JsonSerializerDefaults.Web)
     {
         Converters = { new JsonStringEnumConverter(JsonNamingPolicy.CamelCase) },
+        // Czech letters as they are – escaped "\u00ED" costs several tokens per letter in every prompt
+        Encoder = System.Text.Encodings.Web.JavaScriptEncoder.Create(System.Text.Unicode.UnicodeRanges.All),
     };
 
     public static T Parse<T>(LlmResponse response)
@@ -21,7 +23,7 @@ public static class LlmJson
         return JsonSerializer.Deserialize<T>(response.Text, Options)
                ?? throw new InvalidOperationException($"Prázdná odpověď pro {typeof(T).Name}.");
     }
-    
+
     public static T Deserialize<T>(string json) =>
         JsonSerializer.Deserialize<T>(json, Options)
         ?? throw new InvalidOperationException($"Prázdný JSON pro {typeof(T).Name}.");
