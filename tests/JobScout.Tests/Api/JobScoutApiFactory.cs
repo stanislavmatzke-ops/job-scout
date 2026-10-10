@@ -17,7 +17,8 @@ namespace JobScout.Tests.Api;
 /// The database lives as long as <see cref="_keepAlive"/> is open; every factory = a fresh, migrated database.
 /// No network: nothing here calls the AI or jobs.cz.
 /// </summary>
-public sealed class JobScoutApiFactory(bool devSignIn = true, string environment = "Development")
+public sealed class JobScoutApiFactory(
+    bool devSignIn = true, string environment = "Development", IReadOnlyDictionary<string, string>? settings = null)
     : WebApplicationFactory<Program>
 {
     private readonly string _connectionString = $"Data Source=api-tests-{Guid.NewGuid():N};Mode=Memory;Cache=Shared";
@@ -51,6 +52,12 @@ public sealed class JobScoutApiFactory(bool devSignIn = true, string environment
         builder.UseSetting("ConnectionStrings:JobScout", _connectionString);
         builder.UseSetting("Auth:DevSignIn:Enabled", devSignIn ? "true" : "false");
 
+        // No real Microsoft/Google sign-in in tests – even if your user secrets configure them
+        builder.UseSetting("Auth:Microsoft:ClientId", "");
+        builder.UseSetting("Auth:Google:ClientId", "");
+        foreach (var (key, value) in settings ?? new Dictionary<string, string>())
+            builder.UseSetting(key, value);
+
         // Real Claude and jobs.cz replaced by fakes – everything else is the real app
         builder.ConfigureTestServices(services =>
         {
@@ -61,14 +68,22 @@ public sealed class JobScoutApiFactory(bool devSignIn = true, string environment
         });
     }
 
-    /// <summary>Client over https (the session cookie is Secure) that keeps cookies between requests, like a browser.</summary>
-    public HttpClient CreateBrowser(bool handleCookies = true) =>
-        CreateClient(new WebApplicationFactoryClientOptions
+    /// <summary>
+    /// Client over https (the session cookie is Secure) that keeps cookies between requests, like a browser –
+    /// and sends the X-CSRF header our Angular app sends with every call (5e).
+    /// </summary>
+    public HttpClient CreateBrowser(bool handleCookies = true, bool csrfHeader = true)
+    {
+        var client = CreateClient(new WebApplicationFactoryClientOptions
         {
             BaseAddress = new Uri("https://localhost"),
             AllowAutoRedirect = false,
             HandleCookies = handleCookies
         });
+        if (csrfHeader)
+            client.DefaultRequestHeaders.Add("X-CSRF", "1");
+        return client;
+    }
 
     protected override void Dispose(bool disposing)
     {

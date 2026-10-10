@@ -46,6 +46,7 @@ public static class DependencyInjection
         services.AddScoped<UploadCv>();
         services.AddScoped<UpdateProfileNotes>();
         services.AddScoped<UpdateProfileSettings>();
+        services.AddScoped<CreateInvitation>();
         return services;
     }
 }

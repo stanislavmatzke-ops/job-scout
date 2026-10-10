@@ -1,5 +1,6 @@
 # Manual API checks – Rider: run the API with the "https" profile, then click ▶ next to a request.
 # Rider's HTTP client keeps cookies between requests, like a browser.
+# Every POST/PUT needs "X-CSRF: 1" (5e) – the Angular app sends it automatically.
 
 @host = https://localhost:7283
 
@@ -11,18 +12,21 @@ GET {{host}}/api/me
 
 ### Sign in as a persona (dev only). "private" = your own data from the Worker (dev:private)
 POST {{host}}/api/auth/dev/private
+X-CSRF: 1
 
 ### Who am I? → id, provider "dev", name
 GET {{host}}/api/me
 
 ### Sign out
 POST {{host}}/api/auth/logout
+X-CSRF: 1
 
 ### After sign-out → 401 again
 GET {{host}}/api/me
 
 ### ---------- 5b: my jobs (sign in first) ----------
 POST {{host}}/api/auth/dev/private
+X-CSRF: 1
 
 ### Open jobs (evaluated + waiting), best first, with counts for every tab
 GET {{host}}/api/matches
@@ -36,12 +40,14 @@ GET {{host}}/api/matches/{{matchId}}
 
 ### Change status (New, SavedForLater, Applied, Call, Round1, Round2, Offer, Rejected, Withdrawn, Dismissed, Hidden)
 POST {{host}}/api/matches/{{matchId}}/status
+X-CSRF: 1
 Content-Type: application/json
 
 { "status": "SavedForLater", "note": "Vyzkoušení z Rideru" }
 
 ### Notes
 PUT {{host}}/api/matches/{{matchId}}/notes
+X-CSRF: 1
 Content-Type: application/json
 
 { "notes": "Zeptat se na podíl home office" }
@@ -49,12 +55,15 @@ Content-Type: application/json
 ### ---------- 5c: on demand (costs a few cents each – real Claude!) ----------
 ### Evaluate any job of mine (waiting, triaged out, or again)
 POST {{host}}/api/matches/{{matchId}}/evaluate
+X-CSRF: 1
 
 ### Write a letter for an evaluated job (409 if one exists → add ?replace=true)
 POST {{host}}/api/matches/{{matchId}}/letter
+X-CSRF: 1
 
 ### Edit the letter
 PUT {{host}}/api/matches/{{matchId}}/letter
+X-CSRF: 1
 Content-Type: application/json
 
 { "text": "Dobrý den,\n\nupravený dopis…" }
@@ -62,12 +71,14 @@ Content-Type: application/json
 ### ---------- 5d: my profile ----------
 ### Sign in as a throw-away persona first – uploading the sample CV as "private" would replace YOUR profile
 POST {{host}}/api/auth/dev/jana-api
+X-CSRF: 1
 
 ### Empty profile at first
 GET {{host}}/api/profile
 
 ### Upload a CV (real Claude analysis ≈ $0.03 when the file or notes changed). Path relative to this file.
 PUT {{host}}/api/profile/cv
+X-CSRF: 1
 Content-Type: multipart/form-data; boundary=cv
 
 --cv
@@ -79,12 +90,21 @@ Content-Type: text/markdown
 
 ### Notes → re-analysis with the stored CV
 PUT {{host}}/api/profile/notes
+X-CSRF: 1
 Content-Type: application/json
 
 { "notes": "Nejdůležitější je pro mě práce z domova." }
 
 ### Grammatical gender for cover letters: Unspecified, Masculine, Feminine
 PUT {{host}}/api/profile/settings
+X-CSRF: 1
 Content-Type: application/json
 
 { "gender": "Feminine" }
+
+
+### ---------- 5e: real sign-in – open these in the BROWSER, not here ----------
+# https://localhost:7283/api/auth/login/google?returnUrl=/api/me
+# https://localhost:7283/api/auth/login/microsoft?returnUrl=/api/me
+# A new account needs an invitation:  ...login/google?invite=CODE&returnUrl=/api/me
+GET {{host}}/api/auth/providers

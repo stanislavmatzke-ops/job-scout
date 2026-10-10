@@ -15,6 +15,7 @@ public sealed class JobScoutDbContext(DbContextOptions<JobScoutDbContext> option
     public DbSet<ScoutRun> ScoutRuns => Set<ScoutRun>();
     public DbSet<LlmCall> LlmCalls => Set<LlmCall>();
     public DbSet<StoredCv> StoredCvs => Set<StoredCv>();
+    public DbSet<Invitation> Invitations => Set<Invitation>();
 
     // Picks up every IEntityTypeConfiguration<T> in this assembly (Persistence/Configurations)
     protected override void OnModelCreating(ModelBuilder modelBuilder) =>

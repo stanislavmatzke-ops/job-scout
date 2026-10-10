@@ -8,6 +8,14 @@
         "DOTNET_ENVIRONMENT": "Development"
       }
     },
+    "JobScout.Worker (invite)": {
+      "commandName": "Project",
+      "dotnetRunMessages": true,
+      "commandLineArgs": "--Scout:Mode=invite --Scout:InviteNote=Stanislav-test",
+      "environmentVariables": {
+        "DOTNET_ENVIRONMENT": "Development"
+      }
+    },
     "JobScout.Worker (samples)": {
       "commandName": "Project",
       "dotnetRunMessages": true,

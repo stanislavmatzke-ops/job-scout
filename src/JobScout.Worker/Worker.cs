@@ -5,6 +5,7 @@ using System.Diagnostics;
 using JobScout.Application.Reports;
 using JobScout.Infrastructure.Reports;
 using JobScout.Application.Scouting;
+using JobScout.Application.Users;
 
 namespace JobScout.Worker;
 
@@ -26,6 +27,11 @@ public class Worker(
     {
         try
         {
+            if (config["Scout:Mode"] == "invite")
+            {
+                await CreateInvitationAsync(stoppingToken);
+                return;
+            }
             // Until SSO (phase 5): identity "dev" + persona name, or the data folder name ("samples" / "private")
             var persona = config["Scout:Persona"];
             var dataDir = ResolveDataDir(persona);
@@ -250,5 +256,24 @@ public class Worker(
             file, e.Score, e.Summary,
             string.Join(" | ", e.Reasons), string.Join(" | ", e.Risks), string.Join(" | ", e.Questions),
             string.IsNullOrEmpty(e.Salary) ? "neuvedena" : e.Salary, e.RemoteWork, e.EmploymentType);
+    }
+
+    /// <summary>Scout:Mode=invite – a one-time invitation link (ADR-0011). Shown once; only the hash is stored.</summary>
+    private async Task CreateInvitationAsync(CancellationToken ct)
+    {
+        var note = config["Scout:InviteNote"] ?? "";
+        var baseUrl = (config["Scout:PublicUrl"] ?? "https://localhost:7283").TrimEnd('/');
+
+        await using var scope = scopeFactory.CreateAsyncScope();
+        var created = await scope.ServiceProvider.GetRequiredService<CreateInvitation>().ExecuteAsync(note, ct);
+
+        var google = $"{baseUrl}/api/auth/login/google?invite={created.Code}&returnUrl=/api/me";
+        var microsoft = $"{baseUrl}/api/auth/login/microsoft?invite={created.Code}&returnUrl=/api/me";
+        logger.LogInformation("""
+                              ── POZVÁNKA ({Note}) – platí do {Expires:d. M. yyyy} ──
+                              Google:    {Google}
+                              Microsoft: {Microsoft}
+                              Odkaz se už nikde neukáže – v DB je jen otisk kódu.
+                              """, note, created.ExpiresAt.ToLocalTime(), google, microsoft);
     }
 }

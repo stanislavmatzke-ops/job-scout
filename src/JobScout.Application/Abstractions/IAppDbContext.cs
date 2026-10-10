@@ -17,6 +17,7 @@ public interface IAppDbContext
     DbSet<ScoutRun> ScoutRuns { get; }
     DbSet<LlmCall> LlmCalls { get; }
     DbSet<StoredCv> StoredCvs { get; }
+    DbSet<Invitation> Invitations { get; }
 
     Task<int> SaveChangesAsync(CancellationToken ct = default);
 }

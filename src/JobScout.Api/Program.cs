@@ -30,6 +30,8 @@ app.UseExceptionHandler(new ExceptionHandlerOptions
     StatusCodeSelector = ex => ex is BadHttpRequestException bad ? bad.StatusCode : StatusCodes.Status500InternalServerError
 });
 
+app.UseCsrfHeader();
+
 app.UseAuthentication();
 app.UseAuthorization();
 

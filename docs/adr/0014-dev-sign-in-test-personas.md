@@ -1,6 +1,6 @@
 # ADR-0014: Development sign-in and test personas; the app is not IT-only
 
-- Status: Proposed (personas in the Worker in phase 3c, dev sign-in in phase 5)
+- Status: Accepted (personas in the Worker since phase 3c, dev sign-in in the API since phase 5a)
 - Date: 2026-10-07
 
 ## Context

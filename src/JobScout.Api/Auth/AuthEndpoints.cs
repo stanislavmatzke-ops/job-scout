@@ -13,6 +13,23 @@ public static partial class AuthEndpoints
     {
         var auth = app.MapGroup("/api/auth");
 
+        // The login page asks which buttons to show
+        auth.MapGet("/providers", (AuthSetup.ExternalProviders providers, DevSignInOptions dev) =>
+            Results.Ok(new { external = providers.Schemes, devSignIn = dev.Enabled }));
+
+        // Start of the round trip: redirect to Microsoft/Google; the invitation code travels in the protected state
+        auth.MapGet("/login/{provider}", (string provider, string? returnUrl, string? invite, AuthSetup.ExternalProviders providers) =>
+        {
+            if (!providers.Schemes.Contains(provider))
+                return Results.NotFound();
+
+            var properties = new AuthenticationProperties { RedirectUri = ReturnUrl.Sanitize(returnUrl) };
+            if (!string.IsNullOrWhiteSpace(invite))
+                properties.Items[ExternalSignIn.InviteKey] = invite.Trim();
+
+            return Results.Challenge(properties, [provider]);
+        });
+
         auth.MapPost("/logout", async (HttpContext http) =>
         {
             await http.SignOutAsync();
@@ -33,24 +50,20 @@ public static partial class AuthEndpoints
             return Results.Problem("Persona: jen malá písmena, číslice a pomlčka, nejvýš 40 znaků.",
                 statusCode: StatusCodes.Status400BadRequest);
 
-        var user = await signIn.ExecuteAsync(new SignInRequest("dev", persona, Email: "", DisplayName: persona), ct);
-        await SignInCookieAsync(http, user);
+        var result = await signIn.ExecuteAsync(
+            new SignInRequest(SignInUser.DevProvider, persona, Email: "", DisplayName: persona), ct);
+        await http.SignInAsync(CreatePrincipal(result.User!));
         return Results.NoContent();
     }
 
-    /// <summary>The same for every provider (dev now, Microsoft/Google in 5e): the cookie carries our user id.</summary>
-    internal static Task SignInCookieAsync(HttpContext http, User user)
-    {
-        var identity = new ClaimsIdentity(
-            [
-                new Claim(JobScoutClaims.UserId, user.Id.ToString()),
-                new Claim(JobScoutClaims.Provider, user.Provider),
-                new Claim(ClaimTypes.Name, user.DisplayName),
-            ],
-            CookieAuthenticationDefaults.AuthenticationScheme);
-
-        return http.SignInAsync(new ClaimsPrincipal(identity));
-    }
+    /// <summary>Our session for any provider (dev, Microsoft, Google): the cookie carries our user id.</summary>
+    internal static ClaimsPrincipal CreatePrincipal(User user) => new(new ClaimsIdentity(
+        [
+            new Claim(JobScoutClaims.UserId, user.Id.ToString()),
+            new Claim(JobScoutClaims.Provider, user.Provider),
+            new Claim(ClaimTypes.Name, user.DisplayName),
+        ],
+        CookieAuthenticationDefaults.AuthenticationScheme));
 
     [GeneratedRegex("^[a-z0-9-]{1,40}$")]
     private static partial Regex PersonaName();
