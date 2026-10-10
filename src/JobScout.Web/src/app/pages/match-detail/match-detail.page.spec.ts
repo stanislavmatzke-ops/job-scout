@@ -13,7 +13,7 @@ function job(overrides: Partial<MatchDetail> = {}): MatchDetail {
     id: 'm1', title: 'Solution Architect', company: 'CloudNest s.r.o.', location: 'Praha', url: 'https://www.jobs.cz/rpd/1/',
     source: 'jobs.cz', stage: 'Shortlisted', status: 'New', score: null, triageScore: 2, triageReason: null,
     evaluation: null, coverLetter: null, notes: null, adText: null, adTextIncomplete: false,
-    foundAt: '2026-10-10T06:00:00Z', updatedAt: '2026-10-10T06:00:00Z', history: [],
+    foundAt: '2026-10-10T06:00:00Z', updatedAt: '2026-10-10T06:00:00Z', history: [], evaluationOutdated: false,
     ...overrides,
   };
 }
@@ -68,7 +68,14 @@ describe('MatchDetailPage – AI on demand', () => {
     await settle(fixture);
 
     expect(el(fixture).textContent).toContain('Sedí role i obor.');
-    expect(button(el(fixture), 'Ohodnotit znovu')).toBeTruthy();
+    expect(button(el(fixture), 'Ohodnotit')).toBeUndefined();          // a fresh evaluation is not offered again
+  });
+
+  it('offers re-evaluation only for an evaluation made with an older profile', async () => {
+    const fixture = await render(evaluated({ evaluationOutdated: true }));
+
+    expect(button(el(fixture), 'Přehodnotit podle aktuálního profilu')).toBeTruthy();
+    expect(el(fixture).textContent).toContain('starší verze vašeho profilu');
   });
 
   it('offers "evaluate anyway" for a triaged-out job', async () => {
@@ -78,9 +85,9 @@ describe('MatchDetailPage – AI on demand', () => {
   });
 
   it('suspended account sees the AI buttons disabled and why', async () => {
-    const fixture = await render(evaluated(), 'Suspended');
+    const fixture = await render(evaluated({ evaluationOutdated: true }), 'Suspended');
 
-    expect(button(el(fixture), 'Ohodnotit znovu')!.disabled).toBe(true);
+    expect(button(el(fixture), 'Přehodnotit')!.disabled).toBe(true);
     expect(button(el(fixture), 'Napsat dopis')!.disabled).toBe(true);
     expect(el(fixture).textContent).toContain('pozastaveného účtu');
   });

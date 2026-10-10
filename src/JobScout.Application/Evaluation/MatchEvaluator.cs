@@ -17,7 +17,7 @@ public sealed record MatchEvaluation(
 /// </summary>
 public sealed class MatchEvaluator(IEnumerable<IJobSource> sources, JobEvaluator evaluator, TimeProvider time)
 {
-    public async Task<MatchEvaluation> EvaluateAsync(JobMatch match, CandidateProfile profile, CancellationToken ct = default)
+    public async Task<MatchEvaluation> EvaluateAsync(JobMatch match, CandidateProfile profile, int profileVersion, CancellationToken ct = default)
     {
         var offer = match.JobOffer ?? throw new InvalidOperationException("JobMatch.JobOffer must be loaded.");
         var fetched = false;
@@ -45,7 +45,7 @@ public sealed class MatchEvaluator(IEnumerable<IJobSource> sources, JobEvaluator
         }
 
         var result = await evaluator.EvaluateAsync(profile, ComposeJobText(offer), ct);
-        match.ApplyEvaluation(result.Evaluation.Score, LlmJson.Serialize(result.Evaluation), time.GetUtcNow());
+        match.ApplyEvaluation(result.Evaluation.Score, LlmJson.Serialize(result.Evaluation), profileVersion, time.GetUtcNow());
 
         return new MatchEvaluation(MatchEvaluationStatus.Evaluated, result.Evaluation, result.Response, fetched);
     }

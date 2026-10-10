@@ -48,7 +48,7 @@ public sealed class WriteCoverLettersTests : IDisposable
         var match = new JobMatch(userId ?? _userId, offer.Id, 2, T0);
         match.Shortlist(4, T0);
         if (score is not null)
-            match.ApplyEvaluation(score.Value, $$"""{"score":{{score}},"summary":"Sedí na .NET a Azure.","reasons":["Azure"]}""", T0);
+            match.ApplyEvaluation(score.Value, $$"""{"score":{{score}},"summary":"Sedí na .NET a Azure.","reasons":["Azure"]}""", match.ProfileVersion, T0);
         if (status != MatchStatus.New)
             match.ChangeStatus(status, null, T0);
         if (letter is not null)

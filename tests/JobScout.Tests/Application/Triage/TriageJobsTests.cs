@@ -190,7 +190,7 @@ public sealed partial class TriageJobsTests : IDisposable
         Seed(_userId, "Nová nabídka");
         SeedWithStage(_userId, m => m.Shortlist(4, T0), "Už prošla");
         SeedWithStage(_userId, m => m.MarkTriagedOut("dřív vyřazena", T0), "Už vyřazena");
-        SeedWithStage(_userId, m => m.ApplyEvaluation(8, "{}", T0), "Už ohodnocena");
+        SeedWithStage(_userId, m => m.ApplyEvaluation(8, "{}", m.ProfileVersion, T0), "Už ohodnocena");
         var llm = DroppingTitlesWith();
 
         var result = await TriageAsync(llm);

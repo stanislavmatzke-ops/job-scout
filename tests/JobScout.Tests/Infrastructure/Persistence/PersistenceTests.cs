@@ -128,7 +128,7 @@ public sealed class PersistenceTests : IDisposable
         using (var db = _db.CreateContext())
         {
             var match = db.JobMatches.Include(m => m.Events).Single(m => m.Id == matchId);
-            match.ApplyEvaluation(8, "{}", T0);
+            match.ApplyEvaluation(8, "{}", match.ProfileVersion, T0);
             match.ChangeStatus(MatchStatus.SavedForLater, null, T0);
             db.SaveChanges();
         }

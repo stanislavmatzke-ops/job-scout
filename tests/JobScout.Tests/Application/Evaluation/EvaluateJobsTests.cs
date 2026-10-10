@@ -60,7 +60,7 @@ public sealed class EvaluateJobsTests : IDisposable
         var match = new JobMatch(userId ?? _userId, offer.Id, 2, T0);
         if (stage == MatchStage.Shortlisted) match.Shortlist(relevance, T0);
         if (stage == MatchStage.TriagedOut) match.MarkTriagedOut("mimo profil", T0);
-        if (stage == MatchStage.Evaluated) match.ApplyEvaluation(5, "{}", T0);
+        if (stage == MatchStage.Evaluated) match.ApplyEvaluation(5, "{}", match.ProfileVersion, T0);
         db.JobMatches.Add(match);
         db.SaveChanges();
 
@@ -74,7 +74,7 @@ public sealed class EvaluateJobsTests : IDisposable
     {
         await using var db = _database.CreateContext();
         var useCase = new EvaluateJobs(db, new MatchEvaluator([_jobsCz], new JobEvaluator(llm ?? _llm), _time));
-        return await useCase.ExecuteAsync(userId ?? _userId, TestProfiles.With(["Zedník", "Stavbyvedoucí"], "Opava", 40),
+        return await useCase.ExecuteAsync(userId ?? _userId, TestProfiles.With(["Zedník", "Stavbyvedoucí"], "Opava", 40), profileVersion: 2,
             maxPerRun ?? EvaluateJobs.MaxPerRun);
     }
 

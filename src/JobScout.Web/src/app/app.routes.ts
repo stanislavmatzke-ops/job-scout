@@ -30,6 +30,11 @@ export const routes: Routes = [
             loadComponent: () => import('./pages/matches/matches.page').then(m => m.MatchesPage),
           },
           {
+            path: 'profile',
+            title: 'Profil – Job Scout',
+            loadComponent: () => import('./pages/profile/profile.page').then(m => m.ProfilePage),
+          },
+          {
             path: 'matches/:id',
             title: 'Detail nabídky – Job Scout',
             loadComponent: () => import('./pages/match-detail/match-detail.page').then(m => m.MatchDetailPage),

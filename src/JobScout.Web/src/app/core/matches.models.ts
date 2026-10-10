@@ -23,6 +23,8 @@ export interface MatchListItem {
   hasCoverLetter: boolean;
   foundAt: string;
   updatedAt: string;
+  /** Evaluated with an older profile version than the current one (6d). */
+  evaluationOutdated: boolean;
 }
 
 export interface MatchList { view: MatchView; items: MatchListItem[]; counts: MatchCounts; }
@@ -60,4 +62,6 @@ export interface MatchDetail {
   foundAt: string;
   updatedAt: string;
   history: MatchHistoryEntry[];
+  /** Evaluated with an older profile version than the current one (6d). */
+  evaluationOutdated: boolean;
 }

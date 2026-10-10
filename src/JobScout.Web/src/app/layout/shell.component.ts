@@ -15,6 +15,7 @@ import { AuthService } from '../core/auth.service';
       <a routerLink="/" class="brand">Job Scout</a>
       @if (auth.isMember()) {
         <a mat-button routerLink="/matches" routerLinkActive="active">Nabídky</a>
+        <a mat-button routerLink="/profile" routerLinkActive="active">Profil</a>
       }
       <span class="spacer"></span>
       @if (auth.me(); as me) {

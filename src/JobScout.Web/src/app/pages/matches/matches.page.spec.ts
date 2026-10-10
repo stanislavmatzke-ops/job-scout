@@ -12,12 +12,12 @@ const list: MatchList = {
     {
       id: 'a', title: 'Solution Architect', company: 'CloudNest s.r.o.', location: 'Praha', url: 'https://www.jobs.cz/rpd/1/',
       stage: 'Evaluated', status: 'New', score: 8, triageScore: 4, summary: 'Sedí role i obor.', triageReason: null,
-      hasCoverLetter: true, foundAt: '2026-10-10T06:00:00Z', updatedAt: '2026-10-10T06:00:00Z',
+      hasCoverLetter: true, foundAt: '2026-10-10T06:00:00Z', updatedAt: '2026-10-10T06:00:00Z', evaluationOutdated: true,
     },
     {
       id: 'b', title: 'Tech Lead', company: 'Acme', location: 'Brno', url: 'https://www.jobs.cz/rpd/2/',
       stage: 'Shortlisted', status: 'New', score: null, triageScore: 2, summary: null, triageReason: null,
-      hasCoverLetter: false, foundAt: '2026-10-10T06:00:00Z', updatedAt: '2026-10-10T06:00:00Z',
+      hasCoverLetter: false, foundAt: '2026-10-10T06:00:00Z', updatedAt: '2026-10-10T06:00:00Z', evaluationOutdated: false,
     },
   ],
 };
@@ -55,6 +55,14 @@ describe('MatchesPage', () => {
     expect(text).toContain('Sedí role i obor.');
     expect(text).toContain('Tech Lead');
     expect(text).toContain('Čeká na ohodnocení');
+    expect(text).toContain('starší profil');
+  });
+
+  it('a brand new account is sent to the profile page', async () => {
+    const empty = { view: 'Open' as const, items: [], counts: { open: 0, inProgress: 0, closed: 0, triagedOut: 0 } };
+    const { fixture } = await render(undefined, empty);
+
+    expect((fixture.nativeElement as HTMLElement).querySelector('a[href="/profile"]')).toBeTruthy();
   });
 
   it('shows the counts in the tabs', async () => {

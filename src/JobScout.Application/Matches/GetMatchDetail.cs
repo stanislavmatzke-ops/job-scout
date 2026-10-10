@@ -1,5 +1,6 @@
 ﻿using JobScout.Application.Abstractions;
 using JobScout.Application.Evaluation;
+using JobScout.Application.Profiles;
 using JobScout.Core.Domain;
 using Microsoft.EntityFrameworkCore;
 
@@ -12,7 +13,8 @@ public sealed record MatchDetail(
     MatchStage Stage, MatchStatus Status, int? Score, int? TriageScore, string? TriageReason,
     JobEvaluation? Evaluation, string? CoverLetter, string? Notes,
     string? AdText, bool AdTextIncomplete, DateTimeOffset FoundAt, DateTimeOffset UpdatedAt,
-    IReadOnlyList<MatchHistoryEntry> History);
+    IReadOnlyList<MatchHistoryEntry> History,
+    bool EvaluationOutdated);                       // evaluated with an older profile version (6d)
 
 /// <summary>Everything about one of my jobs. Somebody else's job = null, exactly like a missing one.</summary>
 public sealed class GetMatchDetail(IAppDbContext db)
@@ -26,6 +28,7 @@ public sealed class GetMatchDetail(IAppDbContext db)
         if (m is null)
             return null;
 
+        var currentVersion = await db.CurrentProfileVersionAsync(userId, ct);
         var offer = m.JobOffer!;
         return new MatchDetail(
             m.Id, offer.Title, offer.Company, offer.Location, offer.Url, offer.Source,
@@ -33,6 +36,7 @@ public sealed class GetMatchDetail(IAppDbContext db)
             JobEvaluationJson.TryParse(m.EvaluationJson), m.CoverLetter, m.Notes,
             offer.DetailText, AdTextIncomplete: offer.DetailText is not null && !offer.DetailIsComplete,
             m.CreatedAt, m.UpdatedAt,
-            m.Events.OrderBy(e => e.At).Select(e => new MatchHistoryEntry(e.From, e.To, e.Note, e.At)).ToList());
+            m.Events.OrderBy(e => e.At).Select(e => new MatchHistoryEntry(e.From, e.To, e.Note, e.At)).ToList(),
+            EvaluationOutdated: m.Stage == MatchStage.Evaluated && m.ProfileVersion < currentVersion);
     }
 }

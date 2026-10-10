@@ -70,7 +70,7 @@ public sealed class RunScout(
             var triage = await triageJobs.ExecuteAsync(userId, analyzed.Profile, ct);
             logger.LogInformation("Třídění: ponecháno {Kept}, vyřazeno {Dropped}", triage.Kept, triage.Dropped);
 
-            var evaluation = await evaluateJobs.ExecuteAsync(userId, analyzed.Profile, ct: ct);
+            var evaluation = await evaluateJobs.ExecuteAsync(userId, analyzed.Profile, analyzed.Version.Version, ct: ct);
             logger.LogInformation("Hodnocení: ohodnoceno {Count}, nedostupných {Unavailable}, čeká na další běh {Remaining}",
                 evaluation.Evaluated.Count, evaluation.Unavailable, evaluation.Remaining);
 

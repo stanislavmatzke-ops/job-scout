@@ -13,7 +13,8 @@ internal static class MatchSeeder
         JobScoutDbContext db, Guid userId, string title, DateTimeOffset at,
         MatchStage stage = MatchStage.Evaluated, int score = 7, int triage = 4,
         MatchStatus status = MatchStatus.New, string? letter = null, string? evaluationJson = null,
-        string? triageReason = null, string? adText = null, bool adTextComplete = true, string company = "Firma s.r.o.")
+        string? triageReason = null, string? adText = null, bool adTextComplete = true, string company = "Firma s.r.o.",
+        int profileVersion = 1)
     {
         var externalId = $"9{Interlocked.Increment(ref _next):D9}";
         var url = $"https://www.jobs.cz/rpd/{externalId}/";
@@ -21,7 +22,7 @@ internal static class MatchSeeder
         if (adText is not null)
             offer.SetDetail(new JobDetail("jobs.cz", externalId, url, title, company, adText, adTextComplete), at);
 
-        var match = new JobMatch(userId, offer.Id, 1, at);
+        var match = new JobMatch(userId, offer.Id, profileVersion, at);
         switch (stage)
         {
             case MatchStage.Shortlisted:
@@ -32,7 +33,7 @@ internal static class MatchSeeder
                 break;
             case MatchStage.Evaluated:
                 match.Shortlist(triage, at);
-                match.ApplyEvaluation(score, evaluationJson ?? EvaluationJson(score), at);
+                match.ApplyEvaluation(score, evaluationJson ?? EvaluationJson(score), profileVersion, at);
                 break;
         }
 

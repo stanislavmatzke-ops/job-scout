@@ -111,9 +111,10 @@ public class JobMatchTests
     {
         var match = NewMatch();
 
-        match.ApplyEvaluation(8, """{"score":8}""", T0.AddMinutes(10));
+        match.ApplyEvaluation(8, """{"score":8}""", profileVersion: 3, T0.AddMinutes(10));
 
         Assert.Equal(MatchStage.Evaluated, match.Stage);
+        Assert.Equal(3, match.ProfileVersion);         // evaluated with profile v3 – found with v1 (6d: outdated evaluations)
         Assert.Equal(8, match.Score);
         Assert.Equal("""{"score":8}""", match.EvaluationJson);
         Assert.Equal(MatchStatus.New, match.Status);   // evaluation doesn't touch the user's status
@@ -127,7 +128,7 @@ public class JobMatchTests
     {
         var match = NewMatch();
 
-        Assert.Throws<ArgumentOutOfRangeException>(() => match.ApplyEvaluation(score, "{}", T0.AddMinutes(10)));
+        Assert.Throws<ArgumentOutOfRangeException>(() => match.ApplyEvaluation(score, "{}", 2, T0.AddMinutes(10)));
 
         Assert.Equal(MatchStage.Found, match.Stage);
         Assert.Null(match.Score);

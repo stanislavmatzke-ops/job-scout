@@ -27,7 +27,7 @@ public sealed class EvaluateJobs(IAppDbContext db, MatchEvaluator matchEvaluator
     public const int MinAutoRelevance = 3;
 
     public async Task<EvaluateJobsResult> ExecuteAsync(
-        Guid userId, CandidateProfile profile, int maxPerRun = MaxPerRun, CancellationToken ct = default)
+        Guid userId, CandidateProfile profile, int profileVersion, int maxPerRun = MaxPerRun, CancellationToken ct = default)
     {
         var shortlisted = await db.JobMatches
             .Include(m => m.JobOffer)
@@ -47,7 +47,7 @@ public sealed class EvaluateJobs(IAppDbContext db, MatchEvaluator matchEvaluator
             if (evaluated.Count >= maxPerRun)
                 break;
 
-            var outcome = await matchEvaluator.EvaluateAsync(match, profile, ct);
+            var outcome = await matchEvaluator.EvaluateAsync(match, profile, profileVersion, ct);
             if (outcome.DetailFetched)
                 detailsFetched++;
 

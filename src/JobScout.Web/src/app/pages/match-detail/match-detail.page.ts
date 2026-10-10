@@ -64,6 +64,9 @@ type AiWork = 'evaluate' | 'letter';
               @if (working() === 'evaluate') {
                 <p class="muted">Načítám inzerát a hodnotím ho podle vašeho profilu – obvykle do 20 sekund…</p>
               } @else if (d.evaluation; as e) {
+                @if (d.evaluationOutdated) {
+                  <p class="outdated">Ohodnoceno podle starší verze vašeho profilu – od té doby jste změnili CV nebo poznámky.</p>
+                }
                 <p class="summary">{{ e.summary }}</p>
                 <dl class="facts">
                   <dt>Mzda</dt><dd>{{ e.salary || 'Neuvedena' }}</dd>
@@ -89,12 +92,13 @@ type AiWork = 'evaluate' | 'letter';
                 <p class="muted">Nabídka zatím nebyla ohodnocena@if (d.triageScore) { (předběžná relevance {{ d.triageScore }}/5)}.</p>
               }
             </mat-card-content>
-            <mat-card-actions>
-              <button mat-stroked-button (click)="evaluate(d)" [disabled]="!aiEnabled() || working() !== null">
-                <mat-icon>auto_awesome</mat-icon>
-                {{ d.evaluation ? 'Ohodnotit znovu' : d.stage === 'TriagedOut' ? 'Přesto ohodnotit' : 'Ohodnotit' }}
-              </button>
-            </mat-card-actions>
+            @if (evaluateLabel(d); as label) {
+              <mat-card-actions>
+                <button mat-stroked-button (click)="evaluate(d)" [disabled]="!aiEnabled() || working() !== null">
+                  <mat-icon>auto_awesome</mat-icon> {{ label }}
+                </button>
+              </mat-card-actions>
+            }
           </mat-card>
 
           <!-- ===== Cover letter ===== -->
@@ -112,6 +116,9 @@ type AiWork = 'evaluate' | 'letter';
                   <textarea matInput rows="16" name="letter" maxlength="10000" [(ngModel)]="letterDraft"></textarea>
                 </mat-form-field>
               } @else if (d.coverLetter) {
+                @if (d.evaluationOutdated) {
+                  <p class="outdated">Dopis vznikl podle starší verze profilu. Zkontrolujte ho, případně nechte napsat nový návrh.</p>
+                }
                 <pre class="letter">{{ d.coverLetter }}</pre>
               } @else if (d.stage === 'Evaluated') {
                 <p class="muted">K této nabídce zatím není připraven žádný dopis.</p>
@@ -208,6 +215,7 @@ type AiWork = 'evaluate' | 'letter';
     h1 { margin: 0; font-size: 1.6rem; }
     .meta { opacity: 0.7; margin-top: 4px; }
     .ai-off { padding: 8px 12px; border-radius: 8px; background: var(--mat-sys-surface-container-high); }
+    .outdated { padding: 6px 10px; border-radius: 8px; border: 1px dashed var(--mat-sys-outline); font-size: 0.9em; }
     .grid { display: grid; grid-template-columns: 2fr 1fr; gap: 16px; align-items: start; }
     .column { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
     .summary { font-size: 1.05rem; }
@@ -267,6 +275,15 @@ export class MatchDetailPage {
   }
 
   // ---------- AI on demand ----------
+
+  /**
+   * A fresh evaluation is not offered again – the same profile and ad would give the same result and cost money.
+   * Only: not evaluated yet, triaged out ("anyway"), or evaluated with an older profile version.
+   */
+  protected evaluateLabel(d: MatchDetail): string | null {
+    if (!d.evaluation) return d.stage === 'TriagedOut' ? 'Přesto ohodnotit' : 'Ohodnotit';
+    return d.evaluationOutdated ? 'Přehodnotit podle aktuálního profilu' : null;
+  }
 
   protected async evaluate(d: MatchDetail): Promise<void> {
     await this.runAi('evaluate', d.id, async () => {

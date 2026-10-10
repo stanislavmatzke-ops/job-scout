@@ -47,7 +47,7 @@ public sealed class BuildMorningReportTests : IDisposable
         var offer = NewOffer(title, complete);
         var match = new JobMatch(userId ?? _userId, offer.Id, 2, Yesterday);
         match.Shortlist(4, Yesterday);
-        match.ApplyEvaluation(score, evaluationJson ?? Evaluation.Replace("\"score\":8", $"\"score\":{score}"), when);
+        match.ApplyEvaluation(score, evaluationJson ?? Evaluation.Replace("\"score\":8", $"\"score\":{score}"), match.ProfileVersion, when);
         if (letter is not null) match.SetCoverLetter(letter, when);
         if (status != MatchStatus.New) match.ChangeStatus(status, null, when);
         db.AddRange(offer, match);

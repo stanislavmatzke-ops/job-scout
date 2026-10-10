@@ -21,6 +21,7 @@ public sealed class JobMatch
     public Guid UserId { get; private set; }
     public Guid JobOfferId { get; private set; }
     public JobOffer? JobOffer { get; private set; }            // navigation, loaded by EF when needed
+    /// <summary>Profile version the job was last evaluated with (before the evaluation: the version it was found with).</summary>
     public int ProfileVersion { get; private set; }
     public MatchStage Stage { get; private set; }
     public string? TriageReason { get; private set; }
@@ -54,7 +55,7 @@ public sealed class JobMatch
         TriageScore = relevance;
         UpdatedAt = now;
     }
-    
+
     /// <summary>Passed the cheap triage with relevance 3–5 – waits for the detail and the full evaluation.</summary>
     public void Shortlist(int relevance, DateTimeOffset now)
     {
@@ -66,7 +67,8 @@ public sealed class JobMatch
         UpdatedAt = now;
     }
 
-    public void ApplyEvaluation(int score, string evaluationJson, DateTimeOffset now)
+    /// <summary>Evaluated with profile version <paramref name="profileVersion"/> – compared with the current one to spot outdated evaluations (6d).</summary>
+    public void ApplyEvaluation(int score, string evaluationJson, int profileVersion, DateTimeOffset now)
     {
         if (score is < 1 or > 10)
             throw new ArgumentOutOfRangeException(nameof(score), score, "Score must be 1–10.");
@@ -74,6 +76,7 @@ public sealed class JobMatch
         Stage = MatchStage.Evaluated;
         Score = score;
         EvaluationJson = evaluationJson;
+        ProfileVersion = profileVersion;
         UpdatedAt = now;
     }
 

@@ -21,12 +21,12 @@ public sealed class EvaluateMatchNow(IAppDbContext db, MatchEvaluator evaluator)
         if (match is null)
             return new EvaluateNowResult(EvaluateNowStatus.NotFound);
 
-        var profile = await db.CurrentProfileAsync(userId, ct);
-        if (profile is null)
+        var current = await db.CurrentProfileAsync(userId, ct);
+        if (current is null)
             return new EvaluateNowResult(EvaluateNowStatus.NoProfile);
 
         using var usage = LlmCallContext.Begin(userId);     // on-demand cost belongs to the user, not to a morning run
-        var outcome = await evaluator.EvaluateAsync(match, profile, ct);
+        var outcome = await evaluator.EvaluateAsync(match, current.Profile, current.Version, ct);
         await db.SaveChangesAsync(ct);
 
         return outcome.Status switch

@@ -48,6 +48,7 @@ import { VIEWS, parseView, scoreTone, statusLabel } from '../../core/match-forma
                 }
               </div>
               <div class="side">
+                @if (item.evaluationOutdated) { <span class="outdated" matTooltip="Ohodnoceno podle starší verze profilu">starší profil</span> }
                 @if (item.status !== 'New') { <span class="status">{{ statusLabel(item.status) }}</span> }
                 @if (item.hasCoverLetter) { <mat-icon matTooltip="Průvodní dopis je připraven">mail</mat-icon> }
                 <a mat-icon-button [href]="item.url" target="_blank" rel="noopener" matTooltip="Otevřít inzerát">
@@ -56,7 +57,12 @@ import { VIEWS, parseView, scoreTone, statusLabel } from '../../core/match-forma
               </div>
             </mat-card>
           } @empty {
-            <p class="empty">{{ emptyText() }}</p>
+            <p class="empty">
+              {{ emptyText() }}
+              @if (isEmptyAccount(l)) {
+                <br />Ještě nemáte nahraný životopis? <a routerLink="/profile">Začněte na stránce Profil.</a>
+              }
+            </p>
           }
         </div>
       }
@@ -73,6 +79,7 @@ import { VIEWS, parseView, scoreTone, statusLabel } from '../../core/match-forma
     .summary { margin: 8px 0 0; }
     .side { display: flex; align-items: center; gap: 4px; }
     .status { font-size: 0.8em; padding: 2px 8px; border-radius: 8px; background: var(--mat-sys-secondary-container); }
+    .outdated { font-size: 0.75em; padding: 2px 8px; border-radius: 8px; border: 1px dashed var(--mat-sys-outline); opacity: 0.8; }
     .empty { padding: 32px 0; text-align: center; opacity: 0.7; }
     @media (max-width: 600px) { .item { flex-wrap: wrap; } .side { width: 100%; justify-content: flex-end; } }
   `,
@@ -98,6 +105,12 @@ export class MatchesPage {
       const view = this.current();
       untracked(() => this.load(view));
     });
+  }
+
+  /** No jobs in any tab – most likely a new user without a CV. */
+  protected isEmptyAccount(list: MatchList): boolean {
+    const c = list.counts;
+    return c.open + c.inProgress + c.closed + c.triagedOut === 0;
   }
 
   protected tone(item: MatchListItem) {

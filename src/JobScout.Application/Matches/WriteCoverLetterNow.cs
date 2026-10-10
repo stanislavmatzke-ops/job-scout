@@ -29,13 +29,13 @@ public sealed class WriteCoverLetterNow(IAppDbContext db, CoverLetterWriter writ
         if (match.CoverLetter is not null && !replace)
             return new WriteLetterResult(WriteLetterStatus.AlreadyWritten, match.CoverLetter);
 
-        var profile = await db.CurrentProfileAsync(userId, ct);
-        if (profile is null)
+        var current = await db.CurrentProfileAsync(userId, ct);
+        if (current is null)
             return new WriteLetterResult(WriteLetterStatus.NoProfile);
 
         using var usage = LlmCallContext.Begin(userId);
         var gender = await db.Users.Where(u => u.Id == userId).Select(u => u.Gender).SingleAsync(ct);
-        var draft = await writer.WriteAsync(profile, match,gender, ct);
+        var draft = await writer.WriteAsync(current.Profile, match, gender, ct);
         if (draft.Letter is null)
             return new WriteLetterResult(WriteLetterStatus.Failed);
 

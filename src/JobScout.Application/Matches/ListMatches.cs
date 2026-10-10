@@ -1,5 +1,6 @@
 ﻿using JobScout.Application.Abstractions;
 using JobScout.Application.Evaluation;
+using JobScout.Application.Profiles;
 using JobScout.Core.Domain;
 using Microsoft.EntityFrameworkCore;
 
@@ -8,7 +9,8 @@ namespace JobScout.Application.Matches;
 public sealed record MatchListItem(
     Guid Id, string Title, string Company, string Location, string Url,
     MatchStage Stage, MatchStatus Status, int? Score, int? TriageScore, string? Summary, string? TriageReason,
-    bool HasCoverLetter, DateTimeOffset FoundAt, DateTimeOffset UpdatedAt);
+    bool HasCoverLetter, DateTimeOffset FoundAt, DateTimeOffset UpdatedAt,
+    bool EvaluationOutdated);                       // evaluated with an older profile version (6d)
 
 public sealed record MatchCounts(int Open, int InProgress, int Closed, int TriagedOut);
 
@@ -20,6 +22,7 @@ public sealed class ListMatches(IAppDbContext db)
     public async Task<MatchList> ExecuteAsync(Guid userId, MatchView view, CancellationToken ct = default)
     {
         var mine = db.JobMatches.AsNoTracking().Where(m => m.UserId == userId);
+        var currentVersion = await db.CurrentProfileVersionAsync(userId, ct);
 
         var query = mine.Where(MatchViews.Filter(view));
         query = view == MatchView.Open
@@ -34,14 +37,15 @@ public sealed class ListMatches(IAppDbContext db)
             {
                 m.Id, m.JobOffer!.Title, m.JobOffer.Company, m.JobOffer.Location, m.JobOffer.Url,
                 m.Stage, m.Status, m.Score, m.TriageScore, m.EvaluationJson, m.TriageReason,
-                HasCoverLetter = m.CoverLetter != null, m.CreatedAt, m.UpdatedAt
+                HasCoverLetter = m.CoverLetter != null, m.CreatedAt, m.UpdatedAt, m.ProfileVersion
             })
             .ToListAsync(ct);
 
         var items = rows.Select(r => new MatchListItem(
                 r.Id, r.Title, r.Company, r.Location, r.Url, r.Stage, r.Status, r.Score, r.TriageScore,
                 JobEvaluationJson.TryParse(r.EvaluationJson)?.Summary, r.TriageReason, r.HasCoverLetter,
-                r.CreatedAt, r.UpdatedAt))
+                r.CreatedAt, r.UpdatedAt,
+                EvaluationOutdated: r.Stage == MatchStage.Evaluated && r.ProfileVersion < currentVersion))
             .ToList();
 
         // Tab counts: two small columns of all my jobs, sorted out in C# by the same rule
