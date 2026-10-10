@@ -34,7 +34,8 @@ public sealed class WriteCoverLetterNow(IAppDbContext db, CoverLetterWriter writ
             return new WriteLetterResult(WriteLetterStatus.NoProfile);
 
         using var usage = LlmCallContext.Begin(userId);
-        var draft = await writer.WriteAsync(profile, match, ct);
+        var gender = await db.Users.Where(u => u.Id == userId).Select(u => u.Gender).SingleAsync(ct);
+        var draft = await writer.WriteAsync(profile, match,gender, ct);
         if (draft.Letter is null)
             return new WriteLetterResult(WriteLetterStatus.Failed);
 

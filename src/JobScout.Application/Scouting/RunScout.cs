@@ -106,7 +106,7 @@ public sealed class RunScout(
             var added = found.Count(l => unique.TryAdd((l.Source, l.ExternalId), l));
             searches.Add(new SourceSearch(source.Name, search, found.Count, added));
 
-            logger.LogInformation("  {What} @ {Where}: {Found} nalezeno, {Added} nových v tomto běhu",
+            logger.LogInformation("  {What} @ {Where}: {Found} nalezeno, {Added} unikátních v tomto běhu",
                 search.Category ?? $"text \"{search.Keywords}\"",
                 search.Location is null ? "celá ČR" : $"{search.Location} + {search.RadiusKm} km",
                 found.Count, added);

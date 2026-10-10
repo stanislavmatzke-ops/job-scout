@@ -37,10 +37,11 @@ public sealed class WriteCoverLetters(IAppDbContext db, CoverLetterWriter writer
         var letters = new List<WrittenLetter>();
         var calls = new List<LlmResponse>();
         var failed = 0;
+        var gender = await db.Users.Where(u => u.Id == userId).Select(u => u.Gender).SingleAsync(ct);
 
         foreach (var match in pending.Take(maxPerRun))
         {
-            var draft = await writer.WriteAsync(profile, match, ct);
+            var draft = await writer.WriteAsync(profile, match,gender, ct);
             calls.Add(draft.Response);
 
             if (draft.Letter is null)

@@ -9,6 +9,7 @@ public sealed class User
     public string Email { get; private set; } = "";
     public string DisplayName { get; private set; } = "";
     public DateTimeOffset CreatedAt { get; private set; }
+    public GrammaticalGender Gender { get; private set; }
 
     private User() { }   // for EF Core
 
@@ -30,5 +31,12 @@ public sealed class User
     {
         Email = email;
         DisplayName = displayName;
+    }
+
+    public void SetGender(GrammaticalGender gender)
+    {
+        if (!Enum.IsDefined(gender))
+            throw new ArgumentOutOfRangeException(nameof(gender), gender, "Neznámý rod.");
+        Gender = gender;
     }
 }

@@ -87,4 +87,4 @@ Content-Type: application/json
 PUT {{host}}/api/profile/settings
 Content-Type: application/json
 
-{ "gender": "Masculine" }
+{ "gender": "Feminine" }

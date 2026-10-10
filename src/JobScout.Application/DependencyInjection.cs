@@ -42,6 +42,10 @@ public static class DependencyInjection
         services.AddScoped<EvaluateMatchNow>();
         services.AddScoped<WriteCoverLetterNow>();
         services.AddScoped<UpdateCoverLetter>();
+        services.AddScoped<GetProfile>();
+        services.AddScoped<UploadCv>();
+        services.AddScoped<UpdateProfileNotes>();
+        services.AddScoped<UpdateProfileSettings>();
         return services;
     }
 }

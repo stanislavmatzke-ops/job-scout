@@ -1,6 +1,7 @@
 using JobScout.Api.Auth;
 using JobScout.Api.Matches;
 using JobScout.Api.Me;
+using JobScout.Api.Profile;
 using JobScout.Application;
 using JobScout.Infrastructure;
 using JobScout.Infrastructure.Persistence;
@@ -36,6 +37,7 @@ app.MapHealthChecks("/health");
 app.MapAuthEndpoints();
 app.MapMeEndpoints();
 app.MapMatchEndpoints();
+app.MapProfileEndpoints();
 
 await app.RunAsync();
 

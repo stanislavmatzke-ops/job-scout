@@ -295,6 +295,33 @@ namespace JobScout.Infrastructure.Persistence.Migrations
                     b.ToTable("SourceCategories");
                 });
 
+            modelBuilder.Entity("JobScout.Core.Domain.StoredCv", b =>
+                {
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<byte[]>("Content")
+                        .IsRequired()
+                        .HasColumnType("BLOB");
+
+                    b.Property<string>("FileName")
+                        .IsRequired()
+                        .HasMaxLength(260)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("MediaType")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("TEXT");
+
+                    b.Property<long>("UploadedAt")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("UserId");
+
+                    b.ToTable("StoredCvs", (string)null);
+                });
+
             modelBuilder.Entity("JobScout.Core.Domain.User", b =>
                 {
                     b.Property<Guid>("Id")
@@ -311,6 +338,11 @@ namespace JobScout.Infrastructure.Persistence.Migrations
                     b.Property<string>("Email")
                         .IsRequired()
                         .HasMaxLength(320)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Gender")
+                        .IsRequired()
+                        .HasMaxLength(20)
                         .HasColumnType("TEXT");
 
                     b.Property<string>("Provider")
@@ -409,6 +441,15 @@ namespace JobScout.Infrastructure.Persistence.Migrations
                     b.HasOne("JobScout.Core.Domain.User", null)
                         .WithMany()
                         .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("JobScout.Core.Domain.StoredCv", b =>
+                {
+                    b.HasOne("JobScout.Core.Domain.User", null)
+                        .WithOne()
+                        .HasForeignKey("JobScout.Core.Domain.StoredCv", "UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
                 });

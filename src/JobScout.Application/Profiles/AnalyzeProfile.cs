@@ -34,6 +34,13 @@ public sealed class AnalyzeProfile(IAppDbContext db, ProfileExtractor extractor,
             db.Users.Add(user);
         }
 
+        // Keep the current CV (personal data) – the UI can then change notes without a new upload (5d)
+        var stored = await db.StoredCvs.SingleOrDefaultAsync(c => c.UserId == user.Id, ct);
+        if (stored is null)
+            db.StoredCvs.Add(new StoredCv(user.Id, input.CvFileName, input.Cv.MediaType, input.Cv.Content, now));
+        else if (stored.FileName != input.CvFileName || !stored.Content.AsSpan().SequenceEqual(input.Cv.Content))
+            stored.Replace(input.CvFileName, input.Cv.MediaType, input.Cv.Content, now);
+
         var hash = UserProfile.ComputeInputHash(input.Cv.Content, input.Notes, ProfilePrompts.Version);
         var latest = await db.UserProfiles
             .Where(p => p.UserId == user.Id)
@@ -41,10 +48,13 @@ public sealed class AnalyzeProfile(IAppDbContext db, ProfileExtractor extractor,
             .FirstOrDefaultAsync(ct);
 
         if (latest is not null && latest.InputHash == hash)
+        {
+            await db.SaveChangesAsync(ct);    // the CV may have just been stored for the first time
             return new AnalyzedProfile(user, latest, LlmJson.Deserialize<CandidateProfile>(latest.ProfileJson), Response: null);
+        }
 
         using var usage = LlmCallContext.Begin(user.Id);   // cost of the analysis belongs to this user
-        
+
         var extraction = await extractor.ExtractAsync(input.Cv, input.Notes, ct);
         var version = new UserProfile(
             user.Id, (latest?.Version ?? 0) + 1, input.CvFileName, input.Notes, hash,

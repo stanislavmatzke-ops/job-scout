@@ -10,9 +10,9 @@ public sealed record CoverLetterDraft(string? Letter, LlmResponse Response);
 /// <summary>One cover letter for one evaluated job. Used by the morning run and by the "Napsat dopis" button.</summary>
 public sealed class CoverLetterWriter(ILlmClient llm)
 {
-    public async Task<CoverLetterDraft> WriteAsync(CandidateProfile profile, JobMatch match, CancellationToken ct = default)
+    public async Task<CoverLetterDraft> WriteAsync(CandidateProfile profile, JobMatch match, GrammaticalGender gender, CancellationToken ct = default)
     {
-        var response = await llm.CompleteAsync(BuildRequest(profile, match), ct);   // an API outage still throws
+        var response = await llm.CompleteAsync(BuildRequest(profile, match, gender), ct);   // an API outage still throws
         var letter = response.Text.Trim();
 
         return new CoverLetterDraft(
@@ -20,36 +20,45 @@ public sealed class CoverLetterWriter(ILlmClient llm)
             response);
     }
 
-    private static LlmRequest BuildRequest(CandidateProfile profile, JobMatch match)
+    private static LlmRequest BuildRequest(CandidateProfile profile, JobMatch match, GrammaticalGender gender)
     {
         var offer = match.JobOffer!;
         return new LlmRequest(
             CoverLetterPrompts.System,
-            $"""
-             <profil_kandidata>
-             {LlmJson.Serialize(profile)}
-             </profil_kandidata>
+            $$"""
+              <profil_kandidata>
+              {{LlmJson.Serialize(profile)}}
+              </profil_kandidata>
 
-             <hodnoceni>
-             {match.EvaluationJson}
-             </hodnoceni>
+              <rod>{{GenderText(gender)}}</rod>
 
-             <nabidka>
-             Pozice: {offer.Title}
-             Firma: {offer.Company}
-             Místo: {offer.Location}
+              <hodnoceni>
+              {{match.EvaluationJson}}
+              </hodnoceni>
 
-             {offer.DetailText}
-             </nabidka>
+              <nabidka>
+              Pozice: {{offer.Title}}
+              Firma: {{offer.Company}}
+              Místo: {{offer.Location}}
 
-             Napiš návrh průvodního dopisu.
-             """)
+              {{offer.DetailText}}
+              </nabidka>
+
+              Napiš návrh průvodního dopisu.
+              """)
         {
             MaxTokens = 2000,
             Tier = LlmTier.Smart,
             Purpose = LlmPurpose.CoverLetter
         };
     }
+
+    private static string GenderText(GrammaticalGender gender) => gender switch
+    {
+        GrammaticalGender.Masculine => "mužský",
+        GrammaticalGender.Feminine => "ženský",
+        _ => "neuvedený"
+    };
 
 }
 

@@ -13,9 +13,10 @@ public interface IAppDbContext
     DbSet<UserProfile> UserProfiles { get; }
     DbSet<JobOffer> JobOffers { get; }
     DbSet<JobMatch> JobMatches { get; }
-    DbSet<SourceCategory> SourceCategories { get; } 
-    DbSet<ScoutRun> ScoutRuns { get; } 
+    DbSet<SourceCategory> SourceCategories { get; }
+    DbSet<ScoutRun> ScoutRuns { get; }
     DbSet<LlmCall> LlmCalls { get; }
+    DbSet<StoredCv> StoredCvs { get; }
 
     Task<int> SaveChangesAsync(CancellationToken ct = default);
 }
