@@ -113,9 +113,9 @@ public class JobsCzProfessionAndRadiusTests
     [InlineData("lakyrnik", null, 30, "/prace/lakyrnik/?date=24h")]           // radius without a place makes no sense
     public void BuildSearchUrl_adds_radius_only_with_a_location(string category, string? location, int radiusKm, string expected)
     {
-        var query = new JobSearch.JobSearchQuery
+        var query = new JobSearchQuery
         {
-            Category = category, Location = location, RadiusKm = radiusKm, MaxAge = JobSearch.JobAge.Day,
+            Category = category, Location = location, RadiusKm = radiusKm, MaxAge = JobAge.Day,
         };
 
         Assert.Equal(expected, JobsCzSource.BuildSearchUrl(query));
@@ -124,9 +124,9 @@ public class JobsCzProfessionAndRadiusTests
     [Fact]
     public void Radius_comes_after_keywords_and_before_date_and_page()
     {
-        var query = new JobSearch.JobSearchQuery
+        var query = new JobSearchQuery
         {
-            Keywords = "Standox", Location = "Kolín", RadiusKm = 30, MaxAge = JobSearch.JobAge.ThreeDays, Page = 2,
+            Keywords = "Standox", Location = "Kolín", RadiusKm = 30, MaxAge = JobAge.ThreeDays, Page = 2,
         };
 
         Assert.Equal("/prace/kolin/?q%5B%5D=Standox&locality%5Bradius%5D=30&date=3d&page=2", JobsCzSource.BuildSearchUrl(query));

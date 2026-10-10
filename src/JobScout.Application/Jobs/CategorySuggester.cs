@@ -10,7 +10,7 @@ public sealed record CategorySuggestionResult(CategorySuggestions Suggestions, L
 public sealed class CategorySuggester(ILlmClient llm)
 {
     public async Task<CategorySuggestionResult> SuggestAsync(
-        string sourceName, IReadOnlyList<string> professions, IReadOnlyList<JobSearch.JobCategory> known,
+        string sourceName, IReadOnlyList<string> professions, IReadOnlyList<JobCategory> known,
         CancellationToken ct = default)
     {
         var knownText = known.Count == 0 ? "(zatím žádné)" : string.Join("\n", known.Select(c => c.Label));

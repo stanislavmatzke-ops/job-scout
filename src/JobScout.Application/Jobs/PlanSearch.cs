@@ -58,7 +58,7 @@ public sealed class PlanSearch(
         return new SearchPlanResult(plan, IsNew: true, calls);
     }
 
-    private async Task<IReadOnlyList<JobSearch.JobCategory>> VerifyAsync(
+    private async Task<IReadOnlyList<JobCategory>> VerifyAsync(
         IJobSource source, string profession, CategorySuggestions suggestions, CancellationToken ct)
     {
         var labels = suggestions.Mappings
@@ -69,7 +69,7 @@ public sealed class PlanSearch(
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .Take(MaxLabelsPerProfession);
 
-        var categories = new List<JobSearch.JobCategory>();
+        var categories = new List<JobCategory>();
         foreach (var label in labels)
             if (await resolver.ResolveAsync(source, label, ct) is { } category && categories.All(c => c.Id != category.Id))
                 categories.Add(category);

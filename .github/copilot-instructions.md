@@ -25,7 +25,7 @@ an ADR, say so instead of silently diverging.
   (e.g. `JobMatch.ChangeStatus` always appends a `JobMatchEvent`).
 - Every entity has a non-public parameterless constructor for EF Core.
 - Ids are `Guid.CreateVersion7(now)`, created by our code – EF keys are `ValueGeneratedNever()`.
-- **Time is a parameter** (`DateTimeOffset now`, later `TimeProvider`) – never call `DateTime.Now`/`UtcNow`
+- **Time comes from outside** (`TimeProvider` in use cases, `DateTimeOffset now` in domain methods) – never call `DateTime.Now`/`UtcNow`
   inside domain or application logic.
 - Status transitions are intentionally not restricted (users must be able to correct mistakes).
 - `JobOffer` is shared by all users (except private manual ads, ADR-0013); `JobMatch` is per user.
@@ -59,7 +59,7 @@ an ADR, say so instead of silently diverging.
 - Comments explain *why*, not *what*. Code and comments in English; AI prompts and user-facing texts in Czech.
 
 ## Tests
-- xUnit, in `tests/JobScout.Tests`, folders mirror the source (`Core/`, `Infrastructure/`, `Architecture/`).
+- xUnit, in `tests/JobScout.Tests`, folders mirror the source (`Core/`, `Application/`, `Infrastructure/`, `Architecture/`).
 - Test names describe behaviour: `Method_or_scenario_expected_result`.
 - No real network or LLM calls: use `StubHttpHandler`, `FakePageRenderer`, fake `ILlmClient`.
 - Persistence tests use `SqliteTestDatabase` (in-memory SQLite with foreign keys, real migrations).

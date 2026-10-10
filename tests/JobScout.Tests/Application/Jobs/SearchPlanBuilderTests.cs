@@ -7,8 +7,8 @@ namespace JobScout.Tests.Application.Jobs;
 /// <summary>Pure planning logic: resolved professions × places → searches. No AI, no network.</summary>
 public class SearchPlanBuilderTests
 {
-    private static readonly JobSearch.JobCategory Lakyrnik = new("lakyrnik", "Lakýrník");
-    private static readonly JobSearch.JobCategory Pripravar = new("pripravar", "Přípravář");
+    private static readonly JobCategory Lakyrnik = new("lakyrnik", "Lakýrník");
+    private static readonly JobCategory Pripravar = new("pripravar", "Přípravář");
 
     private static IReadOnlyList<PlannedSearch> Build(
         IReadOnlyList<ResolvedProfession> resolved,
@@ -86,7 +86,7 @@ public class SearchPlanBuilderTests
     public void Plan_is_capped_to_stay_polite()
     {
         var many = Enumerable.Range(1, 10)
-            .Select(i => new ResolvedProfession($"Profese {i}", [new JobSearch.JobCategory($"profese-{i}", $"Profese {i}")]))
+            .Select(i => new ResolvedProfession($"Profese {i}", [new JobCategory($"profese-{i}", $"Profese {i}")]))
             .ToList();
 
         var plan = Build(many, extra: ["Praha"]);   // 10 categories × 2 places = 20
@@ -103,12 +103,12 @@ public class SearchPlanBuilderTests
     [Fact]
     public void Planned_search_becomes_a_query_with_age_filter()
     {
-        var query = new PlannedSearch("lakyrnik", null, "Kolín", 30).ToQuery(JobSearch.JobAge.Day);
+        var query = new PlannedSearch("lakyrnik", null, "Kolín", 30).ToQuery(JobAge.Day);
 
         Assert.Equal("lakyrnik", query.Category);
         Assert.Equal("Kolín", query.Location);
         Assert.Equal(30, query.RadiusKm);
-        Assert.Equal(JobSearch.JobAge.Day, query.MaxAge);
+        Assert.Equal(JobAge.Day, query.MaxAge);
         Assert.Equal(1, query.Page);
     }
 }

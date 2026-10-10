@@ -56,7 +56,7 @@ public sealed class ScoutRunJournalTests : IDisposable
     {
         var started = await StartAsync();
 
-        Assert.Equal(JobSearch.JobAge.ThreeDays, started.Window.MaxAge);
+        Assert.Equal(JobAge.ThreeDays, started.Window.MaxAge);
         var run = await LoadAsync(started.Run.Id);
         Assert.Equal(ScoutRunStatus.Running, run.Status);
         Assert.Equal(T0, run.StartedAt);
@@ -71,7 +71,7 @@ public sealed class ScoutRunJournalTests : IDisposable
         _time.Now = T0.AddDays(1).AddMinutes(-30);
         var second = await StartAsync();
 
-        Assert.Equal(JobSearch.JobAge.Day, second.Window.MaxAge);
+        Assert.Equal(JobAge.Day, second.Window.MaxAge);
     }
 
     [Fact]
@@ -87,7 +87,7 @@ public sealed class ScoutRunJournalTests : IDisposable
         _time.Now = T0.AddDays(2);
         var wednesday = await StartAsync();
 
-        Assert.Equal(JobSearch.JobAge.ThreeDays, wednesday.Window.MaxAge);   // Tuesday's ads are not lost
+        Assert.Equal(JobAge.ThreeDays, wednesday.Window.MaxAge);   // Tuesday's ads are not lost
     }
 
     [Fact]
@@ -102,7 +102,7 @@ public sealed class ScoutRunJournalTests : IDisposable
         _time.Now = T0.AddDays(2);
         var wednesday = await StartAsync();
 
-        Assert.Equal(JobSearch.JobAge.ThreeDays, wednesday.Window.MaxAge);
+        Assert.Equal(JobAge.ThreeDays, wednesday.Window.MaxAge);
     }
 
     [Fact]
@@ -144,6 +144,6 @@ public sealed class ScoutRunJournalTests : IDisposable
 
         var mine = await StartAsync();
 
-        Assert.Equal(JobSearch.JobAge.ThreeDays, mine.Window.MaxAge);   // my first run
+        Assert.Equal(JobAge.ThreeDays, mine.Window.MaxAge);   // my first run
     }
 }

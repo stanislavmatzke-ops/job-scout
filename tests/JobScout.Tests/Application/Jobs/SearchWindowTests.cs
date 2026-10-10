@@ -15,7 +15,7 @@ public class SearchWindowTests
     {
         var window = SearchWindow.For(lastSuccessStartedAt: null, Now);
 
-        Assert.Equal(JobSearch.JobAge.ThreeDays, window.MaxAge);
+        Assert.Equal(JobAge.ThreeDays, window.MaxAge);
         Assert.False(window.HasGap);
     }
 
@@ -26,7 +26,7 @@ public class SearchWindowTests
     {
         var window = SearchWindow.For(Now.AddHours(-hoursAgo), Now);
 
-        Assert.Equal(JobSearch.JobAge.Day, window.MaxAge);
+        Assert.Equal(JobAge.Day, window.MaxAge);
         Assert.False(window.HasGap);
     }
 
@@ -38,7 +38,7 @@ public class SearchWindowTests
     {
         var window = SearchWindow.For(Now.AddHours(-hoursAgo), Now);
 
-        Assert.Equal(JobSearch.JobAge.ThreeDays, window.MaxAge);
+        Assert.Equal(JobAge.ThreeDays, window.MaxAge);
         Assert.False(window.HasGap);
     }
 
@@ -48,7 +48,7 @@ public class SearchWindowTests
         // jobs.cz offers no longer "new" filter we use – the run must say that ads may have been missed
         var window = SearchWindow.For(Now.AddDays(-5), Now);
 
-        Assert.Equal(JobSearch.JobAge.ThreeDays, window.MaxAge);
+        Assert.Equal(JobAge.ThreeDays, window.MaxAge);
         Assert.True(window.HasGap);
     }
 }

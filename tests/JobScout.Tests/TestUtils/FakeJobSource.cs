@@ -24,21 +24,35 @@ internal sealed class FakeJobSource(string name = "fake.cz") : IJobSource
     public Exception? FailWith { get; set; }
 
     public string Name => name;
-    public IReadOnlyList<JobSearch.JobCategory> Categories { get; init; } = [];
+    public IReadOnlyList<JobCategory> Categories { get; init; } = [];
 
-    public Task<JobSearch.JobCategory?> ResolveCategoryAsync(string label, CancellationToken ct = default)
+    public Task<JobCategory?> ResolveCategoryAsync(string label, CancellationToken ct = default)
     {
         ResolveRequests.Add(label);
         if (FailWith is not null)
             throw FailWith;
 
         return Task.FromResult(Existing.TryGetValue(label.Trim(), out var id)
-            ? new JobSearch.JobCategory(id, label.Trim())
+            ? new JobCategory(id, label.Trim())
             : null);
     }
 
-    public Task<IReadOnlyList<JobListing>> SearchAsync(JobSearch.JobSearchQuery query, int maxPages = 1, CancellationToken ct = default) =>
-        Task.FromResult<IReadOnlyList<JobListing>>([]);
+    /// <summary>What every search returns (the fake portal ignores the query).</summary>
+    public List<JobListing> Listings { get; } = [];
+
+    public List<JobSearchQuery> SearchQueries { get; } = [];
+
+    /// <summary>When set, every search throws it (portal down).</summary>
+    public Exception? SearchFailure { get; set; }
+
+    public Task<IReadOnlyList<JobListing>> SearchAsync(JobSearchQuery query, int maxPages = 1, CancellationToken ct = default)
+    {
+        SearchQueries.Add(query);
+        if (SearchFailure is not null)
+            throw SearchFailure;
+
+        return Task.FromResult<IReadOnlyList<JobListing>>(Listings.ToList());
+    }
 
     public Task<JobDetail> GetDetailAsync(string externalId, CancellationToken ct = default)
     {

@@ -26,13 +26,13 @@ public sealed class CategoryResolverTests : IDisposable
     public void Dispose() => _database.Dispose();
 
     /// <summary>Fresh DbContext per call – like separate runs / users.</summary>
-    private async Task<JobSearch.JobCategory?> ResolveAsync(string label, IJobSource? source = null)
+    private async Task<JobCategory?> ResolveAsync(string label, IJobSource? source = null)
     {
         await using var db = _database.CreateContext();
         return await new CategoryResolver(db, _time).ResolveAsync(source ?? _source, label);
     }
 
-    private async Task<IReadOnlyList<JobSearch.JobCategory>> KnownAsync(IJobSource? source = null)
+    private async Task<IReadOnlyList<JobCategory>> KnownAsync(IJobSource? source = null)
     {
         await using var db = _database.CreateContext();
         return await new CategoryResolver(db, _time).KnownAsync(source ?? _source);

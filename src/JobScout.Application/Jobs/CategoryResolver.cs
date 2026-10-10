@@ -12,7 +12,7 @@ public sealed class CategoryResolver(IAppDbContext db, TimeProvider time)
 {
     public static readonly TimeSpan MaxAge = TimeSpan.FromDays(90);
 
-    public async Task<JobSearch.JobCategory?> ResolveAsync(IJobSource source, string label, CancellationToken ct = default)
+    public async Task<JobCategory?> ResolveAsync(IJobSource source, string label, CancellationToken ct = default)
     {
         var key = SourceCategory.NormalizeKey(label);
         if (key.Length == 0)
@@ -22,7 +22,7 @@ public sealed class CategoryResolver(IAppDbContext db, TimeProvider time)
         var known = await db.SourceCategories.SingleOrDefaultAsync(c => c.Source == source.Name && c.Key == key, ct);
 
         if (known is not null && !known.IsStale(now, MaxAge))
-            return known.Exists ? new JobSearch.JobCategory(known.CategoryId!, known.Label) : null;
+            return known.Exists ? new JobCategory(known.CategoryId!, known.Label) : null;
 
         // Outage throws here → nothing is stored (a wrong "doesn't exist" would stick for 90 days)
         var category = await source.ResolveCategoryAsync(label, ct);
@@ -37,14 +37,14 @@ public sealed class CategoryResolver(IAppDbContext db, TimeProvider time)
     }
 
     /// <summary>Verified categories of a source (learned + built-in) – the AI must prefer these for a stable mapping.</summary>
-    public async Task<IReadOnlyList<JobSearch.JobCategory>> KnownAsync(IJobSource source, CancellationToken ct = default)
+    public async Task<IReadOnlyList<JobCategory>> KnownAsync(IJobSource source, CancellationToken ct = default)
     {
         var learned = await db.SourceCategories
             .Where(c => c.Source == source.Name && c.CategoryId != null)
             .ToListAsync(ct);
 
         return learned
-            .Select(c => new JobSearch.JobCategory(c.CategoryId!, c.Label))
+            .Select(c => new JobCategory(c.CategoryId!, c.Label))
             .Concat(source.Categories)
             .DistinctBy(c => c.Id)
             .OrderBy(c => c.Label, StringComparer.Create(new System.Globalization.CultureInfo("cs-CZ"), ignoreCase: true))

@@ -2,7 +2,7 @@ namespace JobScout.Application.Evaluation;
 
 internal static class EvaluationPrompts
 {
-public const string System = """
+    public const string System = """
     Jsi zkušený personalista se znalostí českého pracovního trhu napříč obory. Hodnotíš, jak dobře nabídka práce
     odpovídá profilu kandidáta. Hodnocení slouží jako předvýběr – o reakci rozhoduje kandidát sám.
 

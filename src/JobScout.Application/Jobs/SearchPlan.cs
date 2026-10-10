@@ -3,7 +3,7 @@
 /// <summary>One planned search on one source; the morning run adds the age filter.</summary>
 public sealed record PlannedSearch(string? Category, string? Keywords, string? Location, int RadiusKm)
 {
-    public JobSearch.JobSearchQuery ToQuery(JobSearch.JobAge maxAge) => new()
+    public JobSearchQuery ToQuery(JobAge maxAge) => new()
     {
         Category = Category, Keywords = Keywords, Location = Location, RadiusKm = RadiusKm, MaxAge = maxAge,
     };
@@ -20,4 +20,4 @@ public sealed record SearchPlan(int Version, IReadOnlyDictionary<string, IReadOn
 }
 
 /// <summary>A candidate's profession and the categories a source verified for it (empty = free text).</summary>
-public sealed record ResolvedProfession(string Profession, IReadOnlyList<JobSearch.JobCategory> Categories);
+public sealed record ResolvedProfession(string Profession, IReadOnlyList<JobCategory> Categories);

@@ -11,13 +11,13 @@ namespace JobScout.Infrastructure.JobsCz;
 
 internal sealed partial class JobsCzSource(HttpClient http, IPageRenderer renderer, ILogger<JobsCzSource> logger) : IJobSource
 {
-    public IReadOnlyList<JobSearch.JobCategory> Categories => JobsCzCatalog.Categories;
+    public IReadOnlyList<JobCategory> Categories => JobsCzCatalog.Categories;
     private const int PageSize = 30;
     public string Name => JobsCzParser.SourceName;
     // Career pages render their content with JS – wait until this element exists
     private const string CareerPageReadySelector = ".cp-detail__content";
 
-    public async Task<IReadOnlyList<JobListing>> SearchAsync(JobSearch.JobSearchQuery query, int maxPages = 1, CancellationToken ct = default)
+    public async Task<IReadOnlyList<JobListing>> SearchAsync(JobSearchQuery query, int maxPages = 1, CancellationToken ct = default)
     {
         var all = new Dictionary<string, JobListing>();   // keeps order of first appearance
 
@@ -34,7 +34,7 @@ internal sealed partial class JobsCzSource(HttpClient http, IPageRenderer render
         return all.Values.ToList();
     }
     
-    private async Task<IReadOnlyList<JobListing>> SearchPageAsync(JobSearch.JobSearchQuery query, CancellationToken ct = default)
+    private async Task<IReadOnlyList<JobListing>> SearchPageAsync(JobSearchQuery query, CancellationToken ct = default)
     {
         var url = BuildSearchUrl(query);
         logger.LogInformation("jobs.cz: hledám {Url}", url);
@@ -91,7 +91,7 @@ internal sealed partial class JobsCzSource(HttpClient http, IPageRenderer render
         }
     }
     
-    internal static string BuildSearchUrl(JobSearch.JobSearchQuery q)
+    internal static string BuildSearchUrl(JobSearchQuery q)
     {
         var path = "/prace/";
         if (!string.IsNullOrWhiteSpace(q.Location)) path += ToSlug(q.Location) + "/";
@@ -101,7 +101,7 @@ internal sealed partial class JobsCzSource(HttpClient http, IPageRenderer render
         if (!string.IsNullOrWhiteSpace(q.Keywords)) parameters.Add($"q%5B%5D={Uri.EscapeDataString(q.Keywords)}");
         if (q.RadiusKm > 0 && !string.IsNullOrWhiteSpace(q.Location))
             parameters.Add($"locality%5Bradius%5D={q.RadiusKm}");
-        if (q.MaxAge != JobSearch.JobAge.Any) parameters.Add($"date={(q.MaxAge == JobSearch.JobAge.Day ? "24h" : "3d")}");
+        if (q.MaxAge != JobAge.Any) parameters.Add($"date={(q.MaxAge == JobAge.Day ? "24h" : "3d")}");
         if (q.Page > 1) parameters.Add($"page={q.Page}");
 
         return parameters.Count == 0 ? path : $"{path}?{string.Join('&', parameters)}";
@@ -121,7 +121,7 @@ internal sealed partial class JobsCzSource(HttpClient http, IPageRenderer render
         return DashRuns().Replace(sb.ToString(), "-").Trim('-');
     }
     
-    public async Task<JobSearch.JobCategory?> ResolveCategoryAsync(string label, CancellationToken ct = default)
+    public async Task<JobCategory?> ResolveCategoryAsync(string label, CancellationToken ct = default)
     {
         var slug = ToSlug(label);
         if (slug.Length == 0)
@@ -147,7 +147,7 @@ internal sealed partial class JobsCzSource(HttpClient http, IPageRenderer render
             return null;
 
         logger.LogInformation("jobs.cz: profese '{Label}' → {Slug}", label.Trim(), slug);
-        return new JobSearch.JobCategory(slug, label.Trim());
+        return new JobCategory(slug, label.Trim());
     }
 
     [GeneratedRegex("-+")]
