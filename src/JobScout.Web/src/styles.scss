@@ -37,3 +37,16 @@ body {
   height: 100%;
 }
 /* You can add global styles to this file, and also import other style files */
+
+/* Score badge – the same look in the list and in the detail (7+ / 4–6 / ≤3 / not evaluated) */
+.score {
+  min-width: 44px; height: 44px; border-radius: 12px;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-weight: 600; font-size: 1.1rem; flex-shrink: 0;
+  &.good    { background: #e3f4e5; color: #1b5e20; }
+  &.maybe   { background: #fff3d6; color: #8a5300; }
+  &.weak    { background: #eceff1; color: #546e7a; }
+  &.pending { border: 2px dashed #b0bec5; color: #78909c; }
+}
+.muted { opacity: 0.7; }
+.error { color: var(--mat-sys-error); }

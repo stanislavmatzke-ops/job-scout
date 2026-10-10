@@ -29,6 +29,11 @@ export const routes: Routes = [
             title: 'Nabídky – Job Scout',
             loadComponent: () => import('./pages/matches/matches.page').then(m => m.MatchesPage),
           },
+          {
+            path: 'matches/:id',
+            title: 'Detail nabídky – Job Scout',
+            loadComponent: () => import('./pages/match-detail/match-detail.page').then(m => m.MatchDetailPage),
+          },
         ],
       },
     ],
