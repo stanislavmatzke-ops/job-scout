@@ -1,4 +1,4 @@
-﻿import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
+﻿import { ChangeDetectionStrategy, Component, DestroyRef, inject } from '@angular/core';
 import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { MatToolbarModule } from '@angular/material/toolbar';
 import { MatButtonModule } from '@angular/material/button';
@@ -49,6 +49,15 @@ import { AuthService } from '../core/auth.service';
 export class ShellComponent {
   protected readonly auth = inject(AuthService);
   private readonly router = inject(Router);
+
+  constructor() {
+    // Coming back to the tab = the admin may have approved or suspended the account meanwhile – ask again
+    const refresh = () => {
+      if (document.visibilityState === 'visible' && this.auth.me()) void this.auth.load(true).catch(() => undefined);
+    };
+    document.addEventListener('visibilitychange', refresh);
+    inject(DestroyRef).onDestroy(() => document.removeEventListener('visibilitychange', refresh));
+  }
 
   protected async signOut(): Promise<void> {
     await this.auth.signOut();

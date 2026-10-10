@@ -71,4 +71,14 @@ describe('apiInterceptor', () => {
     await expect(call).rejects.toBeTruthy();
     expect(navigate).not.toHaveBeenCalled();
   });
+
+  it('403 means the access changed meanwhile – "who am I" is reloaded (suspension banner appears)', async () => {
+    const load = vi.spyOn(auth, 'load').mockResolvedValue(null);
+
+    const call = firstValueFrom(client.post('/api/matches/1/evaluate', null));
+    http.expectOne('/api/matches/1/evaluate').flush(null, { status: 403, statusText: 'Forbidden' });
+
+    await expect(call).rejects.toBeTruthy();
+    expect(load).toHaveBeenCalledWith(true);
+  });
 });
