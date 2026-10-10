@@ -1,6 +1,7 @@
 # Job Scout
 
 [![CI](https://github.com/stanislavmatzke-ops/job-scout/actions/workflows/ci.yml/badge.svg)](https://github.com/stanislavmatzke-ops/job-scout/actions/workflows/ci.yml)
+
 *[Česká verze](README.cs.md)*
 
 **An AI job-hunting assistant built with .NET 10 and Claude.** Every morning it searches job boards for ads that fit
