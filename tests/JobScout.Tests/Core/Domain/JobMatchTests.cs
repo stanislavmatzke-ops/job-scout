@@ -146,23 +146,4 @@ public class JobMatchTests
         Assert.Equal("Zeptat se na HO", match.Notes);
         Assert.Equal(T0.AddMinutes(2), match.UpdatedAt);
     }
-
-    // ---------- What the user sees ----------
-
-    [Theory]
-    [InlineData(MatchStage.Found, MatchStatus.New, false)]            // not evaluated yet
-    [InlineData(MatchStage.TriagedOut, MatchStatus.New, false)]       // filtered out by triage
-    [InlineData(MatchStage.Evaluated, MatchStatus.New, true)]
-    [InlineData(MatchStage.Evaluated, MatchStatus.Applied, true)]
-    [InlineData(MatchStage.Evaluated, MatchStatus.Dismissed, true)]   // still in the archive
-    [InlineData(MatchStage.Evaluated, MatchStatus.Hidden, false)]     // "Nechci vidět"
-    public void IsVisible_depends_on_stage_and_status(MatchStage stage, MatchStatus status, bool expected)
-    {
-        var match = NewMatch();
-        if (stage == MatchStage.TriagedOut) match.MarkTriagedOut("mimo profil", T0);
-        if (stage == MatchStage.Evaluated) match.ApplyEvaluation(7, "{}", T0);
-        match.ChangeStatus(status, null, T0.AddMinutes(1));
-
-        Assert.Equal(expected, match.IsVisible);
-    }
 }

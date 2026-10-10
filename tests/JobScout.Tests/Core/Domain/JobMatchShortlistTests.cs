@@ -21,7 +21,6 @@ public class JobMatchShortlistTests
         Assert.Equal(5, match.TriageScore);
         Assert.Equal(T0.AddMinutes(1), match.UpdatedAt);
         Assert.Null(match.TriageReason);
-        Assert.False(match.IsVisible);           // not shown until evaluated
         Assert.Equal(MatchStatus.New, match.Status);
     }
 
@@ -45,7 +44,6 @@ public class JobMatchShortlistTests
         Assert.Equal(MatchStage.TriagedOut, match.Stage);
         Assert.Equal("Statik – jiná profese", match.TriageReason);
         Assert.Equal(1, match.TriageScore);
-        Assert.False(match.IsVisible);
     }
 
     [Fact]

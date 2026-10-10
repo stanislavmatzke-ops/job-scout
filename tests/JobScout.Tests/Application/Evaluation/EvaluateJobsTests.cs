@@ -100,7 +100,6 @@ public sealed class EvaluateJobsTests : IDisposable
         Assert.Equal(MatchStage.Evaluated, match.Stage);
         Assert.Equal(8, match.Score);
         Assert.Contains("\"score\":8", match.EvaluationJson);
-        Assert.True(match.IsVisible);                                   // now the user sees it
         Assert.Equal("Náplň práce: Stavbyvedoucí, rodinné domy, Opava.", match.JobOffer!.DetailText);
         Assert.True(match.JobOffer.DetailIsComplete);
         Assert.Equal(T0, match.JobOffer.DetailFetchedAt);

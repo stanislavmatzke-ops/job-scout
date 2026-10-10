@@ -1,6 +1,5 @@
-﻿using JobScout.Application.Abstractions;
+using JobScout.Application.Abstractions;
 using JobScout.Application.Evaluation;
-using JobScout.Application.Llm;
 using JobScout.Core.Domain;
 using Microsoft.EntityFrameworkCore;
 
@@ -50,18 +49,9 @@ public sealed class BuildMorningReport(IAppDbContext db, TimeProvider time)
     private static ReportJob ToJob(JobMatch m)
     {
         var offer = m.JobOffer!;
-        var e = TryParse(m.EvaluationJson);
+        var e = JobEvaluationJson.TryParse(m.EvaluationJson);
         return new ReportJob(offer.Title, offer.Company, offer.Location, offer.Url, m.Score, m.TriageScore,
             e?.Summary, e?.Reasons ?? [], e?.Risks ?? [], e?.Questions ?? [], e?.Salary, m.CoverLetter,
             DetailIncomplete: offer.DetailText is not null && !offer.DetailIsComplete);
-    }
-
-    /// <summary>Old or broken evaluation JSON must not break the report – the job is shown without details.</summary>
-    private static JobEvaluation? TryParse(string? json)
-    {
-        if (string.IsNullOrWhiteSpace(json))
-            return null;
-        try { return LlmJson.Deserialize<JobEvaluation>(json); }
-        catch (System.Text.Json.JsonException) { return null; }
     }
 }

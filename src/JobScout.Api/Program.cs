@@ -1,4 +1,5 @@
 using JobScout.Api.Auth;
+using JobScout.Api.Matches;
 using JobScout.Api.Me;
 using JobScout.Application;
 using JobScout.Infrastructure;
@@ -12,6 +13,8 @@ builder.Services.AddApplication();
 builder.Services.AddJobScoutAuth(builder.Configuration, builder.Environment);
 builder.Services.AddProblemDetails();
 builder.Services.AddHealthChecks();
+builder.Services.ConfigureHttpJsonOptions(o =>
+    o.SerializerOptions.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter()));
 
 var app = builder.Build();
 
@@ -19,13 +22,20 @@ var app = builder.Build();
 using (var scope = app.Services.CreateScope())
     await scope.ServiceProvider.GetRequiredService<JobScoutDbContext>().Database.MigrateAsync();
 
-app.UseExceptionHandler();
+// Bad input (unreadable JSON, wrong type) is the client's fault → 400, not 500.
+// In Development ASP.NET Core throws BadHttpRequestException on purpose (to show it in the log) – keep its status code.
+app.UseExceptionHandler(new ExceptionHandlerOptions
+{
+    StatusCodeSelector = ex => ex is BadHttpRequestException bad ? bad.StatusCode : StatusCodes.Status500InternalServerError
+});
+
 app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapHealthChecks("/health");
 app.MapAuthEndpoints();
 app.MapMeEndpoints();
+app.MapMatchEndpoints();
 
 await app.RunAsync();
 

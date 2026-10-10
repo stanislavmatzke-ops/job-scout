@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
+using JobScout.Infrastructure.Persistence;
 using Microsoft.Data.Sqlite;
+using Microsoft.EntityFrameworkCore;
 
 namespace JobScout.Tests.Api;
 
@@ -16,6 +18,10 @@ public sealed class JobScoutApiFactory(bool devSignIn = true, string environment
     private SqliteConnection? _keepAlive;
 
     public string ConnectionString => _connectionString;
+
+    /// <summary>Direct access to the API's database – to seed data. Start the app first (CreateBrowser) so it is migrated.</summary>
+    public JobScoutDbContext CreateDbContext() =>
+        new(new DbContextOptionsBuilder<JobScoutDbContext>().UseSqlite(_connectionString).Options);
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {

@@ -2,6 +2,7 @@
 using JobScout.Application.Jobs;
 using JobScout.Application.Letters;
 using JobScout.Application.Llm;
+using JobScout.Application.Matches;
 using JobScout.Application.Profiles;
 using JobScout.Application.Reports;
 using JobScout.Application.Scouting;
@@ -32,6 +33,10 @@ public static class DependencyInjection
         services.AddScoped<BuildMorningReport>();
         services.AddScoped<RunScout>();
         services.AddScoped<SignInUser>();
+        services.AddScoped<ListMatches>();
+        services.AddScoped<GetMatchDetail>();
+        services.AddScoped<ChangeMatchStatus>();
+        services.AddScoped<UpdateMatchNotes>();
         return services;
     }
 }

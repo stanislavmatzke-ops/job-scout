@@ -20,3 +20,28 @@ POST {{host}}/api/auth/logout
 
 ### After sign-out → 401 again
 GET {{host}}/api/me
+
+### ---------- 5b: my jobs (sign in first) ----------
+POST {{host}}/api/auth/dev/private
+
+### Open jobs (evaluated + waiting), best first, with counts for every tab
+GET {{host}}/api/matches
+
+### Other tabs: InProgress, Closed, TriagedOut
+GET {{host}}/api/matches?view=triagedout
+
+### Detail – paste an id from the list
+@matchId = 01a1167f-e213-7c66-a9fa-47d384016735
+GET {{host}}/api/matches/{{matchId}}
+
+### Change status (New, SavedForLater, Applied, Call, Round1, Round2, Offer, Rejected, Withdrawn, Dismissed, Hidden)
+POST {{host}}/api/matches/{{matchId}}/status
+Content-Type: application/json
+
+{ "status": "SavedForLater", "note": "Vyzkoušení z Rideru" }
+
+### Notes
+PUT {{host}}/api/matches/{{matchId}}/notes
+Content-Type: application/json
+
+{ "notes": "Zeptat se na podíl home office" }
