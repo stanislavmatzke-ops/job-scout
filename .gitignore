@@ -485,3 +485,6 @@ $RECYCLE.BIN/
 *.db
 *.db-shm
 *.db-wal
+
+# Angular build (npm run build in src/JobScout.Web) – produced in CI / Docker, never committed
+src/JobScout.Api/wwwroot/

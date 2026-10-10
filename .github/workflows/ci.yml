@@ -25,3 +25,28 @@ jobs:
       # No network and no LLM calls in tests – no API key needed
       - name: Test
         run: dotnet test JobScout.slnx --configuration Release --no-build --verbosity normal
+
+  # The Angular app (6f): unit tests (Vitest + jsdom, no browser needed) and the production build,
+  # which also checks the size budgets. The build lands in src/JobScout.Api/wwwroot (angular.json).
+  frontend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: src/JobScout.Web
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: src/JobScout.Web/package-lock.json
+
+      - name: Install
+        run: npm ci
+
+      - name: Test
+        run: npx ng test --watch=false
+
+      - name: Build
+        run: npx ng build

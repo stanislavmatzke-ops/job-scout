@@ -45,9 +45,13 @@ export const routes: Routes = [
             title: 'Detail nabídky – Job Scout',
             loadComponent: () => import('./pages/match-detail/match-detail.page').then(m => m.MatchDetailPage),
           },
+          {
+            path: '**',
+            title: 'Stránka nenalezena – Job Scout',
+            loadComponent: () => import('./pages/not-found/not-found.page').then(m => m.NotFoundPage),
+          },
         ],
       },
     ],
   },
-  { path: '**', redirectTo: '' },
 ];
