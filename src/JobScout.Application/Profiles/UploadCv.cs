@@ -24,7 +24,7 @@ public sealed class UploadCv(IAppDbContext db, AnalyzeProfile analyze)
         if (content.Length == 0 || content.Length > StoredCv.MaxBytes)
             throw new ArgumentException($"CV musí mít nejvýš {StoredCv.MaxBytes / 1024 / 1024} MB a nesmí být prázdné.", nameof(content));
         if (mediaType == "application/pdf" && !content.AsSpan().StartsWith("%PDF-"u8))
-            throw new ArgumentException("Soubor má příponu PDF, ale PDF to není.", nameof(content));
+            throw new ArgumentException("Soubor má příponu .pdf, ale nejde o platný dokument PDF.", nameof(content));
 
         var user = await db.Users.SingleAsync(u => u.Id == userId, ct);
         var notes = await db.UserProfiles

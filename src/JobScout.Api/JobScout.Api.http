@@ -70,7 +70,7 @@ Content-Type: application/json
 
 ### ---------- 5d: my profile ----------
 ### Sign in as a throw-away persona first – uploading the sample CV as "private" would replace YOUR profile
-POST {{host}}/api/auth/dev/jana-api
+POST {{host}}/api/auth/dev/dev:boss
 X-CSRF: 1
 
 ### Empty profile at first
@@ -108,3 +108,22 @@ Content-Type: application/json
 # https://localhost:7283/api/auth/login/microsoft?returnUrl=/api/me
 # A new account needs an invitation:  ...login/google?invite=CODE&returnUrl=/api/me
 GET {{host}}/api/auth/providers
+
+### ---------- 5f: admin (needs "Auth:Admins:1": "dev:boss" in the API user secrets) ----------
+POST {{host}}/api/auth/dev/boss
+X-CSRF: 1
+
+### All users – waiting requests on top, then by AI cost
+GET {{host}}/api/admin/users
+
+### Approve (or resume a suspended user) – paste the id from the list
+@userId = 01a125b4-c54e-72d2-b73b-385abff2e66c
+POST {{host}}/api/admin/users/{{userId}}/approve
+X-CSRF: 1
+
+### Suspend with a reason the user will see
+POST {{host}}/api/admin/users/{{userId}}/suspend
+X-CSRF: 1
+Content-Type: application/json
+
+{ "reason": "Z kapacitních důvodů je účet dočasně pozastaven. O obnovení přístupu můžete požádat znovu." }

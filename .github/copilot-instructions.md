@@ -56,7 +56,7 @@ an ADR, say so instead of silently diverging.
   `[GeneratedRegex]`, raw string literals for prompts.
 - Options pattern with validation (`ValidateOnStart`), typed `HttpClient`s, `CancellationToken` passed through.
 - Catch exceptions with `when (ex is not OperationCanceledException)` where a failure must not stop the run.
-- Comments explain *why*, not *what*. Code and comments in English; AI prompts and user-facing texts in Czech.
+- Comments explain *why*, not *what*. Code and comments in English; AI prompts and user-facing texts in Czech. **User-facing texts are formal (vykání) and written as a product ("we"), never as a personal message from the author.**
 
 ## Tests
 - xUnit, in `tests/JobScout.Tests`, folders mirror the source (`Core/`, `Application/`, `Infrastructure/`, `Architecture/`).

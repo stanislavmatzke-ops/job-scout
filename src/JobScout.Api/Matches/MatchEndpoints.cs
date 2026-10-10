@@ -68,11 +68,11 @@ public static class MatchEndpoints
             {
                 EvaluateNowStatus.Evaluated => Results.Ok(await get.ExecuteAsync(userId, id, ct)),
                 EvaluateNowStatus.NotFound => Results.NotFound(),
-                EvaluateNowStatus.NoProfile => Results.Problem("Nejdřív nahraj CV – bez profilu není podle čeho hodnotit.",
+                EvaluateNowStatus.NoProfile => Results.Problem("Nejprve nahrajte své CV – bez profilu nelze nabídku ohodnotit.",
                     statusCode: StatusCodes.Status409Conflict),
-                EvaluateNowStatus.AdRemoved => Results.Problem("Inzerát už na portálu není.",
+                EvaluateNowStatus.AdRemoved => Results.Problem("Inzerát již na portálu není k dispozici.",
                     statusCode: StatusCodes.Status410Gone),
-                _ => Results.Problem("Portál teď neodpovídá, zkus to za chvíli.",
+                _ => Results.Problem("Portál s nabídkami momentálně neodpovídá. Zkuste to prosím za chvíli.",
                     statusCode: StatusCodes.Status503ServiceUnavailable)
             };
         }).RequireAuthorization(Policies.Active);
@@ -86,13 +86,13 @@ public static class MatchEndpoints
             {
                 WriteLetterStatus.Written => Results.Ok(await get.ExecuteAsync(userId, id, ct)),
                 WriteLetterStatus.NotFound => Results.NotFound(),
-                WriteLetterStatus.NotEvaluated => Results.Problem("Nejdřív nabídku ohodnoť – dopis staví na hodnocení.",
+                WriteLetterStatus.NotEvaluated => Results.Problem("Nejprve nechte nabídku ohodnotit – dopis vychází z hodnocení.",
                     statusCode: StatusCodes.Status409Conflict),
-                WriteLetterStatus.AlreadyWritten => Results.Problem("Dopis už existuje. Pro nový pošli ?replace=true.",
+                WriteLetterStatus.AlreadyWritten => Results.Problem("K nabídce již existuje dopis. Nový návrh přepíše ten stávající (replace=true).",
                     statusCode: StatusCodes.Status409Conflict),
-                WriteLetterStatus.NoProfile => Results.Problem("Nejdřív nahraj CV.",
+                WriteLetterStatus.NoProfile => Results.Problem("Nejprve nahrajte své CV.",
                     statusCode: StatusCodes.Status409Conflict),
-                _ => Results.Problem("AI dopis nedopsala, zkus to znovu.",
+                _ => Results.Problem("Dopis se nepodařilo dokončit. Zkuste to prosím znovu.",
                     statusCode: StatusCodes.Status502BadGateway)
             };
         }).RequireAuthorization(Policies.Active);

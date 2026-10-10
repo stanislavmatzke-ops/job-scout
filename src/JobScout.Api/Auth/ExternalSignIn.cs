@@ -50,7 +50,7 @@ public static class ExternalSignIn
                 SignInStatus.InvitationInvalid => "invitation-invalid",
                 _ => "no-identity"
             };
-            context.Response.Redirect($"/?login-error={error}");
+            context.Response.Redirect($"/login?error={error}");
             context.HandleResponse();                              // nothing is signed in
             return;
         }

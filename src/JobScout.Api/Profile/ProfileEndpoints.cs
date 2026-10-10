@@ -46,7 +46,7 @@ public static class ProfileEndpoints
             try
             {
                 return await update.ExecuteAsync(user.GetUserId(), body.Notes, ct) is null
-                    ? Results.Problem("Nejdřív nahraj CV – poznámky se analyzují spolu s ním.",
+                    ? Results.Problem("Nejprve nahrajte své CV – poznámky se vyhodnocují společně s ním.",
                         statusCode: StatusCodes.Status409Conflict)
                     : Results.Ok(await get.ExecuteAsync(user.GetUserId(), ct));
             }

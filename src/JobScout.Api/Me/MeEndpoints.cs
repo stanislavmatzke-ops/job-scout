@@ -38,7 +38,7 @@ public static class MeEndpoints
             {
                 return await request.ExecuteAsync(principal.GetUserId(), body.Message, ct)
                     ? Results.NoContent()
-                    : Results.Problem("Přístup už máš.", statusCode: StatusCodes.Status409Conflict);
+                    : Results.Problem("Přístup již máte.", statusCode: StatusCodes.Status409Conflict);
             }
             catch (ArgumentException ex)
             {

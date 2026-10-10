@@ -1,0 +1,5 @@
+{
+  "/api":             { "target": "https://localhost:7283", "secure": false },
+  "/signin-google":   { "target": "https://localhost:7283", "secure": false },
+  "/signin-microsoft":{ "target": "https://localhost:7283", "secure": false }
+}
