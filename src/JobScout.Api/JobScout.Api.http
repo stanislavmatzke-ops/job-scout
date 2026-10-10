@@ -1,0 +1,22 @@
+# Manual API checks – Rider: run the API with the "https" profile, then click ▶ next to a request.
+# Rider's HTTP client keeps cookies between requests, like a browser.
+
+@host = https://localhost:7283
+
+### Public – is the API alive?
+GET {{host}}/health
+
+### Not signed in yet → 401
+GET {{host}}/api/me
+
+### Sign in as a persona (dev only). "private" = your own data from the Worker (dev:private)
+POST {{host}}/api/auth/dev/private
+
+### Who am I? → id, provider "dev", name
+GET {{host}}/api/me
+
+### Sign out
+POST {{host}}/api/auth/logout
+
+### After sign-out → 401 again
+GET {{host}}/api/me

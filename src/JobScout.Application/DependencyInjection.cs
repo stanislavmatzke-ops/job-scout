@@ -6,6 +6,7 @@ using JobScout.Application.Profiles;
 using JobScout.Application.Reports;
 using JobScout.Application.Scouting;
 using JobScout.Application.Triage;
+using JobScout.Application.Users;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 
@@ -30,6 +31,7 @@ public static class DependencyInjection
         services.AddScoped<UsageReport>();
         services.AddScoped<BuildMorningReport>();
         services.AddScoped<RunScout>();
+        services.AddScoped<SignInUser>();
         return services;
     }
 }
