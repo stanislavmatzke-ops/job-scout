@@ -41,6 +41,8 @@ export const en: Dict = {
     errors: {
       'invitation-invalid': 'The invitation is invalid, has already been used, or has expired.',
       'no-identity': 'Sign-in failed – the provider didn’t return your account details. Please try again.',
+      'cancelled': 'Sign-in was cancelled.',
+      'signin-failed': 'Sign-in failed. Please try again.',
     } as Record<string, string>,
   },
 

@@ -1,0 +1,436 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "metadata": {
+    "_generator": {
+      "name": "bicep",
+      "version": "0.48.1.52935",
+      "templateHash": "7235232167800730499"
+    }
+  },
+  "parameters": {
+    "location": {
+      "type": "string",
+      "defaultValue": "[resourceGroup().location]",
+      "metadata": {
+        "description": "Azure region – EU, the data stays in the EU."
+      }
+    },
+    "name": {
+      "type": "string",
+      "defaultValue": "jobscout",
+      "metadata": {
+        "description": "Short name used in every resource name."
+      }
+    },
+    "deployApps": {
+      "type": "bool",
+      "defaultValue": false,
+      "metadata": {
+        "description": "Pass 2 only: create the Container App (API) and the Container Apps Job (morning run)."
+      }
+    },
+    "image": {
+      "type": "string",
+      "defaultValue": "ghcr.io/stanislavmatzke-ops/job-scout:latest",
+      "metadata": {
+        "description": "Image to run – prefer an exact tag (sha-xxxxxxx) over latest, so you always know which build runs."
+      }
+    },
+    "adminObjectId": {
+      "type": "string",
+      "metadata": {
+        "description": "Your own Entra object ID (az ad signed-in-user show --query id -o tsv) – may write secrets into Key Vault."
+      }
+    },
+    "postgresAdminLogin": {
+      "type": "string",
+      "defaultValue": "jobscoutadmin",
+      "metadata": {
+        "description": "PostgreSQL administrator login."
+      }
+    },
+    "postgresAdminPassword": {
+      "type": "securestring",
+      "metadata": {
+        "description": "PostgreSQL administrator password – given on the command line, never stored in the repo."
+      }
+    },
+    "googleClientId": {
+      "type": "string",
+      "defaultValue": "",
+      "metadata": {
+        "description": "Google OAuth client ID (not secret). Empty = no Google button."
+      }
+    },
+    "microsoftClientId": {
+      "type": "string",
+      "defaultValue": "",
+      "metadata": {
+        "description": "Microsoft (Entra) app client ID (not secret). Empty = no Microsoft button."
+      }
+    },
+    "admins": {
+      "type": "string",
+      "defaultValue": "",
+      "metadata": {
+        "description": "Admins, comma-separated \"provider:subject\" (GET /api/me → identity). Empty until you have signed in once."
+      }
+    },
+    "morningCron": {
+      "type": "string",
+      "defaultValue": "30 5 * * *",
+      "metadata": {
+        "description": "Morning run, cron in UTC. 30 5 * * * = 6:30 in winter (CET), 7:30 in summer (CEST)."
+      }
+    }
+  },
+  "variables": {
+    "copy": [
+      {
+        "name": "adminEnv",
+        "count": "[length(variables('adminList'))]",
+        "input": {
+          "name": "[format('Auth__Admins__{0}', copyIndex('adminEnv'))]",
+          "value": "[trim(variables('adminList')[copyIndex('adminEnv')])]"
+        }
+      }
+    ],
+    "suffix": "[uniqueString(resourceGroup().id)]",
+    "keyVaultName": "[format('kv-{0}-{1}', parameters('name'), take(variables('suffix'), 6))]",
+    "postgresName": "[format('psql-{0}-{1}', parameters('name'), take(variables('suffix'), 6))]",
+    "secretsUserRole": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '4633458b-17de-408a-b874-0445c86b69e6')]",
+    "secretsOfficerRole": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'b86a8fe4-44ce-4948-aee5-eccb2c155cd7')]",
+    "commonEnv": [
+      {
+        "name": "DOTNET_ENVIRONMENT",
+        "value": "Production"
+      },
+      {
+        "name": "ASPNETCORE_ENVIRONMENT",
+        "value": "Production"
+      },
+      {
+        "name": "Database__Provider",
+        "value": "Postgres"
+      },
+      {
+        "name": "ConnectionStrings__JobScout",
+        "secretRef": "db-connection"
+      },
+      {
+        "name": "ANTHROPIC_API_KEY",
+        "secretRef": "anthropic-api-key"
+      }
+    ],
+    "adminList": "[filter(split(parameters('admins'), ','), lambda('a', not(empty(trim(lambdaVariables('a'))))))]",
+    "authEnv": "[concat(if(empty(parameters('googleClientId')), createArray(), createArray(createObject('name', 'Auth__Google__ClientId', 'value', parameters('googleClientId')), createObject('name', 'Auth__Google__ClientSecret', 'secretRef', 'google-client-secret'))), if(empty(parameters('microsoftClientId')), createArray(), createArray(createObject('name', 'Auth__Microsoft__ClientId', 'value', parameters('microsoftClientId')), createObject('name', 'Auth__Microsoft__ClientSecret', 'secretRef', 'microsoft-client-secret'))), variables('adminEnv'))]"
+  },
+  "resources": [
+    {
+      "type": "Microsoft.ManagedIdentity/userAssignedIdentities",
+      "apiVersion": "2023-01-31",
+      "name": "[format('id-{0}', parameters('name'))]",
+      "location": "[parameters('location')]"
+    },
+    {
+      "type": "Microsoft.OperationalInsights/workspaces",
+      "apiVersion": "2023-09-01",
+      "name": "[format('log-{0}', parameters('name'))]",
+      "location": "[parameters('location')]",
+      "properties": {
+        "sku": {
+          "name": "PerGB2018"
+        },
+        "retentionInDays": 30,
+        "workspaceCapping": {
+          "dailyQuotaGb": "[json('0.2')]"
+        }
+      }
+    },
+    {
+      "type": "Microsoft.KeyVault/vaults",
+      "apiVersion": "2023-07-01",
+      "name": "[variables('keyVaultName')]",
+      "location": "[parameters('location')]",
+      "properties": {
+        "tenantId": "[subscription().tenantId]",
+        "sku": {
+          "family": "A",
+          "name": "standard"
+        },
+        "enableRbacAuthorization": true,
+        "enableSoftDelete": true,
+        "softDeleteRetentionInDays": 7
+      }
+    },
+    {
+      "type": "Microsoft.Authorization/roleAssignments",
+      "apiVersion": "2022-04-01",
+      "scope": "[resourceId('Microsoft.KeyVault/vaults', variables('keyVaultName'))]",
+      "name": "[guid(resourceId('Microsoft.KeyVault/vaults', variables('keyVaultName')), resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', format('id-{0}', parameters('name'))), 'secrets-user')]",
+      "properties": {
+        "roleDefinitionId": "[variables('secretsUserRole')]",
+        "principalId": "[reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', format('id-{0}', parameters('name'))), '2023-01-31').principalId]",
+        "principalType": "ServicePrincipal"
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', format('id-{0}', parameters('name')))]",
+        "[resourceId('Microsoft.KeyVault/vaults', variables('keyVaultName'))]"
+      ]
+    },
+    {
+      "type": "Microsoft.Authorization/roleAssignments",
+      "apiVersion": "2022-04-01",
+      "scope": "[resourceId('Microsoft.KeyVault/vaults', variables('keyVaultName'))]",
+      "name": "[guid(resourceId('Microsoft.KeyVault/vaults', variables('keyVaultName')), parameters('adminObjectId'), 'secrets-officer')]",
+      "properties": {
+        "roleDefinitionId": "[variables('secretsOfficerRole')]",
+        "principalId": "[parameters('adminObjectId')]",
+        "principalType": "User"
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.KeyVault/vaults', variables('keyVaultName'))]"
+      ]
+    },
+    {
+      "type": "Microsoft.DBforPostgreSQL/flexibleServers",
+      "apiVersion": "2024-08-01",
+      "name": "[variables('postgresName')]",
+      "location": "[parameters('location')]",
+      "sku": {
+        "name": "Standard_B1ms",
+        "tier": "Burstable"
+      },
+      "properties": {
+        "version": "16",
+        "administratorLogin": "[parameters('postgresAdminLogin')]",
+        "administratorLoginPassword": "[parameters('postgresAdminPassword')]",
+        "storage": {
+          "storageSizeGB": 32,
+          "autoGrow": "Disabled"
+        },
+        "backup": {
+          "backupRetentionDays": 7,
+          "geoRedundantBackup": "Disabled"
+        },
+        "highAvailability": {
+          "mode": "Disabled"
+        },
+        "network": {
+          "publicNetworkAccess": "Enabled"
+        }
+      }
+    },
+    {
+      "type": "Microsoft.DBforPostgreSQL/flexibleServers/databases",
+      "apiVersion": "2024-08-01",
+      "name": "[format('{0}/{1}', variables('postgresName'), parameters('name'))]",
+      "properties": {
+        "charset": "UTF8",
+        "collation": "en_US.utf8"
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.DBforPostgreSQL/flexibleServers', variables('postgresName'))]"
+      ]
+    },
+    {
+      "type": "Microsoft.DBforPostgreSQL/flexibleServers/firewallRules",
+      "apiVersion": "2024-08-01",
+      "name": "[format('{0}/{1}', variables('postgresName'), 'AllowAzureServices')]",
+      "properties": {
+        "startIpAddress": "0.0.0.0",
+        "endIpAddress": "0.0.0.0"
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.DBforPostgreSQL/flexibleServers', variables('postgresName'))]"
+      ]
+    },
+    {
+      "type": "Microsoft.KeyVault/vaults/secrets",
+      "apiVersion": "2023-07-01",
+      "name": "[format('{0}/{1}', variables('keyVaultName'), 'db-connection')]",
+      "properties": {
+        "value": "[format('Host={0};Database={1};Username={2};Password={3};Ssl Mode=Require', reference(resourceId('Microsoft.DBforPostgreSQL/flexibleServers', variables('postgresName')), '2024-08-01').fullyQualifiedDomainName, parameters('name'), parameters('postgresAdminLogin'), parameters('postgresAdminPassword'))]"
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.KeyVault/vaults', variables('keyVaultName'))]",
+        "[resourceId('Microsoft.DBforPostgreSQL/flexibleServers', variables('postgresName'))]"
+      ]
+    },
+    {
+      "type": "Microsoft.App/managedEnvironments",
+      "apiVersion": "2024-03-01",
+      "name": "[format('cae-{0}', parameters('name'))]",
+      "location": "[parameters('location')]",
+      "properties": {
+        "appLogsConfiguration": {
+          "destination": "log-analytics",
+          "logAnalyticsConfiguration": {
+            "customerId": "[reference(resourceId('Microsoft.OperationalInsights/workspaces', format('log-{0}', parameters('name'))), '2023-09-01').customerId]",
+            "sharedKey": "[listKeys(resourceId('Microsoft.OperationalInsights/workspaces', format('log-{0}', parameters('name'))), '2023-09-01').primarySharedKey]"
+          }
+        }
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.OperationalInsights/workspaces', format('log-{0}', parameters('name')))]"
+      ]
+    },
+    {
+      "condition": "[parameters('deployApps')]",
+      "type": "Microsoft.App/containerApps",
+      "apiVersion": "2024-03-01",
+      "name": "[format('ca-{0}-api', parameters('name'))]",
+      "location": "[parameters('location')]",
+      "identity": {
+        "type": "UserAssigned",
+        "userAssignedIdentities": {
+          "[format('{0}', resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', format('id-{0}', parameters('name'))))]": {}
+        }
+      },
+      "properties": {
+        "managedEnvironmentId": "[resourceId('Microsoft.App/managedEnvironments', format('cae-{0}', parameters('name')))]",
+        "configuration": {
+          "ingress": {
+            "external": true,
+            "targetPort": 8080,
+            "transport": "auto",
+            "allowInsecure": false
+          },
+          "secrets": "[concat(createArray(createObject('name', 'db-connection', 'keyVaultUrl', format('{0}secrets/db-connection', reference(resourceId('Microsoft.KeyVault/vaults', variables('keyVaultName')), '2023-07-01').vaultUri), 'identity', resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', format('id-{0}', parameters('name')))), createObject('name', 'anthropic-api-key', 'keyVaultUrl', format('{0}secrets/anthropic-api-key', reference(resourceId('Microsoft.KeyVault/vaults', variables('keyVaultName')), '2023-07-01').vaultUri), 'identity', resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', format('id-{0}', parameters('name'))))), concat(if(empty(parameters('googleClientId')), createArray(), createArray(createObject('name', 'google-client-secret', 'keyVaultUrl', format('{0}secrets/google-client-secret', reference(resourceId('Microsoft.KeyVault/vaults', variables('keyVaultName')), '2023-07-01').vaultUri), 'identity', resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', format('id-{0}', parameters('name')))))), if(empty(parameters('microsoftClientId')), createArray(), createArray(createObject('name', 'microsoft-client-secret', 'keyVaultUrl', format('{0}secrets/microsoft-client-secret', reference(resourceId('Microsoft.KeyVault/vaults', variables('keyVaultName')), '2023-07-01').vaultUri), 'identity', resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', format('id-{0}', parameters('name'))))))))]"
+        },
+        "template": {
+          "containers": [
+            {
+              "name": "api",
+              "image": "[parameters('image')]",
+              "resources": {
+                "cpu": "[json('0.5')]",
+                "memory": "1Gi"
+              },
+              "env": "[concat(variables('commonEnv'), variables('authEnv'))]",
+              "probes": [
+                {
+                  "type": "Liveness",
+                  "httpGet": {
+                    "path": "/health",
+                    "port": 8080
+                  },
+                  "initialDelaySeconds": 20,
+                  "periodSeconds": 30
+                },
+                {
+                  "type": "Readiness",
+                  "httpGet": {
+                    "path": "/health",
+                    "port": 8080
+                  },
+                  "initialDelaySeconds": 10,
+                  "periodSeconds": 15
+                }
+              ]
+            }
+          ],
+          "scale": {
+            "minReplicas": 1,
+            "maxReplicas": 1
+          }
+        }
+      },
+      "dependsOn": [
+        "[extensionResourceId(resourceId('Microsoft.KeyVault/vaults', variables('keyVaultName')), 'Microsoft.Authorization/roleAssignments', guid(resourceId('Microsoft.KeyVault/vaults', variables('keyVaultName')), resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', format('id-{0}', parameters('name'))), 'secrets-user'))]",
+        "[resourceId('Microsoft.App/managedEnvironments', format('cae-{0}', parameters('name')))]",
+        "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', format('id-{0}', parameters('name')))]",
+        "[resourceId('Microsoft.KeyVault/vaults', variables('keyVaultName'))]"
+      ]
+    },
+    {
+      "condition": "[parameters('deployApps')]",
+      "type": "Microsoft.App/jobs",
+      "apiVersion": "2024-03-01",
+      "name": "[format('caj-{0}-daily', parameters('name'))]",
+      "location": "[parameters('location')]",
+      "identity": {
+        "type": "UserAssigned",
+        "userAssignedIdentities": {
+          "[format('{0}', resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', format('id-{0}', parameters('name'))))]": {}
+        }
+      },
+      "properties": {
+        "environmentId": "[resourceId('Microsoft.App/managedEnvironments', format('cae-{0}', parameters('name')))]",
+        "configuration": {
+          "triggerType": "Schedule",
+          "scheduleTriggerConfig": {
+            "cronExpression": "[parameters('morningCron')]",
+            "parallelism": 1,
+            "replicaCompletionCount": 1
+          },
+          "replicaTimeout": 3600,
+          "replicaRetryLimit": 0,
+          "secrets": [
+            {
+              "name": "db-connection",
+              "keyVaultUrl": "[format('{0}secrets/db-connection', reference(resourceId('Microsoft.KeyVault/vaults', variables('keyVaultName')), '2023-07-01').vaultUri)]",
+              "identity": "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', format('id-{0}', parameters('name')))]"
+            },
+            {
+              "name": "anthropic-api-key",
+              "keyVaultUrl": "[format('{0}secrets/anthropic-api-key', reference(resourceId('Microsoft.KeyVault/vaults', variables('keyVaultName')), '2023-07-01').vaultUri)]",
+              "identity": "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', format('id-{0}', parameters('name')))]"
+            }
+          ]
+        },
+        "template": {
+          "containers": [
+            {
+              "name": "daily",
+              "image": "[parameters('image')]",
+              "command": [
+                "dotnet"
+              ],
+              "args": [
+                "/app/worker/JobScout.Worker.dll",
+                "--contentRoot",
+                "/app/worker",
+                "--Scout:Mode=daily"
+              ],
+              "resources": {
+                "cpu": "[json('1.0')]",
+                "memory": "2Gi"
+              },
+              "env": "[concat(variables('commonEnv'), createArray(createObject('name', 'Scout__ReportDir', 'value', '/tmp/reports')))]"
+            }
+          ]
+        }
+      },
+      "dependsOn": [
+        "[extensionResourceId(resourceId('Microsoft.KeyVault/vaults', variables('keyVaultName')), 'Microsoft.Authorization/roleAssignments', guid(resourceId('Microsoft.KeyVault/vaults', variables('keyVaultName')), resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', format('id-{0}', parameters('name'))), 'secrets-user'))]",
+        "[resourceId('Microsoft.App/managedEnvironments', format('cae-{0}', parameters('name')))]",
+        "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', format('id-{0}', parameters('name')))]",
+        "[resourceId('Microsoft.KeyVault/vaults', variables('keyVaultName'))]"
+      ]
+    }
+  ],
+  "outputs": {
+    "keyVaultName": {
+      "type": "string",
+      "value": "[variables('keyVaultName')]"
+    },
+    "postgresHost": {
+      "type": "string",
+      "value": "[reference(resourceId('Microsoft.DBforPostgreSQL/flexibleServers', variables('postgresName')), '2024-08-01').fullyQualifiedDomainName]"
+    },
+    "apiUrl": {
+      "type": "string",
+      "value": "[if(parameters('deployApps'), format('https://{0}', reference(resourceId('Microsoft.App/containerApps', format('ca-{0}-api', parameters('name'))), '2024-03-01').configuration.ingress.fqdn), '')]"
+    },
+    "environmentDomain": {
+      "type": "string",
+      "value": "[reference(resourceId('Microsoft.App/managedEnvironments', format('cae-{0}', parameters('name'))), '2024-03-01').defaultDomain]"
+    },
+    "environmentStaticIp": {
+      "type": "string",
+      "value": "[reference(resourceId('Microsoft.App/managedEnvironments', format('cae-{0}', parameters('name'))), '2024-03-01').staticIp]"
+    }
+  }
+}

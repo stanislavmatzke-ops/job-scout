@@ -123,5 +123,14 @@ public static class AuthSetup
         o.MapInboundClaims = false;                         // keep "sub", "email", "name" as the provider sent them
         o.SaveTokens = false;                               // BFF: we never call the provider's APIs
         o.Events.OnTicketReceived = ctx => ExternalSignIn.CompleteAsync(ctx, scheme);
+        // Anything that breaks the round trip (the user pressed Cancel, an old /signin-… link, an expired attempt)
+        // ends on the login page with a message – not a raw 500
+        o.Events.OnRemoteFailure = ctx =>
+        {
+            var cancelled = ctx.Request.Query["error"] == "access_denied";
+            ctx.Response.Redirect($"/login?error={(cancelled ? "cancelled" : "signin-failed")}");
+            ctx.HandleResponse();
+            return Task.CompletedTask;
+        };
     }
 }

@@ -41,6 +41,8 @@ export const cs = {
     errors: {
       'invitation-invalid': 'Pozvánka je neplatná, již byla použita, nebo vypršela její platnost.',
       'no-identity': 'Přihlášení se nezdařilo – poskytovatel nevrátil údaje o účtu. Zkuste to prosím znovu.',
+      'cancelled': 'Přihlášení bylo zrušeno.',
+      'signin-failed': 'Přihlášení se nezdařilo. Zkuste to prosím znovu.',
     } as Record<string, string>,
   },
 
