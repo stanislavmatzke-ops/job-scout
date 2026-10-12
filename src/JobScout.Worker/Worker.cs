@@ -1,5 +1,6 @@
 using JobScout.Application.Evaluation;
 using JobScout.Application.Llm;
+using JobScout.Application.Notifications;
 using JobScout.Application.Profiles;
 using System.Diagnostics;
 using JobScout.Application.Reports;
@@ -103,6 +104,10 @@ public class Worker(
                     result.Evaluation.Evaluated.Count, result.Letters.Letters.Count, result.Cost.TotalUsd),
                 ct);
             WriteReport(report);
+
+            // The morning e-mail (7f) – only real users with a mailbox who didn't turn it off, only when something is new
+            if (await services.GetRequiredService<Notifier>().MorningAsync(analyzed.User, report, ct))
+                logger.LogInformation("Ranní e-mail odeslán");
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {

@@ -8,8 +8,8 @@ internal static class CoverLetterPrompts
                                  hodnocení shody v <hodnoceni>, inzerát v <nabidka>.
 
                                  Pravidla:
-                                 - Jazyk dopisu = jazyk inzerátu v <nabidka>. Inzerát psaný anglicky → celý dopis anglicky
-                                   (profil a hodnocení jsou česky – přelož, co použiješ); jakýkoli jiný jazyk → česky.
+                                 - Jazyk dopisu určuje <jazyk_dopisu> (podle jazyka inzerátu): „angličtina“ → celý dopis anglicky
+                                   (profil a hodnocení můžou být česky – přelož, co použiješ); „čeština“ → česky.
                                  - Spisovně, zdvořile a věcně. Bez klišé („jsem týmový hráč“, „s velkým zájmem jsem si přečetl“,
                                    „I am a team player“, „I am excited to apply“).
                                  - 120–220 slov ve 3–4 krátkých odstavcích. Česky: začni „Dobrý den,“, zakonči „S pozdravem“

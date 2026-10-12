@@ -94,7 +94,9 @@ public static class AuthSetup
                 .Build())
             .AddPolicy(Policies.SignedIn, p => p.RequireAuthenticatedUser())
             .AddPolicy(Policies.Active, p => p.RequireAuthenticatedUser()
-                .AddRequirements(new AccessRequirement(AccessStatus.Approved)))
+                .AddRequirements(new AccessRequirement(AccessStatus.Approved) { DenyDemo = true }))
+            .AddPolicy(Policies.Editor, p => p.RequireAuthenticatedUser()
+                .AddRequirements(new AccessRequirement(AccessStatus.Approved, AccessStatus.Suspended) { DenyDemo = true }))
             .AddPolicy(Policies.Admin, p => p.RequireAuthenticatedUser().AddRequirements(new AdminRequirement()));
 
         return services;

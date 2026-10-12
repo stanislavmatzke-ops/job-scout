@@ -39,6 +39,10 @@ export class ProfileService {
     return firstValueFrom(this.http.put<ProfileView>('/api/profile/notes', { notes }));
   }
 
+  updateMorningEmail(on: boolean): Promise<void> {
+    return firstValueFrom(this.http.put<void>('/api/profile/settings', { morningEmail: on }));
+  }
+
   updateGender(gender: GrammaticalGender): Promise<void> {
     return firstValueFrom(this.http.put<void>('/api/profile/settings', { gender }));
   }

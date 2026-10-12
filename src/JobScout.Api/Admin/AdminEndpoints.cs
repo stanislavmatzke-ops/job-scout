@@ -47,6 +47,24 @@ public static class AdminEndpoints
             return Results.Ok(await create.ExecuteAsync(note, ct));
         });
 
+        admin.MapPost("/users/{id:guid}/reject", async (Guid id, SuspendRequest body, RejectUser reject, CancellationToken ct) =>
+        {
+            try
+            {
+                return await reject.ExecuteAsync(id, body.Reason, ct) switch
+                {
+                    RejectResult.Rejected => Results.NoContent(),
+                    RejectResult.NotPending => Results.Problem("Uživatel už přístup má – lze ho jen pozastavit.",
+                        statusCode: StatusCodes.Status409Conflict),
+                    _ => Results.NotFound(),
+                };
+            }
+            catch (ArgumentException ex)
+            {
+                return Results.Problem(ex.Message, statusCode: StatusCodes.Status400BadRequest);
+            }
+        });
+
         return app;
     }
 

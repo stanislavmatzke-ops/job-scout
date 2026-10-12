@@ -45,6 +45,15 @@ param customDomain string = ''
 @description('Name of the managed certificate for customDomain in the environment (created once by "az containerapp hostname bind" – infra/README.md).')
 param customDomainCertificate string = ''
 
+@description('E-mail domain (Azure Communication Services, 7f) – the sender is jobscout@<emailDomain>.')
+param emailDomain string = 'stanislavmatzke.com'
+
+@description('The e-mail domain is verified (its DNS records are in Cloudflare – infra/README.md): link it and turn e-mails on.')
+param emailDomainVerified bool = false
+
+@description('Who gets the "new access request" e-mails.')
+param adminEmail string = ''
+
 @description('Morning run, cron in UTC. 30 5 * * * = 6:30 in winter (CET), 7:30 in summer (CEST).')
 param morningCron string = '30 5 * * *'
 
@@ -135,6 +144,42 @@ resource dbSecret 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = {
   }
 }
 
+// ---------- E-mail: Azure Communication Services (7f) ----------
+// The domain needs DNS records (verification, SPF, DKIM) before it can send – see the output emailDnsRecords.
+resource emailService 'Microsoft.Communication/emailServices@2023-04-01' = {
+  name: 'ecs-${name}'
+  location: 'global'
+  properties: { dataLocation: 'Europe' }
+}
+
+resource emailDomainResource 'Microsoft.Communication/emailServices/domains@2023-04-01' = {
+  parent: emailService
+  name: emailDomain
+  location: 'global'
+  properties: { domainManagement: 'CustomerManaged', userEngagementTracking: 'Disabled' }
+}
+
+resource emailSender 'Microsoft.Communication/emailServices/domains/senderUsernames@2023-04-01' = {
+  parent: emailDomainResource
+  name: 'jobscout'
+  properties: { username: 'jobscout', displayName: 'Job Scout' }
+}
+
+resource communication 'Microsoft.Communication/communicationServices@2023-04-01' = {
+  name: 'acs-${name}-${take(suffix, 6)}'
+  location: 'global'
+  properties: {
+    dataLocation: 'Europe'
+    linkedDomains: emailDomainVerified ? [emailDomainResource.id] : []     // only a verified domain can be linked
+  }
+}
+
+resource emailSecret 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = {
+  parent: keyVault
+  name: 'email-connection'
+  properties: { value: communication.listKeys().primaryConnectionString }
+}
+
 // ---------- Container Apps ----------
 resource environment 'Microsoft.App/managedEnvironments@2024-03-01' = {
   name: 'cae-${name}'
@@ -159,6 +204,17 @@ var commonSecrets = [
 var authSecrets = concat(
   empty(googleClientId) ? [] : [{ name: 'google-client-secret', keyVaultUrl: '${kvUri}secrets/google-client-secret', identity: identity.id }],
   empty(microsoftClientId) ? [] : [{ name: 'microsoft-client-secret', keyVaultUrl: '${kvUri}secrets/microsoft-client-secret', identity: identity.id }])
+
+var emailSecrets = emailDomainVerified
+  ? [{ name: 'email-connection', keyVaultUrl: '${kvUri}secrets/email-connection', identity: identity.id }]
+  : []
+var emailEnv = concat(
+  emailDomainVerified ? [
+    { name: 'Email__ConnectionString', secretRef: 'email-connection' }
+    { name: 'Email__From', value: 'jobscout@${emailDomain}' }
+  ] : [],
+  empty(customDomain) ? [] : [{ name: 'Email__AppUrl', value: 'https://${customDomain}' }],
+  empty(adminEmail) ? [] : [{ name: 'Email__AdminAddresses__0', value: adminEmail }])
 
 var commonEnv = [
   { name: 'DOTNET_ENVIRONMENT', value: 'Production' }
@@ -201,7 +257,7 @@ resource api 'Microsoft.App/containerApps@2024-03-01' = if (deployApps) {
           }
         ]
       }
-      secrets: concat(commonSecrets, authSecrets)
+      secrets: concat(commonSecrets, authSecrets, emailSecrets)
     }
     template: {
       containers: [
@@ -209,7 +265,9 @@ resource api 'Microsoft.App/containerApps@2024-03-01' = if (deployApps) {
           name: 'api'
           image: image
           resources: { cpu: json('0.5'), memory: '1Gi' }
-          env: concat(commonEnv, authEnv)
+          env: concat(commonEnv, authEnv, emailEnv, [
+            { name: 'Demo__Enabled', value: 'true' }        // "Try it without signing up" (ADR-0020)
+          ])
           probes: [
             { type: 'Liveness', httpGet: { path: '/health', port: 8080 }, initialDelaySeconds: 20, periodSeconds: 30 }
             { type: 'Readiness', httpGet: { path: '/health', port: 8080 }, initialDelaySeconds: 10, periodSeconds: 15 }
@@ -234,7 +292,7 @@ resource morningJob 'Microsoft.App/jobs@2024-03-01' = if (deployApps) {
       scheduleTriggerConfig: { cronExpression: morningCron, parallelism: 1, replicaCompletionCount: 1 }
       replicaTimeout: 3600          // an hour is plenty; a stuck run doesn't burn money all day
       replicaRetryLimit: 0          // a failed morning is logged and tried again tomorrow (the window covers 3 days)
-      secrets: commonSecrets
+      secrets: concat(commonSecrets, emailSecrets)
     }
     template: {
       containers: [
@@ -244,7 +302,7 @@ resource morningJob 'Microsoft.App/jobs@2024-03-01' = if (deployApps) {
           command: ['dotnet']
           args: ['/app/worker/JobScout.Worker.dll', '--contentRoot', '/app/worker', '--Scout:Mode=daily']
           resources: { cpu: json('1.0'), memory: '2Gi' }
-          env: concat(commonEnv, [
+          env: concat(commonEnv, emailEnv, [
             { name: 'Scout__ReportDir', value: '/tmp/reports' }     // the image is read-only for the app user
           ])
         }
@@ -259,3 +317,4 @@ output postgresHost string = postgres.properties.fullyQualifiedDomainName
 output apiUrl string = deployApps ? 'https://${api!.properties.configuration.ingress.fqdn}' : ''
 output environmentDomain string = environment.properties.defaultDomain
 output environmentStaticIp string = environment.properties.staticIp
+output emailDnsRecords object = emailDomainResource.properties.verificationRecords

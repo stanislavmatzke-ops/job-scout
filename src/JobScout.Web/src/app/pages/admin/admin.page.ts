@@ -48,7 +48,7 @@ import { lang, t } from '../../core/i18n';
             @else { <p class="muted">{{ t().admin.noMessage }}</p> }
           </mat-card-content>
           <mat-card-actions align="end">
-            <button mat-button [disabled]="busy()" (click)="suspend(u)">{{ t().admin.reject }}</button>
+            <button mat-button [disabled]="busy()" (click)="reject(u)">{{ t().admin.reject }}</button>
             <button mat-flat-button [disabled]="busy()" (click)="approve(u)">{{ t().admin.approve }}</button>
           </mat-card-actions>
         </mat-card>
@@ -80,6 +80,9 @@ import { lang, t } from '../../core/i18n';
                 · {{ u.hasProfile ? t().admin.hasProfile : t().admin.noProfile }}
               </div>
               @if (u.suspendedReason) { <div class="reason">{{ t().admin.reason(u.suspendedReason) }}</div> }
+              @if (u.access === 'Pending' && u.rejectedAt) {
+                <div class="reason">{{ t().admin.rejected((u.rejectedAt | date: t().fmt.date : undefined : lang()) ?? '') }}@if (u.rejectedReason) {<span> – {{ u.rejectedReason }}</span>}</div>
+              }
             </div>
             <div class="cost" [title]="t().admin.costTitle">
               <span>7 d: {{ usd(u.costLast7DaysUsd) }}</span>
@@ -149,6 +152,15 @@ import { lang, t } from '../../core/i18n';
           @if (!loading()) { <p class="muted">{{ t().admin.noInvitations }}</p> }
         }
       </div>
+    </section>
+
+    <!-- ───── demo account (ADR-0020) ───── -->
+    <section>
+      <h2>{{ t().admin.demo }}</h2>
+      <p class="muted">{{ t().admin.demoHelp }}</p>
+      <button mat-stroked-button [disabled]="busy()" (click)="prepareDemo()">
+        <mat-icon>science</mat-icon> {{ t().admin.demoPrepare }}
+      </button>
     </section>
   `,
   styles: `
@@ -237,6 +249,28 @@ export class AdminPage {
     });
     const reason = await firstValueFrom(ref.afterClosed());
     if (reason) await this.act(() => this.admin.suspend(u.id, reason), t().admin.suspended(u.displayName));
+  }
+
+  protected async reject(u: AdminUser): Promise<void> {
+    const ref = this.dialog.open<SuspendDialog, SuspendData, string | null>(SuspendDialog, {
+      data: { displayName: u.displayName, mode: 'reject' }, width: '520px',
+    });
+    const reason = await firstValueFrom(ref.afterClosed());
+    if (reason) await this.act(() => this.admin.reject(u.id, reason), t().admin.rejectedDone(u.displayName));
+  }
+
+  protected async prepareDemo(): Promise<void> {
+    this.busy.set(true);
+    this.error.set(null);
+    try {
+      await this.admin.prepareDemo();
+      this.toast(t().admin.demoPrepared);
+      await this.reload();
+    } catch (e) {
+      this.error.set(problemMessage(e, t().admin.demoFailed));
+    } finally {
+      this.busy.set(false);
+    }
   }
 
   protected async createInvitation(): Promise<void> {

@@ -43,6 +43,16 @@ export class AdminService {
     return firstValueFrom(this.http.post<void>(`/api/admin/users/${id}/suspend`, { reason }));
   }
 
+  /** "No" to an access request – the user stays outside, sees the reason, may ask again. */
+  reject(id: string, reason: string): Promise<void> {
+    return firstValueFrom(this.http.post<void>(`/api/admin/users/${id}/reject`, { reason }));
+  }
+
+  /** Demo account (ADR-0020): fictional user + CV + first search – one AI analysis. */
+  prepareDemo(): Promise<void> {
+    return firstValueFrom(this.http.post<void>('/api/admin/demo/prepare', null));
+  }
+
   invitations(): Promise<Invitation[]> {
     return firstValueFrom(this.http.get<Invitation[]>('/api/admin/invitations'));
   }

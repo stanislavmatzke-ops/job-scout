@@ -17,6 +17,7 @@ internal sealed class UserConfiguration : IEntityTypeConfiguration<User>
         b.Property(u => u.DisplayName).HasMaxLength(200);
         b.Property(u => u.AccessRequestMessage).HasMaxLength(User.MaxRequestMessageLength);
         b.Property(u => u.SuspendedReason).HasMaxLength(User.MaxSuspendReasonLength);
+        b.Property(u => u.RejectedReason).HasMaxLength(User.MaxSuspendReasonLength);
 
         // Identity = provider + subject; this is how we find the user on every sign-in
         b.HasIndex(u => new { u.Provider, u.Subject }).IsUnique();

@@ -14,8 +14,13 @@ public static partial class AuthEndpoints
         var auth = app.MapGroup("/api/auth");
 
         // The login page asks which buttons to show
-        auth.MapGet("/providers", (AuthSetup.ExternalProviders providers, DevSignInOptions dev) =>
-            Results.Ok(new { external = providers.Schemes, devSignIn = dev.Enabled }));
+        auth.MapGet("/providers", (AuthSetup.ExternalProviders providers, DevSignInOptions dev, Demo.DemoOptions demo) =>
+            Results.Ok(new
+            {
+                external = providers.Schemes,
+                devSignIn = dev.Enabled,
+                demo = demo.Enabled ? Application.Demo.DemoAccount.DisplayName : null,   // the "try it" button
+            }));
 
         // Start of the round trip: redirect to Microsoft/Google; the invitation code travels in the protected state
         auth.MapGet("/login/{provider}", (string provider, string? returnUrl, string? invite, AuthSetup.ExternalProviders providers) =>

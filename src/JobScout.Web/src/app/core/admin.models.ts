@@ -15,6 +15,8 @@ export interface AdminUser {
   hasProfile: boolean;
   costLast7DaysUsd: number;
   costLast30DaysUsd: number;
+  rejectedAt?: string | null;
+  rejectedReason?: string | null;
 }
 
 export interface Invitation {

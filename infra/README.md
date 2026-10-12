@@ -54,6 +54,30 @@ az containerapp hostname bind -g rg-jobscout -n ca-jobscout-api --hostname jobsc
 $env:JOBSCOUT_DOMAIN_CERT = az containerapp env certificate list -g rg-jobscout -n cae-jobscout --managed-certificates-only --query "[0].name" -o tsv
 ```
 
+## Deploy a new version (after the first setup)
+
+```powershell
+./infra/deploy.ps1                    # newest image from main (needs the GitHub CLI: winget install GitHub.cli; gh auth login)
+./infra/deploy.ps1 -Tag sha-1a2b3c4   # or an exact one
+```
+
+## E-mails (7f, once)
+
+```powershell
+az provider register --namespace Microsoft.Communication
+./infra/deploy.ps1 -Base                                   # creates the e-mail service + the domain (unverified)
+az deployment group show -g rg-jobscout -n base --query properties.outputs.emailDnsRecords.value -o json
+# Add the records to Cloudflare (DNS only): Domain (TXT @), SPF (TXT @), DKIM + DKIM2 (CNAME selector1-…/selector2-…)
+az communication email domain initiate-verification -g rg-jobscout --email-service-name ecs-jobscout --domain-name stanislavmatzke.com --verification-type Domain
+az communication email domain initiate-verification -g rg-jobscout --email-service-name ecs-jobscout --domain-name stanislavmatzke.com --verification-type SPF
+az communication email domain initiate-verification -g rg-jobscout --email-service-name ecs-jobscout --domain-name stanislavmatzke.com --verification-type DKIM
+az communication email domain initiate-verification -g rg-jobscout --email-service-name ecs-jobscout --domain-name stanislavmatzke.com --verification-type DKIM2
+az communication email domain show -g rg-jobscout --email-service-name ecs-jobscout -n stanislavmatzke.com --query verificationStates -o json
+# All four "Verified" → JOBSCOUT_EMAIL_VERIFIED = 'true' in local.env.ps1, then:
+./infra/deploy.ps1 -Base
+./infra/deploy.ps1
+```
+
 ## Operate
 
 ```powershell

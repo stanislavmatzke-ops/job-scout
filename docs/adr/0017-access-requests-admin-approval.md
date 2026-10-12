@@ -36,3 +36,8 @@
   what the policy allows.
 - The Worker runs only for Approved users with a profile.
 - Approval e-mail needs an e-mail service (Azure Communication Services or similar) – phase 7.
+
+## Update 2026-10-12 – rejecting a request
+"Reject" used to be a suspension – and a suspended user is a member (reads their data), so a rejected applicant
+got *into* the app. Now **Reject** is its own action: the user stays `Pending` (nothing opens), sees the reason
+(`RejectedAt`, `RejectedReason`) and may ask again – a new request clears the old answer. Suspend stays for members.

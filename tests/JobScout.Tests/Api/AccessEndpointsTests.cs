@@ -226,4 +226,37 @@ public sealed class AccessEndpointsTests : IDisposable
             (await normal.PostAsJsonAsync("/api/admin/invitations", new { note = "kamarád" })).StatusCode);
         Assert.Equal(HttpStatusCode.Forbidden, (await normal.GetAsync("/api/admin/invitations")).StatusCode);
     }
+
+    // ---------- reject (12 Oct): "no" keeps the user outside, they may ask again ----------
+
+    private sealed record MeRejected(string Access, string? RejectedReason, DateTimeOffset? AccessRequestedAt);
+
+    [Fact]
+    public async Task Rejected_user_stays_outside_sees_the_reason_and_may_ask_again()
+    {
+        var (pete, peteId) = await SignInAsAsync("pete", AccessStatus.Pending);
+        await pete.PostAsJsonAsync("/api/access/request", new { message = "Prosím." });
+        var admin = await AdminAsync();
+
+        var reject = await admin.PostAsJsonAsync($"/api/admin/users/{peteId}/reject", new { reason = "Teď nepřijímáme." });
+
+        Assert.Equal(HttpStatusCode.NoContent, reject.StatusCode);
+        var me = await pete.GetFromJsonAsync<MeRejected>("/api/me");
+        Assert.Equal(("Pending", "Teď nepřijímáme.", (DateTimeOffset?)null), (me!.Access, me.RejectedReason, me.AccessRequestedAt));
+        Assert.Equal(HttpStatusCode.Forbidden, (await pete.GetAsync("/api/matches")).StatusCode);
+
+        Assert.Equal(HttpStatusCode.NoContent,
+            (await pete.PostAsJsonAsync("/api/access/request", new { message = "Znovu." })).StatusCode);
+    }
+
+    [Fact]
+    public async Task A_member_cannot_be_rejected()
+    {
+        var (_, peteId) = await SignInAsAsync("pete", AccessStatus.Approved);
+        var admin = await AdminAsync();
+
+        var reject = await admin.PostAsJsonAsync($"/api/admin/users/{peteId}/reject", new { reason = "Ne." });
+
+        Assert.Equal(HttpStatusCode.Conflict, reject.StatusCode);
+    }
 }

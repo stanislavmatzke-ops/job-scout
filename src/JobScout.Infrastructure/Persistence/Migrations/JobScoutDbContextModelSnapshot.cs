@@ -400,9 +400,19 @@ namespace JobScout.Infrastructure.Persistence.Migrations
                     b.Property<long?>("LastSignInAt")
                         .HasColumnType("INTEGER");
 
+                    b.Property<bool>("MorningEmailOff")
+                        .HasColumnType("INTEGER");
+
                     b.Property<string>("Provider")
                         .IsRequired()
                         .HasMaxLength(20)
+                        .HasColumnType("TEXT");
+
+                    b.Property<long?>("RejectedAt")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("RejectedReason")
+                        .HasMaxLength(500)
                         .HasColumnType("TEXT");
 
                     b.Property<string>("Subject")

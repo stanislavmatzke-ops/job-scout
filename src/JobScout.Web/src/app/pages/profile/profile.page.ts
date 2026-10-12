@@ -8,10 +8,12 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatRadioModule } from '@angular/material/radio';
+import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatChipsModule } from '@angular/material/chips';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { AuthService } from '../../core/auth.service';
+import { ScoutService, ScoutStatus } from '../../core/scout.service';
 import { ProfileService, cvProblem } from '../../core/profile.service';
 import { GrammaticalGender, ProfileView, Seniority } from '../../core/profile.models';
 import { aiErrorMessage, employmentLabel, problemMessage, remoteLabel } from '../../core/match-format';
@@ -24,7 +26,7 @@ type Work = 'cv' | 'notes';
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     DatePipe, DecimalPipe, RouterLink, FormsModule, MatCardModule, MatButtonModule, MatIconModule, MatFormFieldModule,
-    MatInputModule, MatRadioModule, MatChipsModule, MatProgressBarModule,
+    MatInputModule, MatRadioModule, MatChipsModule, MatProgressBarModule, MatSlideToggleModule,
   ],
   template: `
     <header class="page-head">
@@ -35,8 +37,20 @@ type Work = 'cv' | 'notes';
     @if (loadError()) { <p class="error">{{ t().profile.loadFailed }}</p> }
 
     @if (view(); as v) {
-      @if (!aiEnabled()) {
+      @if (!aiEnabled() && !isDemo()) {
         <p class="ai-off">{{ t().profile.aiOff }}</p>
+      }
+
+      @if (canStartFirstSearch()) {
+        <div class="start-card" role="region" [attr.aria-label]="t().profile.startTitle2">
+          <div>
+            <h2>{{ t().profile.startTitle2 }}</h2>
+            <p>{{ t().profile.startText2 }}</p>
+          </div>
+          <button mat-flat-button (click)="startFirstSearch()" [disabled]="!aiEnabled() || starting() || working() !== null">
+            <mat-icon>travel_explore</mat-icon> {{ t().profile.startButton }}
+          </button>
+        </div>
       }
 
       @if (firstSearch()) {
@@ -116,11 +130,22 @@ type Work = 'cv' | 'notes';
             <mat-card-header><mat-card-title>{{ t().profile.genderTitle }}</mat-card-title></mat-card-header>
             <mat-card-content>
               <p class="muted small">{{ t().profile.genderHelp }}</p>
-              <mat-radio-group class="radios" [ngModel]="v.gender" (ngModelChange)="saveGender($event)" name="gender">
+              <mat-radio-group class="radios" [ngModel]="v.gender" (ngModelChange)="saveGender($event)" name="gender" [disabled]="isDemo()">
                 <mat-radio-button value="Masculine">{{ t().profile.masculine }}</mat-radio-button>
                 <mat-radio-button value="Feminine">{{ t().profile.feminine }}</mat-radio-button>
                 <mat-radio-button value="Unspecified">{{ t().profile.unspecified }}</mat-radio-button>
               </mat-radio-group>
+            </mat-card-content>
+          </mat-card>
+
+          <!-- ===== E-mails (7f) ===== -->
+          <mat-card appearance="outlined">
+            <mat-card-header><mat-card-title>{{ t().profile.emailTitle }}</mat-card-title></mat-card-header>
+            <mat-card-content>
+              <mat-slide-toggle [checked]="v.morningEmail ?? true" (change)="saveMorningEmail($event.checked)" [disabled]="isDemo()">
+                {{ t().profile.morningEmail }}
+              </mat-slide-toggle>
+              <p class="muted small">{{ t().profile.morningEmailHelp }}</p>
             </mat-card-content>
           </mat-card>
         </section>
@@ -202,6 +227,14 @@ type Work = 'cv' | 'notes';
     .facts dd { margin: 0; }
     .plain { margin: 0; padding-left: 20px; }
     .radios { display: flex; flex-direction: column; gap: 4px; }
+    .start-card {
+      display: flex; flex-wrap: wrap; align-items: center; gap: 12px 24px; padding: 16px 20px; margin: 0 0 16px;
+      border-radius: var(--js-radius); background: var(--js-surface); border: 1px solid var(--js-border);
+      box-shadow: inset 3px 0 0 var(--js-primary);
+    }
+    .start-card > div { flex: 1 1 320px; }
+    .start-card h2 { margin: 0 0 4px; font-size: 1.1rem; font-weight: 600; }
+    .start-card p { margin: 0; color: var(--js-muted); }
     @media (max-width: 900px) { .grid { grid-template-columns: 1fr; } }
   `,
 })
@@ -209,6 +242,7 @@ export class ProfilePage implements OnInit {
   private readonly profiles = inject(ProfileService);
   private readonly auth = inject(AuthService);
   private readonly snackBar = inject(MatSnackBar);
+  private readonly scout = inject(ScoutService);
 
   protected readonly view = signal<ProfileView | null>(null);
   protected readonly loadError = signal(false);
@@ -216,7 +250,15 @@ export class ProfilePage implements OnInit {
   protected readonly fileError = signal<string | null>(null);
   /** The very first profile was just created → the server started the first search (6h). */
   protected readonly firstSearch = signal(false);
-  protected readonly aiEnabled = computed(() => this.auth.me()?.access === 'Approved');
+  protected readonly scoutStatus = signal<ScoutStatus | null>(null);
+  protected readonly starting = signal(false);
+  /** A profile, never searched, nothing running → the user starts the first search (after the notes). */
+  protected readonly canStartFirstSearch = computed(() => {
+    const s = this.scoutStatus();
+    return !!this.view()?.version && !!s && !s.searching && !s.lastSearchAt && !this.firstSearch() && !this.isDemo();
+  });
+  protected readonly aiEnabled = computed(() => this.auth.me()?.access === 'Approved' && !this.auth.me()?.isDemo);
+  protected readonly isDemo = computed(() => !!this.auth.me()?.isDemo);
 
   protected notes = '';
 
@@ -231,6 +273,30 @@ export class ProfilePage implements OnInit {
       this.show(await this.profiles.get());
     } catch {
       this.loadError.set(true);
+      return;
+    }
+    await this.loadScoutStatus();
+  }
+
+  /** The first search runs only when the user says so – the notes are usually written after the CV. */
+  protected async startFirstSearch(): Promise<void> {
+    this.starting.set(true);
+    try {
+      await this.scout.startFirst();
+      this.firstSearch.set(true);
+    } catch (error) {
+      this.toast(problemMessage(error, t().profile.startFailed), 6000);
+      await this.loadScoutStatus();
+    } finally {
+      this.starting.set(false);
+    }
+  }
+
+  private async loadScoutStatus(): Promise<void> {
+    try {
+      this.scoutStatus.set(await this.scout.status());
+    } catch {
+      this.scoutStatus.set(null);                         // only a hint – the page works without it
     }
   }
 
@@ -248,6 +314,16 @@ export class ProfilePage implements OnInit {
 
   protected async saveNotes(): Promise<void> {
     await this.analyze('notes', () => this.profiles.updateNotes(this.notes.trim() || null));
+  }
+
+  protected async saveMorningEmail(on: boolean): Promise<void> {
+    try {
+      await this.profiles.updateMorningEmail(on);
+      this.view.update(v => (v ? { ...v, morningEmail: on } : v));
+      this.toast(t().profile.settingsSaved);
+    } catch (error) {
+      this.toast(problemMessage(error, t().profile.settingsFailed));
+    }
   }
 
   protected async saveGender(gender: GrammaticalGender): Promise<void> {
@@ -268,7 +344,7 @@ export class ProfilePage implements OnInit {
     try {
       const after = await call();
       this.show(after);
-      if (before === null && after.version !== null) this.firstSearch.set(true);
+      if (before === null && after.version !== null) await this.loadScoutStatus();   // the first profile → offer the first search
       this.toast(after.version === before
         ? t().profile.unchanged
         : t().profile.evaluated);

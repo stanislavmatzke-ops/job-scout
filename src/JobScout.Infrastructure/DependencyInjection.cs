@@ -3,13 +3,17 @@ using JobScout.Application.Abstractions;
 using JobScout.Application.Jobs;
 using JobScout.Core.Jobs;
 using JobScout.Application.Llm;
+using Azure.Communication.Email;
+using JobScout.Application.Notifications;
 using JobScout.Infrastructure.Browser;
+using JobScout.Infrastructure.Email;
 using JobScout.Infrastructure.Claude;
 using JobScout.Infrastructure.JobsCz;
 using JobScout.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 
 namespace JobScout.Infrastructure;
 
@@ -42,7 +46,18 @@ public static class DependencyInjection
         services.AddSingleton<ClaudeLlmClient>();
         services.AddSingleton<ILlmClient>(sp =>
             ActivatorUtilities.CreateInstance<UsageRecordingLlmClient>(sp, sp.GetRequiredService<ClaudeLlmClient>()));
-        
+
+        // E-mails (7f): Azure Communication Services when configured, otherwise only a log line
+        services.AddSingleton(config.GetSection(NotificationOptions.SectionName).Get<NotificationOptions>() ?? new NotificationOptions());
+        var emailConnection = config["Email:ConnectionString"];
+        var emailFrom = config["Email:From"];
+        if (!string.IsNullOrWhiteSpace(emailConnection) && !string.IsNullOrWhiteSpace(emailFrom))
+            services.AddSingleton<IEmailSender>(sp => new AcsEmailSender(
+                new EmailClient(emailConnection), emailFrom, sp.GetRequiredService<ILogger<AcsEmailSender>>()));
+        else
+            services.AddSingleton<IEmailSender, LogEmailSender>();
+        services.AddScoped<Notifier>();
+
         return services;
     }
 }

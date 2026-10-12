@@ -27,6 +27,7 @@ Format: lightweight version of [Michael Nygard's ADR](https://cognitect.com/blog
 | [0017](0017-access-requests-admin-approval.md) | Access by request and admin approval; suspending users to cap AI costs | Proposed |
 | [0018](0018-postgresql-in-azure-sqlite-locally.md) | PostgreSQL in Azure, SQLite locally – one model, two migration sets; Data Protection keys in the DB | Accepted |
 | [0019](0019-hosting-one-image-container-apps.md) | Hosting: one container image, Azure Container Apps (API) + Container Apps Job (morning run), GHCR | Accepted |
+| [0020](0020-public-demo-account.md) | Public demo account – "Try it without signing up": one shared fictional user, no AI for visitors | Accepted |
 
 ## Template
 

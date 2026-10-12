@@ -40,4 +40,5 @@ export interface ProfileView {
   hasCv: boolean;
   /** Jobs waiting for a decision that were evaluated with an older profile version. */
   outdatedEvaluations: number;
+  morningEmail?: boolean;           // the morning e-mail with new jobs (7f), on by default
 }

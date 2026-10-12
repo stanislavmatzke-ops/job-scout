@@ -110,7 +110,7 @@ public static class MatchEndpoints
             {
                 return Results.Problem(ex.Message, statusCode: StatusCodes.Status400BadRequest);
             }
-        });
+        }).RequireAuthorization(Policies.Editor);        // the demo's letters stay as the AI wrote them
 
         return app;
     }

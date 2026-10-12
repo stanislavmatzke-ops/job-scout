@@ -25,11 +25,14 @@ import { lang, t } from '../../core/i18n';
           }
           @default {
             <mat-card-header>
-              <mat-card-title>{{ me.access === 'Suspended' ? t().access.suspendedTitle : t().access.welcome(me.displayName) }}</mat-card-title>
+              <mat-card-title>{{ me.access === 'Suspended' ? t().access.suspendedTitle : me.rejectedAt ? t().access.rejectedTitle : t().access.welcome(me.displayName) }}</mat-card-title>
             </mat-card-header>
             <mat-card-content>
               @if (me.access === 'Suspended') {
                 <p class="reason">{{ me.suspendedReason }}</p>
+              } @else if (me.rejectedAt) {
+                @if (me.rejectedReason) { <p class="reason">{{ me.rejectedReason }}</p> }
+                <p>{{ t().access.rejectedAgain }}</p>
               } @else {
                 <p>{{ t().access.intro }}</p>
               }
@@ -44,7 +47,7 @@ import { lang, t } from '../../core/i18n';
                               [placeholder]="t().access.placeholder"></textarea>
                   </mat-form-field>
                   <button mat-flat-button type="submit" [disabled]="sending()">
-                    {{ me.access === 'Suspended' ? t().access.requestRestore : t().access.send }}
+                    {{ me.access === 'Suspended' ? t().access.requestRestore : me.rejectedAt ? t().access.sendAgain : t().access.send }}
                   </button>
                 </form>
               }

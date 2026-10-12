@@ -10,7 +10,7 @@ namespace JobScout.Api.Me;
 public sealed record MeResponse(
     Guid Id, string Provider, string DisplayName, string Email,
     AccessStatus Access, DateTimeOffset? AccessRequestedAt, string? SuspendedReason, bool IsAdmin,
-    string Identity);
+    string Identity, DateTimeOffset? RejectedAt = null, string? RejectedReason = null, bool IsDemo = false);
 
 public sealed record AccessRequestBody(string? Message);
 
@@ -28,7 +28,8 @@ public static class MeEndpoints
                 ? Results.Unauthorized()
                 : Results.Ok(new MeResponse(user.Id, user.Provider, user.DisplayName, user.Email, user.Access,
                     user.AccessRequestedAt, user.SuspendedReason, admins.IsAdmin(user.Provider, user.Subject),
-                    $"{user.Provider}:{user.Subject}"));
+                    $"{user.Provider}:{user.Subject}", user.RejectedAt, user.RejectedReason,
+                    user.Provider == Application.Demo.DemoAccount.Provider));
         }).RequireAuthorization(Policies.SignedIn);
 
         app.MapPost("/api/access/request", async (AccessRequestBody body, ClaimsPrincipal principal,

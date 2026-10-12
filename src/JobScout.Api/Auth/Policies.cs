@@ -12,13 +12,17 @@ namespace JobScout.Api.Auth;
 public static class Policies
 {
     public const string SignedIn = "SignedIn";   // also Pending – "who am I", "ask for access"
-    public const string Active = "Active";       // Approved only – anything that calls the AI (costs money)
+    public const string Active = "Active";       // Approved only – anything that calls the AI (costs money); never the demo
+    public const string Editor = "Editor";       // Approved or Suspended, not the demo – changes visitors must not make (letter, settings)
     public const string Admin = "Admin";
 }
 
 public sealed class AccessRequirement(params AccessStatus[] allowed) : IAuthorizationRequirement
 {
     public IReadOnlyCollection<AccessStatus> Allowed { get; } = allowed;
+
+    /// <summary>The shared demo account (ADR-0020) is refused – it must not spend AI tokens or change shared content.</summary>
+    public bool DenyDemo { get; init; }
 }
 
 /// <summary>The status is read from the DB on every request – approving or suspending takes effect immediately.</summary>
@@ -29,9 +33,12 @@ public sealed class AccessHandler(IAppDbContext db) : AuthorizationHandler<Acces
         if (!Guid.TryParse(context.User.FindFirstValue(JobScoutClaims.UserId), out var userId))
             return;
 
-        var access = await db.Users.Where(u => u.Id == userId).Select(u => (AccessStatus?)u.Access).SingleOrDefaultAsync();
-        if (access is { } status && requirement.Allowed.Contains(status))
-            context.Succeed(requirement);
+        var user = await db.Users.Where(u => u.Id == userId).Select(u => new { u.Access, u.Provider }).SingleOrDefaultAsync();
+        if (user is null || !requirement.Allowed.Contains(user.Access))
+            return;
+        if (requirement.DenyDemo && user.Provider == Application.Demo.DemoAccount.Provider)
+            return;
+        context.Succeed(requirement);
     }
 }
 

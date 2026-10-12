@@ -18,4 +18,9 @@ export class ScoutService {
   status(): Promise<ScoutStatus> {
     return firstValueFrom(this.http.get<ScoutStatus>('/api/scout/status'));
   }
+
+  /** The user starts the first search once the profile (CV + notes) is complete; 409 = already ran / running. */
+  startFirst(): Promise<void> {
+    return firstValueFrom(this.http.post<void>('/api/scout/first', null));
+  }
 }

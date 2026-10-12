@@ -1,13 +1,12 @@
 using System.Security.Claims;
 using JobScout.Api.Auth;
 using JobScout.Application.Profiles;
-using JobScout.Application.Scouting;
 using JobScout.Core.Domain;
 
 namespace JobScout.Api.Profile;
 
 public sealed record UpdateProfileNotesRequest(string? Notes);
-public sealed record UpdateProfileSettingsRequest(GrammaticalGender? Gender);
+public sealed record UpdateProfileSettingsRequest(GrammaticalGender? Gender, bool? MorningEmail = null);
 
 public static class ProfileEndpoints
 {
@@ -18,8 +17,7 @@ public static class ProfileEndpoints
         profile.MapGet("", async (ClaimsPrincipal user, GetProfile get, CancellationToken ct) =>
             Results.Ok(await get.ExecuteAsync(user.GetUserId(), ct)));
 
-        profile.MapPut("/cv", async (IFormFile? file, ClaimsPrincipal user, UploadCv upload, StartFirstScout firstScout,
-            GetProfile get, CancellationToken ct) =>
+        profile.MapPut("/cv", async (IFormFile? file, ClaimsPrincipal user, UploadCv upload, GetProfile get, CancellationToken ct) =>
         {
             if (file is null)
                 return Results.Problem("Chybí soubor s CV (pole „file“).", statusCode: StatusCodes.Status400BadRequest);
@@ -37,7 +35,6 @@ public static class ProfileEndpoints
                 return Results.Problem(ex.Message, statusCode: StatusCodes.Status400BadRequest);
             }
 
-            await firstScout.ExecuteAsync(user.GetUserId(), ct);       // a new user doesn't wait for the morning (6h)
             return Results.Ok(await get.ExecuteAsync(user.GetUserId(), ct));
         })
         .DisableAntiforgery()    // CSRF: the X-CSRF header for the whole API (5e)
@@ -62,12 +59,18 @@ public static class ProfileEndpoints
         profile.MapPut("/settings", async (UpdateProfileSettingsRequest body, ClaimsPrincipal user,
             UpdateProfileSettings settings, CancellationToken ct) =>
         {
-            if (body.Gender is not { } gender || !Enum.IsDefined(gender))
+            // Each setting on its own – the page sends only what changed
+            if (body.Gender is null && body.MorningEmail is null)
+                return Results.Problem("Chybí nastavení (gender nebo morningEmail).", statusCode: StatusCodes.Status400BadRequest);
+            if (body.Gender is { } gender && !Enum.IsDefined(gender))
                 return Results.Problem("Rod: Unspecified, Masculine nebo Feminine.", statusCode: StatusCodes.Status400BadRequest);
 
-            await settings.ExecuteAsync(user.GetUserId(), gender, ct);
+            if (body.Gender is { } g)
+                await settings.ExecuteAsync(user.GetUserId(), g, ct);
+            if (body.MorningEmail is { } on)
+                await settings.SetMorningEmailAsync(user.GetUserId(), on, ct);
             return Results.NoContent();
-        });
+        }).RequireAuthorization(Policies.Editor);
 
         return app;
     }

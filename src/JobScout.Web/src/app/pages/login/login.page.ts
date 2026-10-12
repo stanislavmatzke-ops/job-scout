@@ -47,6 +47,16 @@ export const SAMPLE_PERSONA = 'sample';
           }
         </div>
 
+        @if (!providers()?.devSignIn && providers()?.demo; as demoName) {
+          <div class="or"><span>{{ t().login.or }}</span></div>
+          <button type="button" class="provider sample demo" (click)="demoSignIn()">
+            <mat-icon>science</mat-icon>
+            <span>{{ t().login.tryIt }}</span>
+          </button>
+          <p class="demo-as">{{ t().login.demoAs(demoName) }}</p>
+          @if (devError(); as e) { <p class="error" role="alert">{{ e }}</p> }
+        }
+
         @if (providers()?.devSignIn) {
           <div class="or"><span>{{ t().login.or }}</span></div>
 
@@ -68,7 +78,7 @@ export const SAMPLE_PERSONA = 'sample';
         }
 
         <p class="fine">
-          {{ t().login.fine }}@if (providers()?.devSignIn) {<span>{{ t().login.fineTest }}</span>}.
+          {{ t().login.fine }}@if (providers()?.devSignIn || providers()?.demo) {<span>{{ t().login.fineTest }}</span>}.
         </p>
       </section>
     </main>
@@ -100,6 +110,7 @@ export const SAMPLE_PERSONA = 'sample';
     .sample-form { display: flex; gap: 8px; align-items: center; text-align: left; }
     .sample-form mat-form-field { flex: 1; }
     .error { margin: 0 0 16px; text-align: left; }
+    .demo-as { margin: 6px 0 0; font-size: 0.8rem; color: var(--js-muted); }
     .fine { margin: 24px 0 0; font-size: 0.8rem; color: var(--js-muted); line-height: 1.45; }
   `,
 })
@@ -128,6 +139,17 @@ export class LoginPage implements OnInit {
 
   protected signIn(provider: string): void {
     this.auth.signInWith(provider, this.returnUrl(), this.invite());
+  }
+
+  protected async demoSignIn(): Promise<void> {
+    this.devError.set(null);
+    try {
+      await this.auth.demoSignIn();
+    } catch (e) {
+      this.devError.set(problemMessage(e, t().login.failed));
+      return;
+    }
+    await this.router.navigateByUrl('/matches');
   }
 
   /** "dev:boss" and "Boss" mean the persona "boss" – the identity shown elsewhere has the prefix, people copy it. */

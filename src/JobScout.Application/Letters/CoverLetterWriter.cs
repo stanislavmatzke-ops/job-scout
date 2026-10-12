@@ -2,6 +2,8 @@
 using JobScout.Application.Profiles;
 using JobScout.Core.Domain;
 
+using JobScout.Application.Jobs;
+
 namespace JobScout.Application.Letters;
 
 /// <summary>Letter = null when the AI's answer is unusable (cut off by the token limit, or empty).</summary>
@@ -44,7 +46,9 @@ public sealed class CoverLetterWriter(ILlmClient llm)
               {{offer.DetailText}}
               </nabidka>
 
-              Napiš návrh průvodního dopisu.
+              <jazyk_dopisu>{{AdLanguageDetector.Detect(offer.DetailText).PromptName()}}</jazyk_dopisu>
+
+              Napiš návrh průvodního dopisu v jazyce z <jazyk_dopisu>.
               """)
         {
             MaxTokens = 2000,

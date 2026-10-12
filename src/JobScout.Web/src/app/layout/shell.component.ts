@@ -45,6 +45,13 @@ import { t } from '../core/i18n';
       </div>
     }
 
+    @if (auth.me()?.isDemo) {
+      <div class="demo" role="status">
+        <strong>{{ t().shell.demoTitle }}</strong> {{ t().shell.demoText }}
+        <a href="#" (click)="$event.preventDefault(); signOut()">{{ t().shell.demoSignUp }}</a>
+      </div>
+    }
+
     <main class="content"><router-outlet /></main>
   `,
   styles: `
@@ -62,6 +69,7 @@ import { t } from '../core/i18n';
     .avatar { display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; border-radius: 50%;
               background: #e4eefa; color: var(--js-primary); font-size: 0.75rem; font-weight: 700; margin-right: 8px; }
     .menu-head { padding: 8px 16px; font-size: 0.8rem; color: var(--js-muted); border-bottom: 1px solid var(--js-border); }
+    .demo { padding: 10px 16px; background: var(--js-ai-tint); border-bottom: 1px solid var(--js-ai-border); font-size: 0.92rem; }
     .suspended { padding: 12px 16px; background: var(--mat-sys-error-container); color: var(--mat-sys-on-error-container); }
     .content { max-width: 1120px; margin: 0 auto; padding: 24px 16px 48px; }
     @media (max-width: 640px) {

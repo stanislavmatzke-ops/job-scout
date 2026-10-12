@@ -1,11 +1,12 @@
 ﻿using JobScout.Application.Abstractions;
+using JobScout.Application.Notifications;
 using JobScout.Core.Domain;
 using Microsoft.EntityFrameworkCore;
 
 namespace JobScout.Application.Users;
 
 /// <summary>"Požádat o přístup" – Pending or Suspended users ask the admin (ADR-0017).</summary>
-public sealed class RequestAccess(IAppDbContext db, TimeProvider time)
+public sealed class RequestAccess(IAppDbContext db, TimeProvider time, Notifier? notifier = null)
 {
     /// <returns>false = already approved, nothing to ask for</returns>
     public async Task<bool> ExecuteAsync(Guid userId, string? message, CancellationToken ct = default)
@@ -16,6 +17,7 @@ public sealed class RequestAccess(IAppDbContext db, TimeProvider time)
 
         user.RequestAccess(message, time.GetUtcNow());
         await db.SaveChangesAsync(ct);
+        if (notifier is not null) await notifier.AccessRequestedAsync(user, ct);     // the admin hears about it (7f)
         return true;
     }
 }

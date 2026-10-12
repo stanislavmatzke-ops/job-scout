@@ -1,4 +1,4 @@
-﻿import { HttpClient, HttpErrorResponse } from '@angular/common/http';
+import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 import { AuthProviders, Me } from './models';
@@ -46,6 +46,12 @@ export class AuthService {
   /** Test personas – only when the API has dev sign-in enabled (never in Production). */
   async devSignIn(persona: string): Promise<Me | null> {
     await firstValueFrom(this.http.post<void>(`/api/auth/dev/${encodeURIComponent(persona)}`, null));
+    return this.load(true);
+  }
+
+  /** "Try it without signing up" – everyone is the same fictional demo user (ADR-0020). */
+  async demoSignIn(): Promise<Me | null> {
+    await firstValueFrom(this.http.post<void>('/api/auth/demo', null));
     return this.load(true);
   }
 

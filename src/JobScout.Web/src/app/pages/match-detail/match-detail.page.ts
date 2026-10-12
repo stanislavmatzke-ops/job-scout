@@ -9,6 +9,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
+import { TextFieldModule } from '@angular/cdk/text-field';
 import { MatSelectModule } from '@angular/material/select';
 import { MatExpansionModule } from '@angular/material/expansion';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
@@ -30,7 +31,7 @@ type AiWork = 'evaluate' | 'letter';
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     DatePipe, RouterLink, FormsModule, MatCardModule, MatButtonModule, MatIconModule,
-    MatFormFieldModule, MatInputModule, MatSelectModule, MatExpansionModule, MatProgressBarModule,
+    MatFormFieldModule, MatInputModule, MatSelectModule, MatExpansionModule, MatProgressBarModule, TextFieldModule,
   ],
   template: `
     <a mat-button routerLink="/matches"><mat-icon>arrow_back</mat-icon> {{ t().detail.back }}</a>
@@ -53,7 +54,7 @@ type AiWork = 'evaluate' | 'letter';
         <a mat-stroked-button [href]="d.url" target="_blank" rel="noopener"><mat-icon>open_in_new</mat-icon> {{ t().detail.openAd }}</a>
       </header>
 
-      @if (!aiEnabled()) {
+      @if (!aiEnabled() && !isDemo()) {
         <p class="ai-off">{{ t().detail.aiOff }}</p>
       }
 
@@ -150,7 +151,9 @@ type AiWork = 'evaluate' | 'letter';
               } @else {
                 @if (d.coverLetter) {
                   <button mat-stroked-button (click)="copyLetter(d.coverLetter)"><mat-icon>content_copy</mat-icon> {{ t().detail.copy }}</button>
-                  <button mat-button (click)="editLetter(d)" [disabled]="working() !== null"><mat-icon>edit</mat-icon> {{ t().detail.edit }}</button>
+                  @if (!isDemo()) {
+                    <button mat-button (click)="editLetter(d)" [disabled]="working() !== null"><mat-icon>edit</mat-icon> {{ t().detail.edit }}</button>
+                  }
                 }
                 @if (d.stage === 'Evaluated') {
                   <button mat-button (click)="writeLetter(d)" [disabled]="!aiEnabled() || working() !== null">
@@ -198,7 +201,7 @@ type AiWork = 'evaluate' | 'letter';
             <mat-card-header><mat-card-title>{{ t().detail.notes }}</mat-card-title></mat-card-header>
             <mat-card-content>
               <mat-form-field appearance="outline" class="full">
-                <textarea matInput rows="5" name="notes" maxlength="4000" [(ngModel)]="notes"
+                <textarea matInput cdkTextareaAutosize cdkAutosizeMinRows="10" cdkAutosizeMaxRows="30" name="notes" maxlength="4000" [(ngModel)]="notes"
                           [placeholder]="t().detail.notesPlaceholder"></textarea>
               </mat-form-field>
               <button mat-stroked-button (click)="saveNotes(d)" [disabled]="saving() || notes === (d.notes ?? '')">{{ t().detail.saveNotes }}</button>
@@ -274,7 +277,8 @@ export class MatchDetailPage {
   protected readonly editingLetter = signal(false);
 
   /** Only Approved users may spend AI tokens (ADR-0017) – the API enforces it, the UI just doesn't offer it. */
-  protected readonly aiEnabled = computed(() => this.auth.me()?.access === 'Approved');
+  protected readonly aiEnabled = computed(() => this.auth.me()?.access === 'Approved' && !this.auth.me()?.isDemo);
+  protected readonly isDemo = computed(() => !!this.auth.me()?.isDemo);
 
   protected readonly statuses = STATUS_OPTIONS;
   protected readonly statusLabel = statusLabel;

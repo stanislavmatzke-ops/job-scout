@@ -153,4 +153,17 @@ public sealed class ProfileEndpointsTests : IDisposable
         Assert.Equal((false, (DateTimeOffset?)null), (status!.Searching, status.LastSearchAt));
         Assert.Equal(HttpStatusCode.Unauthorized, (await _factory.CreateBrowser().GetAsync("/api/scout/status")).StatusCode);
     }
+
+    [Fact]
+    public async Task First_search_starts_on_request_not_on_cv_upload()
+    {
+        var browser = await SignInAsync();                 // dev persona = approved
+        await browser.PutAsync("/api/profile/cv", CvForm("cv.md", CvMarkdown));
+
+        // The background queue is off in the tests – starting it says "not now" instead of 202
+        var start = await browser.PostAsync("/api/scout/first", null);
+
+        Assert.Equal(HttpStatusCode.Conflict, start.StatusCode);
+        Assert.Equal(HttpStatusCode.Unauthorized, (await _factory.CreateBrowser().PostAsync("/api/scout/first", null)).StatusCode);
+    }
 }

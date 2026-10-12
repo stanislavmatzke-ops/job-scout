@@ -17,3 +17,5 @@ param microsoftClientId = readEnvironmentVariable('JOBSCOUT_MICROSOFT_CLIENT_ID'
 param admins = readEnvironmentVariable('JOBSCOUT_ADMINS', '')
 param customDomain = readEnvironmentVariable('JOBSCOUT_DOMAIN', 'jobscout.stanislavmatzke.com')
 param customDomainCertificate = readEnvironmentVariable('JOBSCOUT_DOMAIN_CERT', '')
+param emailDomainVerified = bool(readEnvironmentVariable('JOBSCOUT_EMAIL_VERIFIED', 'false'))
+param adminEmail = readEnvironmentVariable('JOBSCOUT_ADMIN_EMAIL', '')

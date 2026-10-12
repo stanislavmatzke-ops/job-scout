@@ -47,8 +47,8 @@ public sealed class SignInUser(IAppDbContext db, TimeProvider time)
 
         user = new User(request.Provider, request.Subject, request.Email, request.DisplayName, now);
         user.RecordSignIn(now);
-        // Approved straight away: invited, a test persona, or the admin – everyone else asks for access (ADR-0017)
-        if (invitation is not null || request.Provider == DevProvider || request.IsAdmin)
+        // Approved straight away: invited, a test persona, the demo account or the admin – everyone else asks (ADR-0017)
+        if (invitation is not null || request.Provider is DevProvider or Demo.DemoAccount.Provider || request.IsAdmin)
             user.Approve(now);
 
         db.Users.Add(user);

@@ -103,4 +103,48 @@ public class UserAccessTests
 
         Assert.Equal(T0.AddDays(1), user.LastSignInAt);
     }
+
+    // ---------- reject (12 Oct) ----------
+
+    [Fact]
+    public void Rejected_request_keeps_the_user_outside_with_the_reason()
+    {
+        var user = NewUser();
+        user.RequestAccess("Prosím.", T0);
+
+        user.Reject("  Z kapacitních důvodů teď nové uživatele nepřijímáme.  ", T0.AddHours(1));
+
+        Assert.Equal(AccessStatus.Pending, user.Access);                // nothing in the app opens
+        Assert.Equal("Z kapacitních důvodů teď nové uživatele nepřijímáme.", user.RejectedReason);
+        Assert.Equal(T0.AddHours(1), user.RejectedAt);
+        Assert.Null(user.AccessRequestedAt);                            // settled – a new request is a new one
+    }
+
+    [Fact]
+    public void Asking_again_after_a_rejection_clears_the_old_answer()
+    {
+        var user = NewUser();
+        user.RequestAccess(null, T0);
+        user.Reject("Ne teď.", T0);
+
+        user.RequestAccess("Zkusím to znovu.", T0.AddDays(1));
+
+        Assert.Null(user.RejectedReason);
+        Assert.NotNull(user.AccessRequestedAt);
+    }
+
+    [Fact]
+    public void A_member_cannot_be_rejected_only_suspended()
+    {
+        var user = NewUser();
+        user.Approve(T0);
+
+        Assert.Throws<InvalidOperationException>(() => user.Reject("Ne.", T0));
+    }
+
+    [Fact]
+    public void Rejection_needs_a_reason()
+    {
+        Assert.Throws<ArgumentException>(() => NewUser().Reject("  ", T0));
+    }
 }
