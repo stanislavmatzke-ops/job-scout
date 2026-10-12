@@ -7,6 +7,7 @@
   <ItemGroup>
     <ProjectReference Include="..\JobScout.Application\JobScout.Application.csproj"/>
     <ProjectReference Include="..\JobScout.Infrastructure\JobScout.Infrastructure.csproj"/>
+    <ProjectReference Include="..\JobScout.Migrations.Postgres\JobScout.Migrations.Postgres.csproj" />
   </ItemGroup>
 
   <ItemGroup>

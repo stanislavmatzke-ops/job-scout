@@ -117,6 +117,7 @@ public class ArchitectureTests
             new DbContextOptionsBuilder<JobScoutDbContext>().UseSqlite("DataSource=:memory:").Options);
 
         var generated = db.Model.GetEntityTypes()
+            .Where(e => e.ClrType.Assembly == Core)        // ours only – e.g. Data Protection's key table (ADR-0018) has its own int identity
             .SelectMany(e => e.FindPrimaryKey()!.Properties.Select(p => (Entity: e.ClrType.Name, Key: p)))
             .Where(x => x.Key.ValueGenerated != Microsoft.EntityFrameworkCore.Metadata.ValueGenerated.Never)
             .Select(x => $"{x.Entity}.{x.Key.Name}")

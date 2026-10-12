@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    PostgreSQL migrations (production, Azure – ADR-0018). SQLite migrations stay in JobScout.Infrastructure
+    (local runs and tests). One DbContext, two providers, two migration sets: EF needs a separate assembly for each.
+    How to generate a migration: see docs/adr/0018-postgresql-in-azure-sqlite-locally.md (dotnet ef with the postgres argument).
+  -->
+
+  <ItemGroup>
+    <ProjectReference Include="..\JobScout.Infrastructure\JobScout.Infrastructure.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.12">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+
+</Project>

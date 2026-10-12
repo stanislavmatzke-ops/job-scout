@@ -23,6 +23,7 @@
     <ProjectReference Include="..\..\src\JobScout.Api\JobScout.Api.csproj" />
     <ProjectReference Include="..\..\src\JobScout.Application\JobScout.Application.csproj" />
     <ProjectReference Include="..\..\src\JobScout.Infrastructure\JobScout.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\src\JobScout.Migrations.Postgres\JobScout.Migrations.Postgres.csproj" />
   </ItemGroup>
 
   <ItemGroup>

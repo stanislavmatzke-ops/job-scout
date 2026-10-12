@@ -33,9 +33,8 @@ public static class DependencyInjection
         }).AddHttpMessageHandler(() => new PoliteDelayHandler(TimeSpan.FromSeconds(2)));
         services.AddSingleton<IPageRenderer, PlaywrightPageRenderer>();
         // Factory for short-lived contexts (usage recorder) + the usual scoped context for use cases
-        services.AddDbContextFactory<JobScoutDbContext>(o => o.UseSqlite(
-            config.GetConnectionString("JobScout")
-            ?? throw new InvalidOperationException("Chybí ConnectionStrings:JobScout v konfiguraci.")));
+        // SQLite locally and in tests, PostgreSQL in Azure – Database:Provider (ADR-0018)
+        services.AddDbContextFactory<JobScoutDbContext>(o => DatabaseProvider.Configure(o, config));
         services.AddScoped(sp => sp.GetRequiredService<IDbContextFactory<JobScoutDbContext>>().CreateDbContext());
         // Use cases ask for IAppDbContext; it's the same scoped instance as JobScoutDbContext
         services.AddScoped<IAppDbContext>(sp => sp.GetRequiredService<JobScoutDbContext>());

@@ -1,11 +1,13 @@
 ﻿using JobScout.Application.Abstractions;
 using JobScout.Core.Domain;
+using Microsoft.AspNetCore.DataProtection.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 namespace JobScout.Infrastructure.Persistence;
 
-public sealed class JobScoutDbContext(DbContextOptions<JobScoutDbContext> options) : DbContext(options), IAppDbContext
+public sealed class JobScoutDbContext(DbContextOptions<JobScoutDbContext> options)
+    : DbContext(options), IAppDbContext, IDataProtectionKeyContext
 {
     public DbSet<User> Users => Set<User>();
     public DbSet<UserProfile> UserProfiles => Set<UserProfile>();
@@ -16,6 +18,12 @@ public sealed class JobScoutDbContext(DbContextOptions<JobScoutDbContext> option
     public DbSet<LlmCall> LlmCalls => Set<LlmCall>();
     public DbSet<StoredCv> StoredCvs => Set<StoredCv>();
     public DbSet<Invitation> Invitations => Set<Invitation>();
+
+    /// <summary>
+    /// The keys that encrypt the session cookie and the sign-in round trip (ASP.NET Core Data Protection).
+    /// In a container the file system is thrown away on every restart – kept here, a restart doesn't sign everyone out.
+    /// </summary>
+    public DbSet<DataProtectionKey> DataProtectionKeys => Set<DataProtectionKey>();
 
     // Picks up every IEntityTypeConfiguration<T> in this assembly (Persistence/Configurations)
     protected override void OnModelCreating(ModelBuilder modelBuilder) =>
@@ -36,7 +44,18 @@ public sealed class JobScoutDbContext(DbContextOptions<JobScoutDbContext> option
             builder.Properties<DateTimeOffset>().HaveConversion<DateTimeOffsetToBinaryConverter>();
             builder.Properties<DateTimeOffset?>().HaveConversion<DateTimeOffsetToBinaryConverter>();
         }
+        else if (Database.IsNpgsql())
+        {
+            // timestamptz accepts only UTC (offset 0) – a time with +02:00 would throw on save. Store everything as UTC.
+            builder.Properties<DateTimeOffset>().HaveConversion<UtcDateTimeOffsetConverter>();
+            builder.Properties<DateTimeOffset?>().HaveConversion<UtcDateTimeOffsetConverter>();
+        }
 
         builder.Properties<ScoutRunStatus>().HaveConversion<string>().HaveMaxLength(20);
     }
 }
+
+/// <summary>Any offset in, UTC out (PostgreSQL timestamptz); reads come back as UTC.</summary>
+public sealed class UtcDateTimeOffsetConverter() : ValueConverter<DateTimeOffset, DateTimeOffset>(
+    v => v.ToUniversalTime(),
+    v => v.ToUniversalTime());

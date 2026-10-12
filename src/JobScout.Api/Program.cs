@@ -7,6 +7,7 @@ using JobScout.Api.Scouting;
 using JobScout.Application;
 using JobScout.Infrastructure;
 using JobScout.Infrastructure.Persistence;
+using Microsoft.AspNetCore.DataProtection;
 using System.Text.RegularExpressions;
 using Microsoft.EntityFrameworkCore;
 
@@ -16,6 +17,11 @@ builder.Services.AddInfrastructure(builder.Configuration);
 builder.Services.AddApplication();
 builder.Services.AddFirstSearch(builder.Configuration);   // 6h – the first search right after the first CV
 builder.Services.AddJobScoutAuth(builder.Configuration, builder.Environment);
+// Keys for the session cookie and the OIDC round trip live in the database (ADR-0018) – a container restart
+// or a second replica must still read cookies issued before
+builder.Services.AddDataProtection()
+    .SetApplicationName("JobScout")
+    .PersistKeysToDbContext<JobScoutDbContext>();
 builder.Services.AddProblemDetails();
 builder.Services.AddHealthChecks();
 builder.Services.ConfigureHttpJsonOptions(o =>

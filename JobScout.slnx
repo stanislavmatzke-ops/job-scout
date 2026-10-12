@@ -4,6 +4,7 @@
     <Project Path="src/JobScout.Application/JobScout.Application.csproj" />
     <Project Path="src/JobScout.Core/JobScout.Core.csproj" />
     <Project Path="src/JobScout.Infrastructure/JobScout.Infrastructure.csproj" />
+    <Project Path="src/JobScout.Migrations.Postgres/JobScout.Migrations.Postgres.csproj" />
     <Project Path="src/JobScout.Worker/JobScout.Worker.csproj" />
   </Folder>
   <Folder Name="/tests/">
