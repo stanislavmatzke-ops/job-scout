@@ -33,9 +33,10 @@ if (-not $Base) {
             $sha = gh run list --workflow docker.yml --branch main --status success --limit 1 --json headSha --jq '.[0].headSha'
         }
         else {
-            # No GitHub CLI: the commit you have checked out - it must be pushed and its Docker image built (Actions)
-            $sha = git rev-parse HEAD
-            Write-Host 'GitHub CLI not found - using the checked-out commit. Is it pushed and is its Docker image green in Actions?'
+            # No GitHub CLI: the newest checked-out commit that builds an image. Commits touching only docs/** or *.md
+            # are skipped by docker.yml (paths-ignore), so they have no image - the same filter is applied here.
+            $sha = git log -1 --format=%H -- . ':(exclude)docs/**' ':(exclude,glob)**/*.md'
+            Write-Host 'GitHub CLI not found - using the newest checked-out commit with an image. Is it pushed and is its Docker image green in Actions?'
         }
         if (-not $sha) { throw 'No -Tag given and no commit found.' }
         $Tag = "sha-$($sha.Trim().Substring(0, 7))"
