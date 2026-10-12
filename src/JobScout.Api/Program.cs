@@ -8,6 +8,7 @@ using JobScout.Application;
 using JobScout.Infrastructure;
 using JobScout.Infrastructure.Persistence;
 using Microsoft.AspNetCore.DataProtection;
+using Microsoft.AspNetCore.HttpOverrides;
 using System.Text.RegularExpressions;
 using Microsoft.EntityFrameworkCore;
 
@@ -23,11 +24,22 @@ builder.Services.AddDataProtection()
     .SetApplicationName("JobScout")
     .PersistKeysToDbContext<JobScoutDbContext>();
 builder.Services.AddProblemDetails();
+// In Azure the HTTPS ends at the Container Apps ingress and the app gets plain HTTP with X-Forwarded-Proto: https.
+// Without trusting it, the OIDC redirect URI would be http://… and Microsoft/Google would refuse the sign-in.
+// The proxy's address isn't fixed, so any is accepted – the app is only reachable through the ingress.
+builder.Services.Configure<ForwardedHeadersOptions>(o =>
+{
+    o.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+    o.KnownIPNetworks.Clear();
+    o.KnownProxies.Clear();
+});
 builder.Services.AddHealthChecks();
 builder.Services.ConfigureHttpJsonOptions(o =>
     o.SerializerOptions.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter()));
 
 var app = builder.Build();
+
+app.UseForwardedHeaders();                 // first – everything after it sees the real scheme (https)
 
 // Create / upgrade the database schema before the first request (same as the Worker)
 using (var scope = app.Services.CreateScope())

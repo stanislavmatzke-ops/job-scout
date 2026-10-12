@@ -1,0 +1,19 @@
+# Only sources go into the build – no local databases, builds, secrets or IDE files
+**/bin/
+**/obj/
+**/node_modules/
+**/.angular/
+**/dist/
+src/JobScout.Api/wwwroot/
+**/*.db
+**/*.db-shm
+**/*.db-wal
+**/appsettings.*.local.json
+**/*.user
+.git/
+.github/
+.idea/
+.vs/
+docs/
+tests/
+reports/
