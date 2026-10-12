@@ -15,10 +15,7 @@ import { AuthService } from '../../core/auth.service';
 import { ProfileService, cvProblem } from '../../core/profile.service';
 import { GrammaticalGender, ProfileView, Seniority } from '../../core/profile.models';
 import { aiErrorMessage, employmentLabel, problemMessage, remoteLabel } from '../../core/match-format';
-
-const SENIORITY: Record<Seniority, string> = {
-  Junior: 'Junior', Medior: 'Medior', Senior: 'Senior', Lead: 'Vedoucí / lead', Expert: 'Expert',
-};
+import { lang, t } from '../../core/i18n';
 
 type Work = 'cv' | 'notes';
 
@@ -31,30 +28,28 @@ type Work = 'cv' | 'notes';
   ],
   template: `
     <header class="page-head">
-      <h1>Profil</h1>
-      <p>Z vašeho životopisu a poznámek AI sestaví profil. Podle něj každé ráno hledáme nabídky, hodnotíme je a píšeme návrhy dopisů.</p>
+      <h1>{{ t().profile.title }}</h1>
+      <p>{{ t().profile.intro }}</p>
     </header>
 
-    @if (loadError()) { <p class="error">Profil se nepodařilo načíst. Zkuste prosím stránku obnovit.</p> }
+    @if (loadError()) { <p class="error">{{ t().profile.loadFailed }}</p> }
 
     @if (view(); as v) {
       @if (!aiEnabled()) {
-        <p class="ai-off">Nahrání životopisu a změna poznámek spouští analýzu pomocí AI – u pozastaveného účtu jsou vypnuté.</p>
+        <p class="ai-off">{{ t().profile.aiOff }}</p>
       }
 
       @if (firstSearch()) {
         <p class="info" role="status">
           <mat-icon>travel_explore</mat-icon>
-          Profil je hotový a právě pro vás hledáme první nabídky – obvykle to trvá několik minut.
-          Najdete je na stránce <a routerLink="/matches">Nabídky</a>. Další nové nabídky pak hledáme každé ráno.
+          <span>{{ t().profile.firstSearch1 }}<a routerLink="/matches">{{ t().profile.firstSearchLink }}</a>{{ t().profile.firstSearch2 }}</span>
         </p>
       }
 
       @if (v.outdatedEvaluations > 0) {
         <p class="info">
           <mat-icon>info</mat-icon>
-          Nabídek čekajících na rozhodnutí, které byly ohodnoceny podle starší verze profilu: <strong>{{ v.outdatedEvaluations }}</strong>.
-          V jejich <a routerLink="/matches">detailu</a> je můžete nechat přehodnotit.
+          <span>{{ t().profile.outdated1 }}<strong>{{ v.outdatedEvaluations }}</strong>{{ t().profile.outdated2 }}<a routerLink="/matches">{{ t().profile.outdatedLink }}</a>{{ t().profile.outdated3 }}</span>
         </p>
       }
 
@@ -62,79 +57,69 @@ type Work = 'cv' | 'notes';
         <section class="column">
           <!-- ===== CV ===== -->
           <mat-card appearance="outlined">
-            <mat-card-header><mat-card-title>Životopis</mat-card-title></mat-card-header>
+            <mat-card-header><mat-card-title>{{ t().profile.cv }}</mat-card-title></mat-card-header>
             @if (working() === 'cv') { <mat-progress-bar mode="indeterminate" /> }
             <mat-card-content>
               @if (working() === 'cv') {
-                <p class="muted">Analyzuji životopis – obvykle do 30 sekund…</p>
+                <p class="muted">{{ t().profile.analyzing }}</p>
               } @else if (v.version) {
                 <p>
                   <mat-icon class="inline">description</mat-icon> <strong>{{ v.cvFileName }}</strong><br />
-                  <span class="muted">Profil verze {{ v.version }}, vyhodnocen {{ v.analyzedAt | date: 'd. M. y H:mm' }}</span>
+                  <span class="muted">{{ t().profile.version(v.version, (v.analyzedAt | date: t().fmt.dateTime : undefined : lang()) ?? '') }}</span>
                 </p>
                 @if (!v.hasCv) {
                   <p class="info">
                     <mat-icon>info</mat-icon>
-                    Profil vznikl dříve, než jsme začali ukládat soubor životopisu. Pro úpravu poznámek prosím
-                    nahrajte životopis znovu – pokud je stejný, profil se nezmění a nic se nepřepočítává.
+                    <span>{{ t().profile.noStoredCv }}</span>
                   </p>
                 }
               } @else {
-                <h3>Začněte nahráním životopisu</h3>
-                <p>
-                  Nahrajte svůj životopis, abychom pro vás mohli najít vhodné pozice. Z životopisu a vašich poznámek
-                  AI sestaví profil – co umíte, jakou práci hledáte a kde. První nabídky začneme hledat hned po nahrání,
-                  další pak každé ráno: ohodnotíme je a k nejvhodnějším připravíme návrh průvodního dopisu.
-                  Nic se neodesílá – o každé reakci rozhodujete vy.
-                </p>
+                <h3>{{ t().profile.startTitle }}</h3>
+                <p>{{ t().profile.startText }}</p>
               }
               @if (fileError(); as message) { <p class="error">{{ message }}</p> }
-              <p class="muted small">PDF, Markdown nebo text, nejvýš 5 MB. Kontaktní údaje z životopisu do profilu neukládáme.</p>
+              <p class="muted small">{{ t().profile.formats }}</p>
             </mat-card-content>
             <mat-card-actions>
               <input #file type="file" hidden accept=".pdf,.md,.txt" (change)="onFile(file)" />
               <button mat-flat-button (click)="file.click()" [disabled]="!aiEnabled() || working() !== null">
-                <mat-icon>upload_file</mat-icon> {{ v.hasCv ? 'Nahrát nový životopis' : 'Nahrát životopis' }}
+                <mat-icon>upload_file</mat-icon> {{ v.hasCv ? t().profile.uploadNew : t().profile.upload }}
               </button>
             </mat-card-actions>
           </mat-card>
 
           <!-- ===== Notes ===== -->
           <mat-card appearance="outlined">
-            <mat-card-header><mat-card-title>Poznámky a preference</mat-card-title></mat-card-header>
+            <mat-card-header><mat-card-title>{{ t().profile.notesTitle }}</mat-card-title></mat-card-header>
             @if (working() === 'notes') { <mat-progress-bar mode="indeterminate" /> }
             <mat-card-content>
-              <p class="muted small">
-                Co v životopisu není: jakou práci hledáte, kde, kolik chcete vydělávat, co vás nezajímá.
-                Například: „Chci pracovat převážně z domova, nejvýš 1 den v kanceláři v Brně. Minimálně 95 000 Kč hrubého.
-                Nechci projekty, kde se jen udržuje starý systém.“
-              </p>
+              <p class="muted small">{{ t().profile.notesHelp }}</p>
               <mat-form-field appearance="outline" class="full">
-                <mat-label>Poznámky</mat-label>
+                <mat-label>{{ t().profile.notes }}</mat-label>
                 <textarea matInput rows="7" name="notes" maxlength="4000" [(ngModel)]="notes"
                           [disabled]="!v.hasCv || working() !== null"></textarea>
                 @if (!v.hasCv) {
-                  <mat-hint>Poznámky se vyhodnocují spolu se životopisem – {{ v.version ? 'nahrajte ho prosím znovu' : 'nejprve ho prosím nahrajte' }}.</mat-hint>
+                  <mat-hint>{{ t().profile.notesNeedCv(!!v.version) }}</mat-hint>
                 }
               </mat-form-field>
             </mat-card-content>
             <mat-card-actions>
               <button mat-stroked-button (click)="saveNotes()"
                       [disabled]="!v.hasCv || !aiEnabled() || working() !== null || notes.trim() === (v.notes ?? '')">
-                Uložit a znovu vyhodnotit profil
+                {{ t().profile.saveNotes }}
               </button>
             </mat-card-actions>
           </mat-card>
 
           <!-- ===== Gender ===== -->
           <mat-card appearance="outlined">
-            <mat-card-header><mat-card-title>Tvary v průvodních dopisech</mat-card-title></mat-card-header>
+            <mat-card-header><mat-card-title>{{ t().profile.genderTitle }}</mat-card-title></mat-card-header>
             <mat-card-content>
-              <p class="muted small">Čeština potřebuje rod („rád“ / „ráda“). Neuhadujeme ho ze jména – zvolte prosím sami.</p>
+              <p class="muted small">{{ t().profile.genderHelp }}</p>
               <mat-radio-group class="radios" [ngModel]="v.gender" (ngModelChange)="saveGender($event)" name="gender">
-                <mat-radio-button value="Masculine">Mužský rod (rád, zvyklý)</mat-radio-button>
-                <mat-radio-button value="Feminine">Ženský rod (ráda, zvyklá)</mat-radio-button>
-                <mat-radio-button value="Unspecified">Neuvádět (dopis se rodovým tvarům vyhne)</mat-radio-button>
+                <mat-radio-button value="Masculine">{{ t().profile.masculine }}</mat-radio-button>
+                <mat-radio-button value="Feminine">{{ t().profile.feminine }}</mat-radio-button>
+                <mat-radio-button value="Unspecified">{{ t().profile.unspecified }}</mat-radio-button>
               </mat-radio-group>
             </mat-card-content>
           </mat-card>
@@ -146,51 +131,51 @@ type Work = 'cv' | 'notes';
             <mat-card appearance="outlined" class="ai-panel">
               <mat-card-header>
                 <mat-card-title class="card-title-row">
-                  <span>Jak vás vidí AI</span>
-                  <span class="ai-badge"><mat-icon>auto_awesome</mat-icon>AI</span>
+                  <span>{{ t().profile.aiTitle }}</span>
+                  <span class="ai-badge"><mat-icon>auto_awesome</mat-icon>{{ t().common.ai }}</span>
                 </mat-card-title>
-                <mat-card-subtitle>Podle tohoto profilu hledáme a hodnotíme nabídky</mat-card-subtitle>
+                <mat-card-subtitle>{{ t().profile.aiSub }}</mat-card-subtitle>
               </mat-card-header>
               <mat-card-content>
                 <p class="headline">{{ p.headline }}</p>
-                <p class="muted">{{ seniority(p.seniority) }} · praxe {{ p.yearsOfExperience }} let</p>
+                <p class="muted">{{ t().profile.experience(seniority(p.seniority), p.yearsOfExperience) }}</p>
+                <p class="muted small lang-note"><mat-icon class="ai-mark">translate</mat-icon> {{ t().profile.aiLanguageNote }}</p>
 
-                <h3>Cílové role</h3>
+                <h3>{{ t().profile.targetRoles }}</h3>
                 <mat-chip-set>@for (x of p.targetRoles; track x) { <mat-chip>{{ x }}</mat-chip> }</mat-chip-set>
 
-                <h3>Hlavní dovednosti</h3>
+                <h3>{{ t().profile.coreSkills }}</h3>
                 <mat-chip-set>@for (x of p.coreSkills; track x) { <mat-chip>{{ x }}</mat-chip> }</mat-chip-set>
 
                 @if (p.domains.length) {
-                  <h3>Obory</h3>
+                  <h3>{{ t().profile.domains }}</h3>
                   <p>{{ p.domains.join(', ') }}</p>
                 }
 
-                <h3>Preference</h3>
+                <h3>{{ t().profile.preferences }}</h3>
                 <dl class="facts">
-                  <dt>Práce z domova</dt><dd>{{ remoteLabel(p.preferences.remoteWork) }}</dd>
-                  <dt>Forma spolupráce</dt>
-                  <dd>{{ p.preferences.employmentTypes.length ? employmentList(p.preferences.employmentTypes) : 'Neuvedeno' }}</dd>
-                  <dt>Minimální mzda</dt>
-                  <dd>{{ p.preferences.minMonthlySalaryCzk ? (p.preferences.minMonthlySalaryCzk | number) + ' Kč' : 'Neuvedena' }}</dd>
-                  <dt>Kde</dt>
+                  <dt>{{ t().profile.remote }}</dt><dd>{{ remoteLabel(p.preferences.remoteWork) }}</dd>
+                  <dt>{{ t().profile.employment }}</dt>
+                  <dd>{{ p.preferences.employmentTypes.length ? employmentList(p.preferences.employmentTypes) : t().common.notStated }}</dd>
+                  <dt>{{ t().profile.minSalary }}</dt>
+                  <dd>{{ p.preferences.minMonthlySalaryCzk ? (p.preferences.minMonthlySalaryCzk | number: '1.0-0' : lang()) + (lang() === 'cs' ? ' Kč' : ' CZK') : t().common.notStatedF }}</dd>
+                  <dt>{{ t().profile.where }}</dt>
                   <dd>
-                    {{ p.search.homeLocation || 'Neuvedeno' }}@if (p.search.commuteRadiusKm) { + {{ p.search.commuteRadiusKm }} km}
-                    @if (p.search.extraLocations.length) { , také {{ p.search.extraLocations.join(', ') }} }
+                    {{ p.search.homeLocation || t().common.notStated }}@if (p.search.commuteRadiusKm) {<span> + {{ p.search.commuteRadiusKm }} km</span>}@if (p.search.extraLocations.length) {<span>{{ t().profile.also(p.search.extraLocations.join(', ')) }}</span>}
                   </dd>
                 </dl>
                 @if (p.preferences.priorities.length) {
-                  <h3>Co je pro vás důležité</h3>
+                  <h3>{{ t().profile.priorities }}</h3>
                   <ol class="plain">@for (x of p.preferences.priorities; track $index) { <li>{{ x }}</li> }</ol>
                 }
                 @if (p.preferences.avoid.length) {
-                  <h3>Čemu se vyhnout</h3>
+                  <h3>{{ t().profile.avoid }}</h3>
                   <ul class="plain">@for (x of p.preferences.avoid; track $index) { <li>{{ x }}</li> }</ul>
                 }
 
-                <h3>Hledáme jako</h3>
+                <h3>{{ t().profile.searchAs }}</h3>
                 <p>{{ p.search.professions.join(', ') }}</p>
-                <p class="muted small">Nesedí něco? Doplňte to do poznámek – profil se podle nich znovu vyhodnotí.</p>
+                <p class="muted small">{{ t().profile.mismatch }}</p>
               </mat-card-content>
             </mat-card>
           }
@@ -236,7 +221,9 @@ export class ProfilePage implements OnInit {
   protected notes = '';
 
   protected readonly remoteLabel = remoteLabel;
-  protected readonly seniority = (s: Seniority) => SENIORITY[s] ?? s;
+  protected readonly seniority = (s: Seniority) => t().seniority[s] ?? s;
+  protected readonly t = t;
+  protected readonly lang = lang;
   protected readonly employmentList = (types: Parameters<typeof employmentLabel>[0][]) => types.map(employmentLabel).join(', ');
 
   async ngOnInit(): Promise<void> {
@@ -267,9 +254,9 @@ export class ProfilePage implements OnInit {
     try {
       await this.profiles.updateGender(gender);
       this.view.update(v => (v ? { ...v, gender } : v));
-      this.toast('Nastavení bylo uloženo.');
+      this.toast(t().profile.settingsSaved);
     } catch (error) {
-      this.toast(problemMessage(error, 'Nastavení se nepodařilo uložit.'));
+      this.toast(problemMessage(error, t().profile.settingsFailed));
     }
   }
 
@@ -283,8 +270,8 @@ export class ProfilePage implements OnInit {
       this.show(after);
       if (before === null && after.version !== null) this.firstSearch.set(true);
       this.toast(after.version === before
-        ? 'Nic se nezměnilo – profil zůstává stejný.'
-        : 'Profil byl vyhodnocen. Nové nabídky budeme hledat a hodnotit podle něj.');
+        ? t().profile.unchanged
+        : t().profile.evaluated);
     } catch (error) {
       this.toast(aiErrorMessage(error), 6000);
     } finally {

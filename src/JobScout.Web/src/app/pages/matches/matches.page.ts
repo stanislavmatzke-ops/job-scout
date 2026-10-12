@@ -11,6 +11,7 @@ import { MatchesService } from '../../core/matches.service';
 import { MatchList, MatchListItem, MatchView } from '../../core/matches.models';
 import { VIEWS, parseView, scoreTone, statusLabel } from '../../core/match-format';
 import { SCOUT_POLL_MS, ScoutService, ScoutStatus } from '../../core/scout.service';
+import { lang, t } from '../../core/i18n';
 
 @Component({
   selector: 'app-matches-page',
@@ -18,23 +19,22 @@ import { SCOUT_POLL_MS, ScoutService, ScoutStatus } from '../../core/scout.servi
   imports: [RouterLink, DatePipe, MatTabsModule, MatCardModule, MatIconModule, MatButtonModule, MatProgressBarModule, MatTooltipModule],
   template: `
     <header class="page-head">
-      <h1>Nabídky</h1>
-      <p>Nabídky práce vybrané pro váš profil. Číslo u nabídky je <strong>shoda s vaším profilem na škále 1–10</strong> – čím vyšší, tím lépe nabídka odpovídá tomu, co umíte a hledáte. Hodnotí ji AI.</p>
+      <h1>{{ t().matches.title }}</h1>
+      <p>{{ t().matches.intro1 }}<strong>{{ t().matches.introStrong }}</strong>{{ t().matches.intro2 }}</p>
     </header>
     @if (scout(); as s) {
       @if (s.searching) {
         <mat-card appearance="outlined" class="searching" role="status">
           <mat-progress-bar mode="indeterminate" />
           <mat-card-content>
-            <strong>Hledáme pro vás nabídky.</strong>
-            Prohledáváme portály, AI nalezené inzeráty třídí a ty nejvhodnější hodnotí – obvykle to trvá několik minut.
-            Seznam se obnoví sám, stránku můžete klidně zavřít.
+            <strong>{{ t().matches.searchingTitle }}</strong>
+            {{ t().matches.searchingText }}
           </mat-card-content>
         </mat-card>
       } @else {
         <p class="schedule">
-          Nové nabídky pro vás hledáme každé ráno.
-          @if (s.lastSearchAt) { Naposledy {{ s.lastSearchAt | date: 'd. M. y H:mm' }}. }
+          {{ t().matches.schedule }}
+          @if (s.lastSearchAt) { {{ t().matches.last((s.lastSearchAt | date: t().fmt.dateTime : undefined : lang()) ?? '') }} }
         </p>
       }
     }
@@ -50,7 +50,7 @@ import { SCOUT_POLL_MS, ScoutService, ScoutStatus } from '../../core/scout.servi
 
     <mat-tab-nav-panel #panel>
       @if (loading()) { <mat-progress-bar mode="indeterminate" /> }
-      @if (failed()) { <p class="error">Nabídky se nepodařilo načíst. Zkuste prosím stránku obnovit.</p> }
+      @if (failed()) { <p class="error">{{ t().matches.loadFailed }}</p> }
 
       @if (list(); as l) {
         <div class="items">
@@ -58,27 +58,27 @@ import { SCOUT_POLL_MS, ScoutService, ScoutStatus } from '../../core/scout.servi
             <mat-card appearance="outlined" class="item">
               <div class="score {{ tone(item) }}" [matTooltip]="scoreHint(item)" [attr.aria-label]="scoreHint(item)">
                 @if (item.score !== null) {
-                  <span class="value">{{ item.score }}<small>/10</small></span><span class="caption">shoda</span>
+                  <span class="value">{{ item.score }}<small>/10</small></span><span class="caption">{{ t().score.match }}</span>
                 } @else {
-                  <span class="value">–</span><span class="caption">čeká</span>
+                  <span class="value">–</span><span class="caption">{{ t().score.waiting }}</span>
                 }
               </div>
               <div class="body">
                 <a class="title" [routerLink]="['/matches', item.id]">{{ item.title }}</a>
-                <div class="meta">{{ item.company }} · {{ item.location }} · nalezeno {{ item.foundAt | date: 'd. M.' }}</div>
+                <div class="meta">{{ item.company }} · {{ item.location }} · {{ t().matches.found((item.foundAt | date: t().fmt.dayMonth : undefined : lang()) ?? '') }}</div>
                 @if (item.summary) {
-                  <p class="summary"><mat-icon class="ai-mark" matTooltip="Shrnutí od AI">auto_awesome</mat-icon> {{ item.summary }}</p>
+                  <p class="summary"><mat-icon class="ai-mark" [matTooltip]="t().matches.aiSummary">auto_awesome</mat-icon> {{ item.summary }}</p>
                 } @else if (item.triageReason) {
                   <p class="summary muted">{{ item.triageReason }}</p>
                 } @else if (item.stage === 'Shortlisted') {
-                  <p class="summary muted">Čeká na ohodnocení (předběžná relevance {{ item.triageScore }}/5).</p>
+                  <p class="summary muted">{{ t().matches.waitingEval(item.triageScore) }}</p>
                 }
               </div>
               <div class="side">
-                @if (item.evaluationOutdated) { <span class="outdated" matTooltip="Ohodnoceno podle starší verze profilu">starší profil</span> }
+                @if (item.evaluationOutdated) { <span class="outdated" [matTooltip]="t().matches.outdatedHint">{{ t().matches.outdated }}</span> }
                 @if (item.status !== 'New') { <span class="status">{{ statusLabel(item.status) }}</span> }
-                @if (item.hasCoverLetter) { <mat-icon matTooltip="Průvodní dopis je připraven">mail</mat-icon> }
-                <a mat-icon-button [href]="item.url" target="_blank" rel="noopener" matTooltip="Otevřít inzerát">
+                @if (item.hasCoverLetter) { <mat-icon [matTooltip]="t().matches.letterReady">mail</mat-icon> }
+                <a mat-icon-button [href]="item.url" target="_blank" rel="noopener" [matTooltip]="t().matches.openAd" [attr.aria-label]="t().matches.openAd">
                   <mat-icon>open_in_new</mat-icon>
                 </a>
               </div>
@@ -87,7 +87,7 @@ import { SCOUT_POLL_MS, ScoutService, ScoutStatus } from '../../core/scout.servi
             <p class="empty">
               {{ emptyText() }}
               @if (isEmptyAccount(l)) {
-                <br />Ještě nemáte nahraný životopis? <a routerLink="/profile">Začněte na stránce Profil.</a>
+                <br />{{ t().matches.noCv }} <a routerLink="/profile">{{ t().matches.startProfile }}</a>
               }
             </p>
           }
@@ -131,6 +131,8 @@ export class MatchesPage {
   protected readonly scout = signal<ScoutStatus | null>(null);
 
   protected readonly statusLabel = statusLabel;
+  protected readonly t = t;
+  protected readonly lang = lang;
 
   constructor() {
     // Reload whenever the tab in the URL changes
@@ -171,7 +173,7 @@ export class MatchesPage {
   }
 
   protected scoreHint(item: MatchListItem): string {
-    return item.score === null ? 'Zatím neohodnoceno' : `Shoda s profilem ${item.score}/10`;
+    return item.score === null ? t().score.notEvaluated : t().score.hint(item.score);
   }
 
   private async load(view: MatchView): Promise<void> {

@@ -1,8 +1,9 @@
-﻿import { HttpErrorResponse, HttpInterceptorFn } from '@angular/common/http';
+import { HttpErrorResponse, HttpInterceptorFn } from '@angular/common/http';
 import { inject } from '@angular/core';
 import { Router } from '@angular/router';
 import { catchError, throwError } from 'rxjs';
 import { AuthService } from './auth.service';
+import { lang } from './i18n';
 
 const READ_ONLY = ['GET', 'HEAD', 'OPTIONS'];
 
@@ -16,6 +17,10 @@ export const apiInterceptor: HttpInterceptorFn = (req, next) => {
   const auth = inject(AuthService);
   const router = inject(Router);
 
+  // The API answers in Czech today; the header lets it localize its messages later without touching the frontend
+  if (req.url.startsWith('/api/')) {
+    req = req.clone({ setHeaders: { 'Accept-Language': lang() } });
+  }
   if (req.url.startsWith('/api/') && !READ_ONLY.includes(req.method)) {
     req = req.clone({ setHeaders: { 'X-CSRF': '1' } });
   }

@@ -1,17 +1,23 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import { EmploymentType, MatchCounts, MatchStatus, MatchView, RemoteWork } from './matches.models';
+import { lang, t } from './i18n';
 
-export interface ViewTab { view: MatchView; param: string; label: string; countKey: keyof MatchCounts; empty: string; }
+export interface ViewTab { view: MatchView; param: string; readonly label: string; countKey: keyof MatchCounts; readonly empty: string; }
+
+/** Labels are getters – they follow the current language without the templates doing anything. */
+function tab(view: MatchView, param: string, countKey: keyof MatchCounts): ViewTab {
+  return {
+    view, param, countKey,
+    get label() { return t().views[view].label; },
+    get empty() { return t().views[view].empty; },
+  };
+}
 
 export const VIEWS: ViewTab[] = [
-  { view: 'Open', param: 'open', label: 'K rozhodnutí', countKey: 'open',
-    empty: 'Žádné nabídky nečekají na vaše rozhodnutí. Nové přibudou po ranním vyhledávání.' },
-  { view: 'InProgress', param: 'inprogress', label: 'V procesu', countKey: 'inProgress',
-    empty: 'Zatím jste na žádnou nabídku nereagovali.' },
-  { view: 'Closed', param: 'closed', label: 'Uzavřené', countKey: 'closed',
-    empty: 'Žádné uzavřené nabídky.' },
-  { view: 'TriagedOut', param: 'triagedout', label: 'Vyřazené tříděním', countKey: 'triagedOut',
-    empty: 'Automatické třídění zatím nic nevyřadilo.' },
+  tab('Open', 'open', 'open'),
+  tab('InProgress', 'inprogress', 'inProgress'),
+  tab('Closed', 'closed', 'closed'),
+  tab('TriagedOut', 'triagedout', 'triagedOut'),
 ];
 
 /** ?view=… from the URL → a view; anything unknown = Open. */
@@ -19,32 +25,19 @@ export function parseView(param: string | null | undefined): MatchView {
   return VIEWS.find(v => v.param === param?.toLowerCase())?.view ?? 'Open';
 }
 
-export const STATUS_OPTIONS: { value: MatchStatus; label: string }[] = [
-  { value: 'New', label: 'Nová' },
-  { value: 'SavedForLater', label: 'Uloženo na později' },
-  { value: 'Applied', label: 'Reakce odeslána' },
-  { value: 'Call', label: 'Telefonát / první kontakt' },
-  { value: 'Round1', label: '1. kolo pohovoru' },
-  { value: 'Round2', label: '2. kolo pohovoru' },
-  { value: 'Offer', label: 'Nabídka práce' },
-  { value: 'Rejected', label: 'Zamítnuto' },
-  { value: 'Withdrawn', label: 'Staženo' },
-  { value: 'Dismissed', label: 'Nemám zájem' },
-  { value: 'Hidden', label: 'Skrýt nabídku' },
+const STATUSES: MatchStatus[] = [
+  'New', 'SavedForLater', 'Applied', 'Call', 'Round1', 'Round2', 'Offer', 'Rejected', 'Withdrawn', 'Dismissed', 'Hidden',
 ];
 
+export const STATUS_OPTIONS: { readonly value: MatchStatus; readonly label: string }[] =
+  STATUSES.map(value => ({ value, get label() { return t().status[value]; } }));
+
 export function statusLabel(status: MatchStatus): string {
-  return STATUS_OPTIONS.find(s => s.value === status)?.label ?? status;
+  return t().status[status] ?? status;
 }
 
-const REMOTE: Record<RemoteWork, string> = {
-  Unknown: 'Neuvedeno', Full: 'Plně na dálku', Hybrid: 'Hybridně', Onsite: 'Na pracovišti',
-};
-const EMPLOYMENT: Record<EmploymentType, string> = {
-  Unknown: 'Neuvedeno', Employee: 'Zaměstnanec (HPP)', Contractor: 'Externista (IČO)', Both: 'HPP i IČO',
-};
-export const remoteLabel = (value: RemoteWork) => REMOTE[value] ?? value;
-export const employmentLabel = (value: EmploymentType) => EMPLOYMENT[value] ?? value;
+export const remoteLabel = (value: RemoteWork) => t().remote[value] ?? value;
+export const employmentLabel = (value: EmploymentType) => t().employment[value] ?? value;
 
 /** 7+ = worth a reply (the same threshold as the automatic letters), 4–6 maybe, ≤3 weak, none = not evaluated yet. */
 export function scoreTone(score: number | null): 'good' | 'maybe' | 'weak' | 'pending' {
@@ -52,17 +45,24 @@ export function scoreTone(score: number | null): 'good' | 'maybe' | 'weak' | 'pe
   return score >= 7 ? 'good' : score >= 4 ? 'maybe' : 'weak';
 }
 
-/** The API's ProblemDetails.detail is written for users – show it; otherwise a generic message. */
+/**
+ * The API's ProblemDetails.detail is written for users – in Czech. Shown in the Czech UI;
+ * the English UI shows our own fallback instead of a Czech sentence.
+ */
 export function problemMessage(error: unknown, fallback: string): string {
-  return error instanceof HttpErrorResponse && typeof error.error?.detail === 'string' ? error.error.detail : fallback;
+  return lang() === 'cs' && error instanceof HttpErrorResponse && typeof error.error?.detail === 'string'
+    ? error.error.detail
+    : fallback;
 }
 
 /**
- * Errors of the AI buttons. The API already says what happened (409 no CV / not evaluated, 410 ad removed,
- * 502 letter cut off, 503 portal down) – we only add a text for 403, which comes without a body.
+ * Errors of the AI buttons. In Czech the API already says what happened (409 no CV / not evaluated, 410 ad removed,
+ * 502 letter cut off, 503 portal down); in English we say it by the status code. 403 comes without a body.
  */
 export function aiErrorMessage(error: unknown): string {
-  if (error instanceof HttpErrorResponse && error.status === 403)
-    return 'Funkce AI nejsou pro váš účet momentálně dostupné.';
-  return problemMessage(error, 'Akce se nezdařila. Zkuste to prosím znovu.');
+  const status = error instanceof HttpErrorResponse ? error.status : 0;
+  const e = t().errors;
+  if (status === 403) return e.aiUnavailable;
+  const byStatus: Record<number, string> = { 409: e.ai409, 410: e.ai410, 502: e.ai502, 503: e.ai503 };
+  return problemMessage(error, byStatus[status] ?? t().common.actionFailed);
 }

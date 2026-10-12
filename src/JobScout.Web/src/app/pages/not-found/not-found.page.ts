@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
+import { t } from '../../core/i18n';
 
 /** Any unknown address inside the app – an old bookmark, a mistyped link, a job that is no longer ours. */
 @Component({
@@ -11,9 +12,9 @@ import { MatIconModule } from '@angular/material/icon';
   template: `
     <div class="box">
       <mat-icon class="big">explore_off</mat-icon>
-      <h1>Stránka nenalezena</h1>
-      <p>Adresa, kterou jste otevřeli, v aplikaci neexistuje. Možná jde o starý odkaz nebo překlep.</p>
-      <a mat-flat-button routerLink="/">Přejít na nabídky</a>
+      <h1>{{ t().notFound.title }}</h1>
+      <p>{{ t().notFound.text }}</p>
+      <a mat-flat-button routerLink="/">{{ t().notFound.home }}</a>
     </div>
   `,
   styles: `
@@ -22,4 +23,6 @@ import { MatIconModule } from '@angular/material/icon';
     p { color: var(--js-muted); }
   `,
 })
-export class NotFoundPage {}
+export class NotFoundPage {
+  protected readonly t = t;
+}

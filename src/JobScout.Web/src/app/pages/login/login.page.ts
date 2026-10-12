@@ -9,11 +9,8 @@ import { AuthService } from '../../core/auth.service';
 import { AuthProviders } from '../../core/models';
 import { problemMessage } from '../../core/match-format';
 import { Logo } from '../../shared/logo';
-
-const ERRORS: Record<string, string> = {
-  'invitation-invalid': 'Pozvánka je neplatná, již byla použita, nebo vypršela její platnost.',
-  'no-identity': 'Přihlášení se nezdařilo – poskytovatel nevrátil údaje o účtu. Zkuste to prosím znovu.',
-};
+import { LangSwitch } from '../../shared/lang-switch';
+import { t } from '../../core/i18n';
 
 /**
  * Official brand marks, as the providers' sign-in guidelines require – downloaded from Google and Microsoft,
@@ -30,13 +27,14 @@ export const SAMPLE_PERSONA = 'sample';
 @Component({
   selector: 'app-login-page',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [FormsModule, MatButtonModule, MatFormFieldModule, MatInputModule, MatIconModule, Logo],
+  imports: [FormsModule, MatButtonModule, MatFormFieldModule, MatInputModule, MatIconModule, Logo, LangSwitch],
   template: `
     <main class="wrap">
       <section class="panel" aria-labelledby="title">
+        <app-lang-switch class="lang" />
         <app-logo [size]="48" />
-        <h1 id="title">Přihlaste se do Job Scout</h1>
-        <p class="lead">Každé ráno projdeme nové nabídky práce, AI je ohodnotí podle vašeho životopisu a k nejlepším připraví průvodní dopis.</p>
+        <h1 id="title">{{ t().login.title }}</h1>
+        <p class="lead">{{ t().login.lead }}</p>
 
         @if (errorText(); as text) { <p class="error" role="alert">{{ text }}</p> }
 
@@ -44,33 +42,33 @@ export const SAMPLE_PERSONA = 'sample';
           @for (provider of providers()?.external ?? []; track provider) {
             <button type="button" class="provider" (click)="signIn(provider)">
               <img [src]="mark(provider)" alt="" width="18" height="18" (error)="$any($event.target).hidden = true" />
-              <span>Pokračovat přes {{ providerName(provider) }}</span>
+              <span>{{ t().login.continueWith(providerName(provider)) }}</span>
             </button>
           }
         </div>
 
         @if (providers()?.devSignIn) {
-          <div class="or"><span>nebo</span></div>
+          <div class="or"><span>{{ t().login.or }}</span></div>
 
           @if (!sampleOpen()) {
             <button type="button" class="provider sample" (click)="sampleOpen.set(true)">
               <mat-icon>science</mat-icon>
-              <span>Vyzkoušet bez registrace</span>
+              <span>{{ t().login.tryIt }}</span>
             </button>
           } @else {
             <form class="sample-form" (ngSubmit)="devSignIn()">
               <mat-form-field appearance="outline" subscriptSizing="dynamic">
-                <mat-label>Testovací účet</mat-label>
+                <mat-label>{{ t().login.testAccount }}</mat-label>
                 <input matInput name="persona" [(ngModel)]="persona" autocomplete="off" />
               </mat-form-field>
-              <button mat-flat-button type="submit" [disabled]="!persona.trim()">Vstoupit</button>
+              <button mat-flat-button type="submit" [disabled]="!persona.trim()">{{ t().login.enter }}</button>
             </form>
             @if (devError(); as e) { <p class="error" role="alert">{{ e }}</p> }
           }
         }
 
         <p class="fine">
-          Přihlásit se můžete účtem Google nebo Microsoft@if (providers()?.devSignIn) {, případně si aplikaci vyzkoušet jako testovací uživatel}.
+          {{ t().login.fine }}@if (providers()?.devSignIn) {<span>{{ t().login.fineTest }}</span>}.
         </p>
       </section>
     </main>
@@ -78,11 +76,13 @@ export const SAMPLE_PERSONA = 'sample';
   styles: `
     .wrap { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 32px 16px; box-sizing: border-box; }
     .panel {
+      position: relative;
       width: 100%; max-width: 400px; padding: 36px 32px 24px; box-sizing: border-box;
       background: var(--js-surface); border: 1px solid var(--js-border); border-radius: 14px;
       display: flex; flex-direction: column; align-items: stretch; text-align: center;
     }
     app-logo { align-self: center; margin-bottom: 16px; }
+    .lang { position: absolute; top: 12px; right: 12px; }
     h1 { margin: 0 0 8px; font-size: 1.4rem; font-weight: 600; }
     .lead { margin: 0 0 24px; color: var(--js-muted); line-height: 1.5; }
     .providers { display: flex; flex-direction: column; gap: 10px; }
@@ -117,7 +117,8 @@ export class LoginPage implements OnInit {
   protected readonly devError = signal<string | null>(null);
   protected persona = SAMPLE_PERSONA;
 
-  protected errorText = () => (this.error() ? ERRORS[this.error()!] ?? 'Přihlášení se nezdařilo.' : null);
+  protected readonly t = t;
+  protected errorText = () => (this.error() ? t().login.errors[this.error()!] ?? t().login.failed : null);
   protected providerName = (p: string) => PROVIDERS[p]?.name ?? p;
   protected mark = (p: string) => PROVIDERS[p]?.mark ?? '';
 
@@ -136,7 +137,7 @@ export class LoginPage implements OnInit {
     try {
       await this.auth.devSignIn(persona);
     } catch (e) {
-      this.devError.set(problemMessage(e, 'Přihlášení se nezdařilo.'));
+      this.devError.set(problemMessage(e, t().login.failed));
       return;
     }
     await this.router.navigateByUrl(this.returnUrl());

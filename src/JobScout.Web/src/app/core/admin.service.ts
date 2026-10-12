@@ -3,7 +3,6 @@ import { Injectable, inject } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 import { AdminUser, CreatedInvitation, Invitation, InvitationLink } from './admin.models';
 
-export const DEFAULT_SUSPEND_REASON = 'Z kapacitních důvodů je účet dočasně pozastaven.';
 export const MAX_SUSPEND_REASON = 500;      // = User.MaxSuspendReasonLength
 export const MAX_INVITATION_NOTE = 200;     // = AdminEndpoints.MaxInvitationNoteLength
 

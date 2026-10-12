@@ -1,4 +1,4 @@
-namespace JobScout.Application.Profiles;
+﻿namespace JobScout.Application.Profiles;
 
 internal static class ProfilePrompts
 {
@@ -6,7 +6,7 @@ internal static class ProfilePrompts
     /// Analysis version – part of the input hash. Bump it whenever System or Schema changes:
     /// every stored profile is then re-analysed on its next run (stale profiles never linger).
     /// </summary>
-    public const int Version = 2;
+    public const int Version = 3;                // 3: profile in the language of the CV (12 Oct)
 
     public const string System = """
         Jsi zkušený personalista, který zná český pracovní trh napříč obory – od řemesel, výroby a stavebnictví
@@ -22,7 +22,10 @@ internal static class ProfilePrompts
         - Dovednosti piš krátce, jak se v oboru běžně označují; názvy technologií, materiálů, strojů,
           oprávnění a certifikátů ponech v originále (např. "C#", "Standox", "svářečský průkaz ZK 135", "ŘP sk. C").
         - Údaje si nesmí odporovat: co je v avoid, nesmí být mezi profesemi ani místy pro hledání.
-        - Piš spisovnou češtinou (kromě vlastních názvů a názvů technologií).
+        - Jazyk profilu = jazyk CV: CV psané anglicky → všechny texty profilu anglicky (headline, role, dovednosti,
+          obory, jazyky, priority, avoid); jinak spisovnou češtinou (kromě vlastních názvů a názvů technologií).
+        - Výjimka: search.professions a search.keywords jsou hledané výrazy pro české portály – vždy je piš tak,
+          jak se na nich práce inzeruje (česky; u IT a dalších oborů, kde je to běžné, i anglické názvy pozic).
 
         Hledání (search):
         - professions: 2–6 názvů pozic, pod kterými se taková práce inzeruje na českých portálech, od nejdůležitější.

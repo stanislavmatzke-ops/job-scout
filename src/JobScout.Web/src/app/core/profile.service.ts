@@ -2,6 +2,7 @@ import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 import { GrammaticalGender, ProfileView } from './profile.models';
+import { t } from './i18n';
 
 export const CV_EXTENSIONS = ['.pdf', '.md', '.txt'];
 export const CV_MAX_BYTES = 5 * 1024 * 1024;   // = StoredCv.MaxBytes on the server
@@ -9,9 +10,9 @@ export const CV_MAX_BYTES = 5 * 1024 * 1024;   // = StoredCv.MaxBytes on the ser
 /** Checked in the browser too – the user learns at once, and we don't upload 50 MB just to hear "too big". */
 export function cvProblem(file: File): string | null {
   const name = file.name.toLowerCase();
-  if (!CV_EXTENSIONS.some(ext => name.endsWith(ext))) return 'Podporované formáty životopisu jsou PDF, Markdown (.md) a text (.txt).';
-  if (file.size === 0) return 'Soubor je prázdný.';
-  if (file.size > CV_MAX_BYTES) return 'Životopis může mít nejvýš 5 MB.';
+  if (!CV_EXTENSIONS.some(ext => name.endsWith(ext))) return t().profile.cvFormats;
+  if (file.size === 0) return t().profile.cvEmpty;
+  if (file.size > CV_MAX_BYTES) return t().profile.cvTooBig;
   return null;
 }
 

@@ -6,22 +6,25 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatMenuModule } from '@angular/material/menu';
 import { AuthService } from '../core/auth.service';
 import { Logo } from '../shared/logo';
+import { LangSwitch } from '../shared/lang-switch';
+import { t } from '../core/i18n';
 
 @Component({
   selector: 'app-shell',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterOutlet, RouterLink, RouterLinkActive, MatToolbarModule, MatButtonModule, MatIconModule, MatMenuModule, Logo],
+  imports: [RouterOutlet, RouterLink, RouterLinkActive, MatToolbarModule, MatButtonModule, MatIconModule, MatMenuModule, Logo, LangSwitch],
   template: `
     <mat-toolbar class="toolbar">
       <a routerLink="/" class="brand"><app-logo [size]="28" /><span>Job Scout</span></a>
       @if (auth.isMember()) {
         <nav class="nav">
-          <a routerLink="/matches" routerLinkActive="active">Nabídky</a>
-          <a routerLink="/profile" routerLinkActive="active">Profil</a>
-          @if (auth.me()?.isAdmin) { <a routerLink="/admin" routerLinkActive="active">Správa</a> }
+          <a routerLink="/matches" routerLinkActive="active">{{ t().shell.matches }}</a>
+          <a routerLink="/profile" routerLinkActive="active">{{ t().shell.profile }}</a>
+          @if (auth.me()?.isAdmin) { <a routerLink="/admin" routerLinkActive="active">{{ t().shell.admin }}</a> }
         </nav>
       }
       <span class="spacer"></span>
+      <app-lang-switch class="lang" />
       @if (auth.me(); as me) {
         <button mat-button class="user" [matMenuTriggerFor]="userMenu">
           <span class="avatar" aria-hidden="true">{{ initials(me.displayName) }}</span>
@@ -29,16 +32,16 @@ import { Logo } from '../shared/logo';
         </button>
         <mat-menu #userMenu="matMenu">
           <div class="menu-head">{{ me.email || me.identity }}</div>
-          <button mat-menu-item (click)="signOut()"><mat-icon>logout</mat-icon> Odhlásit se</button>
+          <button mat-menu-item (click)="signOut()"><mat-icon>logout</mat-icon> {{ t().shell.signOut }}</button>
         </mat-menu>
       }
     </mat-toolbar>
 
     @if (auth.me()?.access === 'Suspended') {
       <div class="suspended" role="alert">
-        <strong>Účet je pozastaven.</strong> {{ auth.me()?.suspendedReason }}
-        Své nabídky si můžete dál prohlížet, vyhledávání nových nabídek a funkce AI jsou však vypnuté.
-        <a routerLink="/access">Požádat o obnovení přístupu</a>
+        <strong>{{ t().shell.suspendedTitle }}</strong> {{ auth.me()?.suspendedReason }}
+        {{ t().shell.suspendedText }}
+        <a routerLink="/access">{{ t().shell.askRestore }}</a>
       </div>
     }
 
@@ -54,6 +57,7 @@ import { Logo } from '../shared/logo';
     .nav a:hover { color: var(--js-text); }
     .nav a.active { color: var(--js-text); border-bottom-color: var(--js-primary); }
     .spacer { flex: 1; }
+    .lang { margin-right: 8px; }
     .user { color: var(--js-text); }
     .avatar { display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; border-radius: 50%;
               background: #e4eefa; color: var(--js-primary); font-size: 0.75rem; font-weight: 700; margin-right: 8px; }
@@ -70,6 +74,7 @@ import { Logo } from '../shared/logo';
 })
 export class ShellComponent {
   protected readonly auth = inject(AuthService);
+  protected readonly t = t;
   private readonly router = inject(Router);
 
   constructor() {

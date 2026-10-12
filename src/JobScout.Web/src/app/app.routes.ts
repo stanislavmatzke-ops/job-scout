@@ -2,11 +2,12 @@ import { Routes } from '@angular/router';
 import { adminGuard, memberGuard, signedInGuard, signedOutGuard } from './core/guards';
 import { ShellComponent } from './layout/shell.component';
 
+/** title = a key of t().titles – I18nTitleStrategy makes "Nabídky – Job Scout" / "Jobs – Job Scout" of it. */
 export const routes: Routes = [
   {
     path: 'login',
     canActivate: [signedOutGuard],
-    title: 'Přihlášení – Job Scout',
+    title: 'login',
     loadComponent: () => import('./pages/login/login.page').then(m => m.LoginPage),
   },
   {
@@ -16,7 +17,7 @@ export const routes: Routes = [
     children: [
       {
         path: 'access',
-        title: 'Přístup – Job Scout',
+        title: 'access',
         loadComponent: () => import('./pages/access/access.page').then(m => m.AccessPage),
       },
       {
@@ -26,28 +27,28 @@ export const routes: Routes = [
           { path: '', pathMatch: 'full', redirectTo: 'matches' },
           {
             path: 'matches',
-            title: 'Nabídky – Job Scout',
+            title: 'matches',
             loadComponent: () => import('./pages/matches/matches.page').then(m => m.MatchesPage),
           },
           {
             path: 'profile',
-            title: 'Profil – Job Scout',
+            title: 'profile',
             loadComponent: () => import('./pages/profile/profile.page').then(m => m.ProfilePage),
           },
           {
             path: 'admin',
             canActivate: [adminGuard],
-            title: 'Správa – Job Scout',
+            title: 'admin',
             loadComponent: () => import('./pages/admin/admin.page').then(m => m.AdminPage),
           },
           {
             path: 'matches/:id',
-            title: 'Detail nabídky – Job Scout',
+            title: 'matchDetail',
             loadComponent: () => import('./pages/match-detail/match-detail.page').then(m => m.MatchDetailPage),
           },
           {
             path: '**',
-            title: 'Stránka nenalezena – Job Scout',
+            title: 'notFound',
             loadComponent: () => import('./pages/not-found/not-found.page').then(m => m.NotFoundPage),
           },
         ],
