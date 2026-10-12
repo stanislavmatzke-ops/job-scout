@@ -28,10 +28,17 @@ $env:JOBSCOUT_DEPLOY_APPS = if ($Base) { 'false' } else { 'true' }
 
 if (-not $Base) {
     if (-not $Tag) {
-        # The newest image = the last successful "Docker image" run on main
-        $sha = gh run list --workflow docker.yml --branch main --status success --limit 1 --json headSha --jq '.[0].headSha'
-        if (-not $sha) { throw 'No -Tag given and no successful Docker image run found (is the GitHub CLI installed and signed in?).' }
-        $Tag = "sha-$($sha.Substring(0, 7))"
+        if (Get-Command gh -ErrorAction SilentlyContinue) {
+            # The newest image = the last successful "Docker image" run on main
+            $sha = gh run list --workflow docker.yml --branch main --status success --limit 1 --json headSha --jq '.[0].headSha'
+        }
+        else {
+            # No GitHub CLI: the commit you have checked out - it must be pushed and its Docker image built (Actions)
+            $sha = git rev-parse HEAD
+            Write-Host 'GitHub CLI not found - using the checked-out commit. Is it pushed and is its Docker image green in Actions?'
+        }
+        if (-not $sha) { throw 'No -Tag given and no commit found.' }
+        $Tag = "sha-$($sha.Trim().Substring(0, 7))"
     }
     $env:JOBSCOUT_IMAGE = "ghcr.io/stanislavmatzke-ops/job-scout:$Tag"
     Write-Host "Deploying image $env:JOBSCOUT_IMAGE"
