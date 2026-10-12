@@ -1,52 +1,118 @@
-// Include theming for Angular Material with `mat.theme()`.
-// This Sass mixin will define CSS variables that are used for styling Angular Material
-// components according to the Material 3 design spec.
-// Learn more about theming and how to use it for your application's
-// custom components at https://material.angular.dev/guide/theming
 @use '@angular/material' as mat;
+@use 'sass:string';
+
+$font: string.unquote("'Segoe UI Variable Text', 'Segoe UI', system-ui, -apple-system, 'Helvetica Neue', Arial, sans-serif");
+
+/*
+ * Job Scout – visual language (design pass 12. 10. 2026)
+ * Calm, Azure-portal-like work tool: cool neutral page, white surfaces with a hairline border (no heavy shadows),
+ * one blue for actions. The one memorable thing is the AI layer: everything the AI wrote sits on an indigo-tinted
+ * panel with a sparkle mark, so the user always sees "this came from the AI" at a glance.
+ */
+:root {
+  --js-bg: #f4f6f9;          // page
+  --js-surface: #ffffff;     // cards, toolbar
+  --js-border: #e1e5eb;      // hairlines
+  --js-text: #1a2230;
+  --js-muted: #5a6576;
+  --js-primary: #0f6cbd;     // actions, links
+  --js-ai: #5b4fd6;          // the AI layer
+  --js-ai-tint: #f6f4ff;
+  --js-ai-border: #dcd7fb;
+  --js-good: #107c41;  --js-good-bg: #e7f4ec;
+  --js-maybe: #8a5a00; --js-maybe-bg: #fff4d6;
+  --js-weak: #5a6576;  --js-weak-bg: #eef1f5;
+  --js-radius: 10px;
+  --js-font: #{$font};
+}
 
 html {
   height: 100%;
-  @include mat.theme(
-    (
-      color: (
-        primary: mat.$azure-palette,
-        tertiary: mat.$blue-palette,
-      ),
-      typography: Roboto,
-      density: 0,
-    )
-  );
+  @include mat.theme((
+    color: (primary: mat.$azure-palette, tertiary: mat.$violet-palette),
+    typography: (plain-family: $font, brand-family: $font),
+    density: 0,
+  ));
+
+  // Cards: white on the grey page, hairline border, gentle radius – like Azure blades
+  @include mat.card-overrides((
+    outlined-container-color: var(--js-surface),
+    outlined-outline-color: var(--js-border),
+    outlined-container-shape: var(--js-radius),
+    title-text-size: 1.05rem,
+    title-text-weight: 600,
+  ));
+  @include mat.toolbar-overrides((
+    container-background-color: var(--js-surface),
+    container-text-color: var(--js-text),
+    standard-height: 56px,
+  ));
 }
 
 body {
-  // Default the application to a light color theme. This can be changed to
-  // `dark` to enable the dark color theme, or to `light dark` to defer to the
-  // user's system settings.
   color-scheme: light;
-
-  // Set a default background, font and text colors for the application using
-  // Angular Material's system-level CSS variables. Learn more about these
-  // variables at https://material.angular.dev/guide/system-variables
-  background-color: var(--mat-sys-surface);
-  color: var(--mat-sys-on-surface);
+  background-color: var(--js-bg);
+  color: var(--js-text);
   font: var(--mat-sys-body-medium);
-
-  // Reset the user agent margin.
+  font-family: var(--js-font);
   margin: 0;
   height: 100%;
 }
-/* You can add global styles to this file, and also import other style files */
 
-/* Score badge – the same look in the list and in the detail (7+ / 4–6 / ≤3 / not evaluated) */
-.score {
-  min-width: 44px; height: 44px; border-radius: 12px;
-  display: inline-flex; align-items: center; justify-content: center;
-  font-weight: 600; font-size: 1.1rem; flex-shrink: 0;
-  &.good    { background: #e3f4e5; color: #1b5e20; }
-  &.maybe   { background: #fff3d6; color: #8a5300; }
-  &.weak    { background: #eceff1; color: #546e7a; }
-  &.pending { border: 2px dashed #b0bec5; color: #78909c; }
+a { color: var(--js-primary); }
+h1, h2, h3 { color: var(--js-text); letter-spacing: -0.01em; }
+
+/* ---------- page header: title + one line of what this page is for ---------- */
+.page-head { margin: 4px 0 20px; }
+.page-head h1 { margin: 0; font-size: 1.6rem; font-weight: 600; line-height: 1.25; }
+.page-head p { margin: 4px 0 0; color: var(--js-muted); max-width: 72ch; }
+
+/* ---------- the AI layer ---------- */
+.ai-panel {
+  background: linear-gradient(180deg, var(--js-ai-tint) 0%, var(--js-surface) 140px);
+  border: 1px solid var(--js-ai-border);
+  border-radius: var(--js-radius);
+  box-shadow: inset 3px 0 0 var(--js-ai);
 }
-.muted { opacity: 0.7; }
+// Material card made into an AI panel: <mat-card appearance="outlined" class="ai-panel">
+.mat-mdc-card.ai-panel {
+  --mat-card-outlined-outline-color: var(--js-ai-border);
+  background: linear-gradient(180deg, var(--js-ai-tint) 0%, var(--js-surface) 140px);
+  box-shadow: inset 3px 0 0 var(--js-ai);
+}
+.ai-badge {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 2px 8px 2px 6px; border-radius: 999px;
+  background: var(--js-surface); border: 1px solid var(--js-ai-border);
+  color: var(--js-ai); font-size: 0.75rem; font-weight: 600; line-height: 1.5; white-space: nowrap;
+  .mat-icon { font-size: 14px; width: 14px; height: 14px; }
+}
+.ai-mark { color: var(--js-ai); font-size: 16px; width: 16px; height: 16px; vertical-align: -3px; }
+.ai-panel .mat-mdc-card-header-text { flex: 1; }
+.card-title-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; width: 100%; }
+
+/* ---------- match score: "8/10" + what it means ---------- */
+.score {
+  flex-shrink: 0; width: 56px; padding: 6px 0 5px; border-radius: 10px;
+  display: inline-flex; flex-direction: column; align-items: center; line-height: 1;
+  .value { font-size: 1.35rem; font-weight: 700; }
+  .value small { font-size: 0.7rem; font-weight: 600; opacity: 0.75; margin-left: 1px; }
+  .caption { font-size: 0.68rem; margin-top: 4px; opacity: 0.85; }
+  &.good    { background: var(--js-good-bg);  color: var(--js-good); }
+  &.maybe   { background: var(--js-maybe-bg); color: var(--js-maybe); }
+  &.weak    { background: var(--js-weak-bg);  color: var(--js-weak); }
+  &.pending { border: 1.5px dashed #b7c0cc; color: var(--js-muted); }
+}
+
+/* ---------- small shared bits ---------- */
+.muted { color: var(--js-muted); }
 .error { color: var(--mat-sys-error); }
+.notice {
+  display: flex; gap: 10px; align-items: flex-start;
+  padding: 10px 14px; margin: 0 0 16px; border-radius: var(--js-radius);
+  background: #eaf3fc; border: 1px solid #cfe2f6; color: var(--js-text);
+  .mat-icon { color: var(--js-primary); flex-shrink: 0; }
+  &.warn { background: #fff7e6; border-color: #f3dfb0; .mat-icon { color: var(--js-maybe); } }
+}
+:focus-visible { outline: 2px solid var(--js-primary); outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }

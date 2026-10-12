@@ -5,25 +5,30 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatMenuModule } from '@angular/material/menu';
 import { AuthService } from '../core/auth.service';
+import { Logo } from '../shared/logo';
 
 @Component({
   selector: 'app-shell',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterOutlet, RouterLink, RouterLinkActive, MatToolbarModule, MatButtonModule, MatIconModule, MatMenuModule],
+  imports: [RouterOutlet, RouterLink, RouterLinkActive, MatToolbarModule, MatButtonModule, MatIconModule, MatMenuModule, Logo],
   template: `
     <mat-toolbar class="toolbar">
-      <a routerLink="/" class="brand">Job Scout</a>
+      <a routerLink="/" class="brand"><app-logo [size]="28" /><span>Job Scout</span></a>
       @if (auth.isMember()) {
-        <a mat-button routerLink="/matches" routerLinkActive="active">Nabídky</a>
-        <a mat-button routerLink="/profile" routerLinkActive="active">Profil</a>
-        @if (auth.me()?.isAdmin) { <a mat-button routerLink="/admin" routerLinkActive="active">Správa</a> }
+        <nav class="nav">
+          <a routerLink="/matches" routerLinkActive="active">Nabídky</a>
+          <a routerLink="/profile" routerLinkActive="active">Profil</a>
+          @if (auth.me()?.isAdmin) { <a routerLink="/admin" routerLinkActive="active">Správa</a> }
+        </nav>
       }
       <span class="spacer"></span>
       @if (auth.me(); as me) {
-        <button mat-button [matMenuTriggerFor]="userMenu">
-          <mat-icon>account_circle</mat-icon> {{ me.displayName }}
+        <button mat-button class="user" [matMenuTriggerFor]="userMenu">
+          <span class="avatar" aria-hidden="true">{{ initials(me.displayName) }}</span>
+          <span class="name">{{ me.displayName }}</span>
         </button>
         <mat-menu #userMenu="matMenu">
+          <div class="menu-head">{{ me.email || me.identity }}</div>
           <button mat-menu-item (click)="signOut()"><mat-icon>logout</mat-icon> Odhlásit se</button>
         </mat-menu>
       }
@@ -40,12 +45,27 @@ import { AuthService } from '../core/auth.service';
     <main class="content"><router-outlet /></main>
   `,
   styles: `
-    .toolbar { position: sticky; top: 0; z-index: 10; gap: 8px; }
-    .brand { font-weight: 600; margin-right: 16px; color: inherit; text-decoration: none; }
+    .toolbar { position: sticky; top: 0; z-index: 10; gap: 4px; border-bottom: 1px solid var(--js-border); padding: 0 16px; }
+    .brand { display: inline-flex; align-items: center; gap: 10px; margin-right: 20px; color: inherit; text-decoration: none;
+             font-weight: 650; font-size: 1.05rem; letter-spacing: -0.01em; }
+    .nav { display: flex; align-self: stretch; gap: 4px; }
+    .nav a { display: inline-flex; align-items: center; padding: 0 12px; color: var(--js-muted); text-decoration: none;
+             font-size: 0.95rem; font-weight: 500; border-bottom: 2px solid transparent; margin-bottom: -1px; }
+    .nav a:hover { color: var(--js-text); }
+    .nav a.active { color: var(--js-text); border-bottom-color: var(--js-primary); }
     .spacer { flex: 1; }
-    .active { text-decoration: underline; }
+    .user { color: var(--js-text); }
+    .avatar { display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; border-radius: 50%;
+              background: #e4eefa; color: var(--js-primary); font-size: 0.75rem; font-weight: 700; margin-right: 8px; }
+    .menu-head { padding: 8px 16px; font-size: 0.8rem; color: var(--js-muted); border-bottom: 1px solid var(--js-border); }
     .suspended { padding: 12px 16px; background: var(--mat-sys-error-container); color: var(--mat-sys-on-error-container); }
-    .content { max-width: 1100px; margin: 0 auto; padding: 24px 16px; }
+    .content { max-width: 1120px; margin: 0 auto; padding: 24px 16px 48px; }
+    @media (max-width: 640px) {
+      .brand span, .name { display: none; }
+      .brand { margin-right: 8px; }
+      .nav a { padding: 0 8px; }
+      .avatar { margin-right: 0; }
+    }
   `,
 })
 export class ShellComponent {
@@ -59,6 +79,11 @@ export class ShellComponent {
     };
     document.addEventListener('visibilitychange', refresh);
     inject(DestroyRef).onDestroy(() => document.removeEventListener('visibilitychange', refresh));
+  }
+
+  protected initials(name: string): string {
+    const parts = name.trim().split(/\s+/).filter(Boolean);
+    return ((parts[0]?.[0] ?? '?') + (parts.length > 1 ? parts[parts.length - 1][0] : '')).toUpperCase();
   }
 
   protected async signOut(): Promise<void> {

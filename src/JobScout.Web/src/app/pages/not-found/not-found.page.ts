@@ -19,7 +19,7 @@ import { MatIconModule } from '@angular/material/icon';
   styles: `
     .box { text-align: center; padding: 48px 16px; }
     .big { font-size: 64px; width: 64px; height: 64px; opacity: 0.5; }
-    p { opacity: 0.8; }
+    p { color: var(--js-muted); }
   `,
 })
 export class NotFoundPage {}

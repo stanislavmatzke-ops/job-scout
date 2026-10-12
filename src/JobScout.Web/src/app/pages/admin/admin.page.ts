@@ -34,7 +34,10 @@ const ACCESS_LABELS: Record<AccessStatus, string> = {
     MatProgressBarModule,
   ],
   template: `
-    <h1>Správa</h1>
+    <header class="page-head">
+      <h1>Správa</h1>
+      <p>Žádosti o přístup, uživatelé a jejich náklady na AI, pozvánky.</p>
+    </header>
     @if (loading()) { <mat-progress-bar mode="indeterminate" /> }
     @if (error(); as e) { <p class="error" role="alert">{{ e }}</p> }
 
@@ -155,7 +158,7 @@ const ACCESS_LABELS: Record<AccessStatus, string> = {
   `,
   styles: `
     section { margin-bottom: 32px; }
-    h2 { display: flex; align-items: center; gap: 8px; }
+    h2 { display: flex; align-items: center; gap: 8px; font-size: 1.15rem; font-weight: 600; }
     .count { font-size: 14px; padding: 0 8px; border-radius: 12px; background: var(--mat-sys-primary); color: var(--mat-sys-on-primary); }
     .muted { color: var(--mat-sys-on-surface-variant); font-size: 14px; }
     .error { color: var(--mat-sys-error); }
@@ -164,8 +167,8 @@ const ACCESS_LABELS: Record<AccessStatus, string> = {
     .who { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
     .users { display: flex; flex-direction: column; gap: 8px; }
     .user { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 24px; padding: 12px 16px;
-            border: 1px solid var(--mat-sys-outline-variant); border-radius: 12px; }
-    .user.suspended { background: var(--mat-sys-surface-container); }
+            background: var(--js-surface); border: 1px solid var(--js-border); border-radius: var(--js-radius); }
+    .user.suspended { background: #f8f9fb; }
     .main { flex: 1 1 280px; min-width: 0; }
     .reason { font-size: 14px; margin-top: 4px; font-style: italic; }
     .cost { display: flex; flex-direction: column; font-variant-numeric: tabular-nums; font-size: 14px; min-width: 100px; }

@@ -17,7 +17,10 @@ import { SCOUT_POLL_MS, ScoutService, ScoutStatus } from '../../core/scout.servi
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [RouterLink, DatePipe, MatTabsModule, MatCardModule, MatIconModule, MatButtonModule, MatProgressBarModule, MatTooltipModule],
   template: `
-    <h1>Nabídky</h1>
+    <header class="page-head">
+      <h1>Nabídky</h1>
+      <p>Nabídky práce vybrané pro váš profil. Číslo u nabídky je <strong>shoda s vaším profilem na škále 1–10</strong> – čím vyšší, tím lépe nabídka odpovídá tomu, co umíte a hledáte. Hodnotí ji AI.</p>
+    </header>
     @if (scout(); as s) {
       @if (s.searching) {
         <mat-card appearance="outlined" class="searching" role="status">
@@ -53,12 +56,18 @@ import { SCOUT_POLL_MS, ScoutService, ScoutStatus } from '../../core/scout.servi
         <div class="items">
           @for (item of l.items; track item.id) {
             <mat-card appearance="outlined" class="item">
-              <div class="score {{ tone(item) }}" [matTooltip]="scoreHint(item)">{{ item.score ?? '–' }}</div>
+              <div class="score {{ tone(item) }}" [matTooltip]="scoreHint(item)" [attr.aria-label]="scoreHint(item)">
+                @if (item.score !== null) {
+                  <span class="value">{{ item.score }}<small>/10</small></span><span class="caption">shoda</span>
+                } @else {
+                  <span class="value">–</span><span class="caption">čeká</span>
+                }
+              </div>
               <div class="body">
                 <a class="title" [routerLink]="['/matches', item.id]">{{ item.title }}</a>
                 <div class="meta">{{ item.company }} · {{ item.location }} · nalezeno {{ item.foundAt | date: 'd. M.' }}</div>
                 @if (item.summary) {
-                  <p class="summary">{{ item.summary }}</p>
+                  <p class="summary"><mat-icon class="ai-mark" matTooltip="Shrnutí od AI">auto_awesome</mat-icon> {{ item.summary }}</p>
                 } @else if (item.triageReason) {
                   <p class="summary muted">{{ item.triageReason }}</p>
                 } @else if (item.stage === 'Shortlisted') {
@@ -87,17 +96,17 @@ import { SCOUT_POLL_MS, ScoutService, ScoutStatus } from '../../core/scout.servi
     </mat-tab-nav-panel>
   `,
   styles: `
-    .searching { margin-bottom: 16px; overflow: hidden; }
+    .searching { margin-bottom: 16px; overflow: hidden; border-color: var(--js-ai-border); background: var(--js-ai-tint); }
     .searching mat-card-content { padding-top: 12px; }
-    .schedule { margin: -8px 0 16px; opacity: 0.7; font-size: 0.9em; }
+    .schedule { margin: -8px 0 16px; color: var(--js-muted); font-size: 0.9em; }
     .count { margin-left: 6px; padding: 0 8px; border-radius: 10px; background: var(--mat-sys-surface-container-high); font-size: 0.8em; }
     .items { display: flex; flex-direction: column; gap: 12px; padding-top: 16px; }
-    .item { display: flex; flex-direction: row; align-items: flex-start; gap: 16px; padding: 16px; }
+    .item { display: flex; flex-direction: row; align-items: flex-start; gap: 16px; padding: 16px 16px 16px 14px; }
     .body { flex: 1; min-width: 0; }
-    .title { font-weight: 600; font-size: 1.05rem; text-decoration: none; color: inherit; }
+    .title { font-weight: 600; font-size: 1.05rem; text-decoration: none; color: var(--js-text); }
     .title:hover { text-decoration: underline; }
-    .meta { opacity: 0.7; font-size: 0.9em; margin-top: 2px; }
-    .summary { margin: 8px 0 0; }
+    .meta { color: var(--js-muted); font-size: 0.9em; margin-top: 2px; }
+    .summary { margin: 8px 0 0; line-height: 1.5; max-width: 80ch; }
     .side { display: flex; align-items: center; gap: 4px; }
     .status { font-size: 0.8em; padding: 2px 8px; border-radius: 8px; background: var(--mat-sys-secondary-container); }
     .outdated { font-size: 0.75em; padding: 2px 8px; border-radius: 8px; border: 1px dashed var(--mat-sys-outline); opacity: 0.8; }

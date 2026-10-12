@@ -38,7 +38,13 @@ type AiWork = 'evaluate' | 'letter';
 
     @if (detail(); as d) {
       <header class="head">
-        <div class="score {{ tone(d.score) }}">{{ d.score ?? '–' }}</div>
+        <div class="score big {{ tone(d.score) }}" [attr.aria-label]="d.score !== null ? 'Shoda s profilem ' + d.score + ' z 10' : 'Zatím neohodnoceno'">
+          @if (d.score !== null) {
+            <span class="value">{{ d.score }}<small>/10</small></span><span class="caption">shoda</span>
+          } @else {
+            <span class="value">–</span><span class="caption">čeká</span>
+          }
+        </div>
         <div class="head-text">
           <h1>{{ d.title }}</h1>
           <div class="meta">{{ d.company }} · {{ d.location }} · {{ d.source }} · nalezeno {{ d.foundAt | date: 'd. M. y' }}</div>
@@ -53,9 +59,13 @@ type AiWork = 'evaluate' | 'letter';
       <div class="grid">
         <section class="column">
           <!-- ===== Evaluation ===== -->
-          <mat-card appearance="outlined">
+          <mat-card appearance="outlined" class="ai-panel">
             <mat-card-header>
-              <mat-card-title>Hodnocení</mat-card-title>
+              <mat-card-title class="card-title-row">
+                <span>Hodnocení shody</span>
+                <span class="ai-badge"><mat-icon>auto_awesome</mat-icon>AI</span>
+              </mat-card-title>
+              <mat-card-subtitle>Jak nabídka odpovídá vašemu profilu – posoudila AI, rozhodujete vy</mat-card-subtitle>
             </mat-card-header>
             @if (working() === 'evaluate') {
               <mat-progress-bar mode="indeterminate" />
@@ -102,8 +112,14 @@ type AiWork = 'evaluate' | 'letter';
           </mat-card>
 
           <!-- ===== Cover letter ===== -->
-          <mat-card appearance="outlined">
-            <mat-card-header><mat-card-title>Průvodní dopis</mat-card-title></mat-card-header>
+          <mat-card appearance="outlined" class="ai-panel">
+            <mat-card-header>
+              <mat-card-title class="card-title-row">
+                <span>Průvodní dopis</span>
+                <span class="ai-badge"><mat-icon>auto_awesome</mat-icon>Návrh AI</span>
+              </mat-card-title>
+              <mat-card-subtitle>Upravte ho podle sebe a odešlete sami – nic neodesíláme za vás</mat-card-subtitle>
+            </mat-card-header>
             @if (working() === 'letter') {
               <mat-progress-bar mode="indeterminate" />
             }
@@ -212,25 +228,29 @@ type AiWork = 'evaluate' | 'letter';
   styles: `
     .head { display: flex; align-items: center; gap: 16px; margin: 8px 0 24px; flex-wrap: wrap; }
     .head-text { flex: 1; min-width: 240px; }
-    h1 { margin: 0; font-size: 1.6rem; }
-    .meta { opacity: 0.7; margin-top: 4px; }
+    h1 { margin: 0; font-size: 1.6rem; font-weight: 600; line-height: 1.25; }
+    .meta { color: var(--js-muted); margin-top: 4px; }
+    .score.big { width: 68px; padding: 8px 0 7px; }
+    .score.big .value { font-size: 1.7rem; }
+    mat-card-subtitle { margin-top: 2px; }
     .ai-off { padding: 8px 12px; border-radius: 8px; background: var(--mat-sys-surface-container-high); }
     .outdated { padding: 6px 10px; border-radius: 8px; border: 1px dashed var(--mat-sys-outline); font-size: 0.9em; }
     .grid { display: grid; grid-template-columns: 2fr 1fr; gap: 16px; align-items: start; }
     .column { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
-    .summary { font-size: 1.05rem; }
+    .summary { font-size: 1.05rem; line-height: 1.55; margin-top: 8px; }
     .facts { display: grid; grid-template-columns: max-content 1fr; gap: 4px 16px; }
-    .facts dt { opacity: 0.7; }
+    .facts dt { color: var(--js-muted); }
     .facts dd { margin: 0; }
     h3 { margin: 16px 0 4px; font-size: 1rem; }
     .reasons li::marker { content: '✓  '; color: #2e7d32; }
     .risks li::marker { content: '!  '; color: #c62828; }
-    .letter, .ad { white-space: pre-wrap; font-family: inherit; margin: 0; }
+    .letter, .ad { white-space: pre-wrap; font-family: inherit; margin: 0; line-height: 1.55; }
+    .letter { margin-top: 8px; padding: 16px; background: var(--js-surface); border: 1px solid var(--js-border); border-radius: 8px; }
     .actions { flex-wrap: wrap; gap: 4px; }
     .full { width: 100%; }
     .history { padding-left: 18px; margin: 0; }
     .history li { margin-bottom: 8px; }
-    .when { opacity: 0.7; font-size: 0.85em; margin-right: 6px; }
+    .when { color: var(--js-muted); font-size: 0.85em; margin-right: 6px; }
     .note { font-size: 0.9em; opacity: 0.85; }
     @media (max-width: 900px) { .grid { grid-template-columns: 1fr; } }
   `,

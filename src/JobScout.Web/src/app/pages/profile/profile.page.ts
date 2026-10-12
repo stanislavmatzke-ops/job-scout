@@ -30,7 +30,10 @@ type Work = 'cv' | 'notes';
     MatInputModule, MatRadioModule, MatChipsModule, MatProgressBarModule,
   ],
   template: `
-    <h1>Profil</h1>
+    <header class="page-head">
+      <h1>Profil</h1>
+      <p>Z vašeho životopisu a poznámek AI sestaví profil. Podle něj každé ráno hledáme nabídky, hodnotíme je a píšeme návrhy dopisů.</p>
+    </header>
 
     @if (loadError()) { <p class="error">Profil se nepodařilo načíst. Zkuste prosím stránku obnovit.</p> }
 
@@ -140,9 +143,12 @@ type Work = 'cv' | 'notes';
         <!-- ===== What the AI made of it ===== -->
         <aside class="column">
           @if (v.profile; as p) {
-            <mat-card appearance="outlined">
+            <mat-card appearance="outlined" class="ai-panel">
               <mat-card-header>
-                <mat-card-title>Jak vás vidí AI</mat-card-title>
+                <mat-card-title class="card-title-row">
+                  <span>Jak vás vidí AI</span>
+                  <span class="ai-badge"><mat-icon>auto_awesome</mat-icon>AI</span>
+                </mat-card-title>
                 <mat-card-subtitle>Podle tohoto profilu hledáme a hodnotíme nabídky</mat-card-subtitle>
               </mat-card-header>
               <mat-card-content>
@@ -198,12 +204,16 @@ type Work = 'cv' | 'notes';
     .full { width: 100%; }
     .small { font-size: 0.85em; }
     .inline { vertical-align: middle; }
-    .ai-off, .info { padding: 8px 12px; border-radius: 8px; background: var(--mat-sys-surface-container-high); }
-    .info { display: flex; gap: 8px; align-items: center; }
-    .headline { font-size: 1.1rem; font-weight: 500; margin-bottom: 4px; }
+    .ai-off, .info {
+      display: flex; gap: 10px; align-items: flex-start; padding: 10px 14px; margin: 0 0 16px;
+      border-radius: var(--js-radius); background: #eaf3fc; border: 1px solid #cfe2f6;
+    }
+    .info .mat-icon { color: var(--js-primary); flex-shrink: 0; }
+    .ai-off { background: #fff7e6; border-color: #f3dfb0; }
+    .headline { font-size: 1.2rem; font-weight: 600; line-height: 1.35; margin: 8px 0 4px; }
     h3 { margin: 16px 0 6px; font-size: 1rem; }
     .facts { display: grid; grid-template-columns: max-content 1fr; gap: 4px 16px; margin: 0; }
-    .facts dt { opacity: 0.7; }
+    .facts dt { color: var(--js-muted); }
     .facts dd { margin: 0; }
     .plain { margin: 0; padding-left: 20px; }
     .radios { display: flex; flex-direction: column; gap: 4px; }
