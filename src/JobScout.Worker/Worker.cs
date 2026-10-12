@@ -299,6 +299,13 @@ public class Worker(
     {
         var includeDev = config.GetValue<bool>("Scout:IncludeDevUsers");
 
+        // The demo account starts every day clean – yesterday's visitors' statuses and notes go away (ADR-0020)
+        await using (var scope = scopeFactory.CreateAsyncScope())
+        {
+            var reset = await scope.ServiceProvider.GetRequiredService<JobScout.Application.Demo.ResetDemo>().ExecuteAsync(ct);
+            if (reset > 0) logger.LogInformation("Ukázkový účet: vráceno do výchozího stavu {Count} nabídek", reset);
+        }
+
         IReadOnlyList<Guid> userIds;
         await using (var scope = scopeFactory.CreateAsyncScope())
             userIds = await scope.ServiceProvider.GetRequiredService<ListScoutUsers>().ExecuteAsync(includeDev, ct);

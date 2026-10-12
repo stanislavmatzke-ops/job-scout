@@ -53,7 +53,7 @@ export const en: Dict = {
     suspendedText: 'You can still browse your jobs, but the daily search and AI features are turned off.',
     askRestore: 'Ask to restore access',
     demoTitle: 'You’re viewing a demo.',
-    demoText: 'You’re signed in as a sample user with real, current job postings. You can change statuses and write notes; AI features, CV upload and letter editing are turned off.',
+    demoText: 'You’re signed in as a sample user with real, current job postings. You can change statuses and write notes; AI features, CV upload and letter editing are turned off. The demo resets every morning.',
     demoSignUp: 'Get my own account',
   },
 

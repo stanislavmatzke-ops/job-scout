@@ -27,6 +27,6 @@ can't be abused.
 - **Static screenshots / video**: no cost, but nothing to try.
 
 ## Consequences
-- Visitors share one account: a status or note one visitor changes, the next one sees. **To do before the LinkedIn post:**
-  a nightly reset of the demo's statuses and notes (in the morning job).
+- Visitors share one account: a status or note one visitor changes, the next one sees until the morning –
+  the morning job first resets the demo (`ResetDemo`: status New, no history, no notes; evaluations and letters stay).
 - The demo is a normal row in the admin overview (costs visible), can be suspended like anyone.

@@ -54,6 +54,7 @@ public static class DependencyInjection
         services.AddScoped<ApproveUser>();
         services.AddScoped<SuspendUser>();
         services.AddScoped<RejectUser>();
+        services.AddScoped<JobScout.Application.Demo.ResetDemo>();
         services.AddScoped<ListScoutUsers>();
         services.AddScoped<PrepareScoutProfile>();
         return services;

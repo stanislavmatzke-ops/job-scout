@@ -53,7 +53,7 @@ export const cs = {
     suspendedText: 'Své nabídky si můžete dál prohlížet, vyhledávání nových nabídek a funkce AI jsou však vypnuté.',
     askRestore: 'Požádat o obnovení přístupu',
     demoTitle: 'Prohlížíte si ukázku.',
-    demoText: 'Jste přihlášeni jako ukázkový uživatel se skutečnými aktuálními nabídkami. Můžete měnit stavy a psát poznámky; funkce AI, nahrání životopisu a úpravy dopisů jsou vypnuté.',
+    demoText: 'Jste přihlášeni jako ukázkový uživatel se skutečnými aktuálními nabídkami. Můžete měnit stavy a psát poznámky; funkce AI, nahrání životopisu a úpravy dopisů jsou vypnuté. Každé ráno se ukázka vrátí do výchozího stavu.',
     demoSignUp: 'Chci vlastní účet',
   },
 

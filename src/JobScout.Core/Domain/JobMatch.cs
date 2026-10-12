@@ -103,6 +103,21 @@ public sealed class JobMatch
         UpdatedAt = now;
     }
 
+    /// <summary>
+    /// The demo account's nightly clean-up (ADR-0020): what visitors changed – status, history, notes – goes away;
+    /// what the AI produced (evaluation, letter) stays. UpdatedAt is kept, so the morning report still sees what's new.
+    /// </summary>
+    /// <returns>true = something was changed back</returns>
+    public bool ResetVisitorChanges()
+    {
+        if (Status == MatchStatus.New && Notes is null && _events.Count == 0)
+            return false;
+        Status = MatchStatus.New;
+        Notes = null;
+        _events.Clear();
+        return true;
+    }
+
     /// <summary>Shown in the user's list (triaged-out and hidden jobs are not).</summary>
     public bool IsVisible => Stage == MatchStage.Evaluated && Status != MatchStatus.Hidden;
 }
