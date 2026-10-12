@@ -39,6 +39,12 @@ param microsoftClientId string = ''
 @description('Admins, comma-separated "provider:subject" (GET /api/me → identity). Empty until you have signed in once.')
 param admins string = ''
 
+@description('Custom domain of the API, e.g. jobscout.stanislavmatzke.com. Empty = only the *.azurecontainerapps.io address.')
+param customDomain string = ''
+
+@description('Name of the managed certificate for customDomain in the environment (created once by "az containerapp hostname bind" – infra/README.md).')
+param customDomainCertificate string = ''
+
 @description('Morning run, cron in UTC. 30 5 * * * = 6:30 in winter (CET), 7:30 in summer (CEST).')
 param morningCron string = '30 5 * * *'
 
@@ -181,7 +187,20 @@ resource api 'Microsoft.App/containerApps@2024-03-01' = if (deployApps) {
   properties: {
     managedEnvironmentId: environment.id
     configuration: {
-      ingress: { external: true, targetPort: 8080, transport: 'auto', allowInsecure: false }
+      ingress: {
+        external: true
+        targetPort: 8080
+        transport: 'auto'
+        allowInsecure: false
+        // Without this a redeploy would drop the domain that was bound by the CLI
+        customDomains: empty(customDomain) || empty(customDomainCertificate) ? [] : [
+          {
+            name: customDomain
+            bindingType: 'SniEnabled'
+            certificateId: '${environment.id}/managedCertificates/${customDomainCertificate}'
+          }
+        ]
+      }
       secrets: concat(commonSecrets, authSecrets)
     }
     template: {

@@ -42,6 +42,18 @@ az deployment group show -g rg-jobscout -n apps --query properties.outputs.apiUr
 A new version = the same pass 2 with a new `JOBSCOUT_IMAGE`. Admins: `$env:JOBSCOUT_ADMINS = "microsoft:<subject>"`
 (comma-separated), then pass 2 again.
 
+## Custom domain (once)
+
+```powershell
+# 1. DNS at Cloudflare (DNS only – grey cloud): CNAME jobscout → <fqdn>, TXT asuid.jobscout → <verification id>
+az containerapp show -g rg-jobscout -n ca-jobscout-api --query "{fqdn:properties.configuration.ingress.fqdn, verificationId:properties.customDomainVerificationId}" -o table
+# 2. Bind the hostname with a free managed certificate (takes a few minutes)
+az containerapp hostname add  -g rg-jobscout -n ca-jobscout-api --hostname jobscout.stanislavmatzke.com
+az containerapp hostname bind -g rg-jobscout -n ca-jobscout-api --hostname jobscout.stanislavmatzke.com --environment cae-jobscout --validation-method CNAME
+# 3. Remember the certificate name for every later deployment (otherwise pass 2 would drop the domain)
+$env:JOBSCOUT_DOMAIN_CERT = az containerapp env certificate list -g rg-jobscout -n cae-jobscout --managed-certificates-only --query "[0].name" -o tsv
+```
+
 ## Operate
 
 ```powershell
