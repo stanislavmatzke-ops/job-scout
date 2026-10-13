@@ -1,5 +1,7 @@
 # Dependabot (13 Oct): a pull request when a dependency has a known vulnerability or a new version –
 # NuGet packages, the Angular app, the GitHub Actions and the Docker base images. Weekly, grouped, so it's not noisy.
+# Major versions of the platform (Node, Angular, TypeScript, .NET images) are upgraded by hand, on purpose:
+# they need a migration (ng update) and the same version in CI – security fixes inside a major still come automatically.
 version: 2
 updates:
   - package-ecosystem: nuget
@@ -13,9 +15,21 @@ updates:
     groups:
       angular: { patterns: ["@angular/*", "@angular-devkit/*"] }
       npm: { patterns: ["*"] }
+    ignore:
+      - dependency-name: "@angular/*"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "@angular-devkit/*"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "typescript"
+        update-types: ["version-update:semver-major", "version-update:semver-minor"]
   - package-ecosystem: github-actions
     directory: /
     schedule: { interval: weekly }
   - package-ecosystem: docker
     directory: /
     schedule: { interval: weekly }
+    ignore:
+      - dependency-name: node
+        update-types: ["version-update:semver-major"]
+      - dependency-name: dotnet/*
+        update-types: ["version-update:semver-major"]
