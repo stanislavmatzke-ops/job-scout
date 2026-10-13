@@ -1,5 +1,6 @@
 ﻿using JobScout.Application.Abstractions;
 using JobScout.Application.Evaluation;
+using JobScout.Application.Limits;
 using JobScout.Application.Llm;
 using JobScout.Application.Profiles;
 using Microsoft.EntityFrameworkCore;
@@ -10,8 +11,11 @@ public enum EvaluateNowStatus { Evaluated, NotFound, NoProfile, AdRemoved, TryLa
 
 public sealed record EvaluateNowResult(EvaluateNowStatus Status, JobEvaluation? Evaluation = null);
 
-/// <summary>"Ohodnotit": any job of mine – waiting, triaged out, or again. AI pre-selects, the user decides.</summary>
-public sealed class EvaluateMatchNow(IAppDbContext db, MatchEvaluator evaluator)
+/// <summary>
+/// "Ohodnotit": any job of mine – waiting, triaged out, or again. AI pre-selects, the user decides.
+/// Limited per user and day (ADR-0021) – <see cref="AiLimitExceededException"/> before anything is called.
+/// </summary>
+public sealed class EvaluateMatchNow(IAppDbContext db, MatchEvaluator evaluator, AiQuota? quota = null)
 {
     public async Task<EvaluateNowResult> ExecuteAsync(Guid userId, Guid matchId, CancellationToken ct = default)
     {
@@ -25,6 +29,7 @@ public sealed class EvaluateMatchNow(IAppDbContext db, MatchEvaluator evaluator)
         if (current is null)
             return new EvaluateNowResult(EvaluateNowStatus.NoProfile);
 
+        using var slot = quota is null ? null : await quota.EnterAsync(userId, AiAction.Evaluation, ct);
         using var usage = LlmCallContext.Begin(userId);     // on-demand cost belongs to the user, not to a morning run
         var outcome = await evaluator.EvaluateAsync(match, current.Profile, current.Version, ct);
         await db.SaveChangesAsync(ct);

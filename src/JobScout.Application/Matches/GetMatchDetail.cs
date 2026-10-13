@@ -14,7 +14,8 @@ public sealed record MatchDetail(
     JobEvaluation? Evaluation, string? CoverLetter, string? Notes,
     string? AdText, bool AdTextIncomplete, DateTimeOffset FoundAt, DateTimeOffset UpdatedAt,
     IReadOnlyList<MatchHistoryEntry> History,
-    bool EvaluationOutdated);                       // evaluated with an older profile version (6d)
+    bool EvaluationOutdated,                        // evaluated with an older profile version (6d)
+    int LetterRewrites = 0);                        // new AI drafts over an existing letter – limited per job (ADR-0021)
 
 /// <summary>Everything about one of my jobs. Somebody else's job = null, exactly like a missing one.</summary>
 public sealed class GetMatchDetail(IAppDbContext db)
@@ -37,6 +38,7 @@ public sealed class GetMatchDetail(IAppDbContext db)
             offer.DetailText, AdTextIncomplete: offer.DetailText is not null && !offer.DetailIsComplete,
             m.CreatedAt, m.UpdatedAt,
             m.Events.OrderBy(e => e.At).Select(e => new MatchHistoryEntry(e.From, e.To, e.Note, e.At)).ToList(),
-            EvaluationOutdated: m.Stage == MatchStage.Evaluated && m.ProfileVersion < currentVersion);
+            EvaluationOutdated: m.Stage == MatchStage.Evaluated && m.ProfileVersion < currentVersion,
+            m.LetterRewrites);
     }
 }

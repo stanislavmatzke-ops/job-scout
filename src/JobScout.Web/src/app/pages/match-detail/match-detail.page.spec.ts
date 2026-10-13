@@ -5,6 +5,7 @@ import { HttpTestingController, provideHttpClientTesting } from '@angular/common
 import { provideRouter } from '@angular/router';
 import { MatchDetailPage } from './match-detail.page';
 import { AuthService } from '../../core/auth.service';
+import { LimitsService } from '../../core/limits.service';
 import { AccessStatus } from '../../core/models';
 import { MatchDetail } from '../../core/matches.models';
 
@@ -36,6 +37,8 @@ describe('MatchDetailPage – AI on demand', () => {
       imports: [MatchDetailPage],
       providers: [
         provideRouter([]), provideHttpClient(), provideHttpClientTesting(),
+        // AI limits (ADR-0021) are only hints – a stub keeps these tests about the page itself
+        { provide: LimitsService, useValue: { limits: signal(null), refresh: () => Promise.resolve() } },
         { provide: AuthService, useValue: { me: signal({ access }) } },
       ],
     });

@@ -19,7 +19,7 @@ Pak se z něj stal nástroj, který denně používám.
 
 ## Co umí
 
-1. **Jednou přečte CV a poznámky.** Claude udělá z CV (PDF/Markdown) a volných preferencí („full remote,
+1. **Jednou přečte CV a poznámky.** Claude udělá z CV (PDF, Word, Markdown) a volných preferencí („full remote,
    min. 95 tis. Kč, žádná Java“) strukturovaný profil – v jazyce vašeho CV. Znovu se spustí, jen když se CV
    nebo poznámky změní.
 2. **Naplánuje hledání.** AI navrhne profese pracovního portálu, které k profilu sedí. Každý návrh se ověří proti
@@ -36,8 +36,11 @@ Pak se z něj stal nástroj, který denně používám.
    a dopisem od AI, stavy s historií a poznámkami; ohodnocení nebo (pře)napsání dopisu na vyžádání; stránka profilu
    ukazuje, „jak vás vidí AI“.
 8. **E-maily.** Každé ráno krátký souhrn nových nabídek (lze vypnout), plus schválení/zamítnutí přístupu.
+9. **Zpětná vazba.** Stránka „Zpětná vazba“ – zpráva se uloží a přijde autorovi e-mailem, odpovědět lze jedním kliknutím.
 
-Každé volání AI se zaznamená i s tokeny a cenou. Běžný denní běh pro jednoho uživatele stojí pár centů.
+Každé volání AI se zaznamená i s tokeny a cenou. Běžný denní běh pro jednoho uživatele stojí pár centů. Co uživatel
+spustí kliknutím, je omezené v rámci libovolných 24 hodin – vyhodnocení profilu, dopisy, hodnocení i celková cena – a
+aplikace ukazuje, kolik zbývá ([ADR-0021](docs/adr/0021-ai-limits-for-clicks.md)).
 
 ```mermaid
 flowchart LR

@@ -1,10 +1,12 @@
 using JobScout.Api.Admin;
 using JobScout.Api.Auth;
 using JobScout.Api.Demo;
+using JobScout.Api.Limits;
 using JobScout.Api.Matches;
 using JobScout.Api.Me;
 using JobScout.Api.Profile;
 using JobScout.Api.Scouting;
+using JobScout.Api.UserFeedback;
 using JobScout.Application;
 using JobScout.Infrastructure;
 using JobScout.Infrastructure.Persistence;
@@ -72,6 +74,8 @@ app.MapProfileEndpoints();
 app.MapAdminEndpoints();
 app.MapScoutEndpoints();
 app.MapDemoEndpoints();
+app.MapAiLimitEndpoints();
+app.MapFeedbackEndpoints();
 
 // An unknown /api address is an API error (JSON 404), not the app; every other unknown path (/matches/123 after F5)
 // gets index.html and the Angular router takes over

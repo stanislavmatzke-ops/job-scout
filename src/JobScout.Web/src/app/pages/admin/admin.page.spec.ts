@@ -5,7 +5,7 @@ import { HttpTestingController, provideHttpClientTesting } from '@angular/common
 import { provideRouter } from '@angular/router';
 import { AdminPage } from './admin.page';
 import { AuthService } from '../../core/auth.service';
-import { AdminUser, Invitation } from '../../core/admin.models';
+import { AdminUser, FeedbackRow, Invitation } from '../../core/admin.models';
 
 function user(overrides: Partial<AdminUser>): AdminUser {
   return {
@@ -20,7 +20,7 @@ function user(overrides: Partial<AdminUser>): AdminUser {
 describe('AdminPage', () => {
   let http: HttpTestingController;
 
-  async function render(users: AdminUser[], invitations: Invitation[] = []) {
+  async function render(users: AdminUser[], invitations: Invitation[] = [], feedback: FeedbackRow[] = []) {
     TestBed.configureTestingModule({
       imports: [AdminPage],
       providers: [
@@ -39,6 +39,7 @@ describe('AdminPage', () => {
     fixture.detectChanges();
     http.expectOne('/api/admin/users').flush(users);
     http.expectOne('/api/admin/invitations').flush(invitations);
+    http.expectOne('/api/admin/feedback').flush(feedback);
     await settle(fixture);
     return fixture;
   }
@@ -89,6 +90,23 @@ describe('AdminPage', () => {
 
     expect(el(fixture).textContent).toContain('Důvod: Z kapacitních důvodů.');
     expect(buttons(el(fixture), 'Obnovit přístup').length).toBe(1);
+  });
+
+  it('shows the feedback with a reply link for those who want an answer (13 Oct)', async () => {
+    const fixture = await render([], [], [
+      { id: 'f1', userId: 'u1', userName: 'Jana', email: 'jana@example.com', kind: 'Problem', rating: 2,
+        message: 'Tlačítko nereaguje.', replyWanted: true, createdAt: '2026-10-13T08:00:00Z' },
+      { id: 'f2', userId: 'u2', userName: 'Petr', email: null, kind: 'Praise', rating: null,
+        message: 'Super!', replyWanted: false, createdAt: '2026-10-12T08:00:00Z' },
+    ]);
+
+    const section = el(fixture).querySelector('.feedback')!;
+    expect(section.textContent).toContain('Něco nefunguje');
+    expect(section.textContent).toContain('Tlačítko nereaguje.');
+    expect(section.textContent).toContain('★★☆☆☆');
+    const replies = section.querySelectorAll('a.reply');
+    expect(replies.length).toBe(1);
+    expect(replies[0].getAttribute('href')).toContain('mailto:jana@example.com');
   });
 
   it('creates an invitation and shows its link once', async () => {

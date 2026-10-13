@@ -105,7 +105,7 @@ public sealed class ProfileUseCasesTests : IDisposable
     }
 
     [Theory]
-    [InlineData("cv.docx")]          // Word – not supported (yet)
+    [InlineData("cv.doc")]           // the old binary Word – .docx is supported (DocxTextTests)
     [InlineData("cv")]               // no extension
     [InlineData("cv.exe")]
     public async Task Unsupported_file_type_is_rejected(string fileName)

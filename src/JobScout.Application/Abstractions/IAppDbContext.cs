@@ -18,6 +18,7 @@ public interface IAppDbContext
     DbSet<LlmCall> LlmCalls { get; }
     DbSet<StoredCv> StoredCvs { get; }
     DbSet<Invitation> Invitations { get; }
+    DbSet<Feedback> Feedback { get; }
 
     Task<int> SaveChangesAsync(CancellationToken ct = default);
 }

@@ -29,6 +29,8 @@ public sealed class JobMatch
     public int? Score { get; private set; }
     public string? EvaluationJson { get; private set; }         // JobEvaluation from AI
     public string? CoverLetter { get; private set; }
+    /// <summary>How many times the user had the AI write a new letter over an existing one – limited per job (ADR-0021).</summary>
+    public int LetterRewrites { get; private set; }
     public MatchStatus Status { get; private set; }
     public string? Notes { get; private set; }
     public DateTimeOffset CreatedAt { get; private set; }
@@ -83,6 +85,16 @@ public sealed class JobMatch
     public void SetCoverLetter(string coverLetter, DateTimeOffset now)
     {
         CoverLetter = coverLetter;
+        UpdatedAt = now;
+    }
+
+    /// <summary>A new AI draft over the existing letter ("Napsat nový návrh") – counted, the number per job is limited.</summary>
+    public void RewriteCoverLetter(string coverLetter, DateTimeOffset now)
+    {
+        if (CoverLetter is null)
+            throw new InvalidOperationException("There is no letter to rewrite – use SetCoverLetter.");
+        CoverLetter = coverLetter;
+        LetterRewrites++;
         UpdatedAt = now;
     }
 

@@ -1,5 +1,6 @@
 ﻿using System.Security.Claims;
 using JobScout.Api.Auth;
+using JobScout.Api.Limits;
 using JobScout.Application.Matches;
 using JobScout.Core.Domain;
 
@@ -75,7 +76,7 @@ public static class MatchEndpoints
                 _ => Results.Problem("Portál s nabídkami momentálně neodpovídá. Zkuste to prosím za chvíli.",
                     statusCode: StatusCodes.Status503ServiceUnavailable)
             };
-        }).RequireAuthorization(Policies.Active);
+        }).RequireAuthorization(Policies.Active).WithAiLimits();
 
         matches.MapPost("/{id:guid}/letter", async (Guid id, bool? replace, ClaimsPrincipal user,
             WriteCoverLetterNow write, GetMatchDetail get, CancellationToken ct) =>
@@ -95,7 +96,7 @@ public static class MatchEndpoints
                 _ => Results.Problem("Dopis se nepodařilo dokončit. Zkuste to prosím znovu.",
                     statusCode: StatusCodes.Status502BadGateway)
             };
-        }).RequireAuthorization(Policies.Active);
+        }).RequireAuthorization(Policies.Active).WithAiLimits();
 
         matches.MapPut("/{id:guid}/letter", async (Guid id, UpdateLetterRequest body, ClaimsPrincipal user,
             UpdateCoverLetter update, CancellationToken ct) =>

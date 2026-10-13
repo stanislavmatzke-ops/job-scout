@@ -2,6 +2,7 @@
 using JobScout.Application.Abstractions;
 using JobScout.Application.Jobs;
 using JobScout.Core.Jobs;
+using JobScout.Application.Limits;
 using JobScout.Application.Llm;
 using Azure.Communication.Email;
 using JobScout.Application.Notifications;
@@ -57,6 +58,9 @@ public static class DependencyInjection
         else
             services.AddSingleton<IEmailSender, LogEmailSender>();
         services.AddScoped<Notifier>();
+
+        // AI limits for clicks (ADR-0021) – defaults in AiLimitOptions, overridable per environment
+        services.AddSingleton(config.GetSection(AiLimitOptions.SectionName).Get<AiLimitOptions>() ?? new AiLimitOptions());
 
         return services;
     }

@@ -1,7 +1,7 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
-import { AdminUser, CreatedInvitation, Invitation, InvitationLink } from './admin.models';
+import { AdminUser, CreatedInvitation, FeedbackRow, Invitation, InvitationLink } from './admin.models';
 
 export const MAX_SUSPEND_REASON = 500;      // = User.MaxSuspendReasonLength
 export const MAX_INVITATION_NOTE = 200;     // = AdminEndpoints.MaxInvitationNoteLength
@@ -51,6 +51,11 @@ export class AdminService {
   /** Demo account (ADR-0020): fictional user + CV + first search – one AI analysis. */
   prepareDemo(): Promise<void> {
     return firstValueFrom(this.http.post<void>('/api/admin/demo/prepare', null));
+  }
+
+  /** What users wrote in "Zpětná vazba" – the e-mail is the notification, this is the archive. */
+  feedback(): Promise<FeedbackRow[]> {
+    return firstValueFrom(this.http.get<FeedbackRow[]>('/api/admin/feedback'));
   }
 
   invitations(): Promise<Invitation[]> {

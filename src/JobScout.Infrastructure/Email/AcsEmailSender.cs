@@ -15,6 +15,8 @@ internal sealed class AcsEmailSender(EmailClient client, string from, ILogger<Ac
     {
         var mail = new Azure.Communication.Email.EmailMessage(from, message.To,
             new EmailContent(message.Subject) { PlainText = message.Text, Html = message.Html });
+        if (!string.IsNullOrWhiteSpace(message.ReplyTo))
+            mail.ReplyTo.Add(new EmailAddress(message.ReplyTo));
         await client.SendAsync(WaitUntil.Started, mail, ct);
         logger.LogInformation("E-mail „{Subject}“ odeslán na {To}", message.Subject, LogEmailSender.Mask(message.To));
     }

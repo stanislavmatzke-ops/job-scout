@@ -17,7 +17,7 @@ It started as a way to learn applied AI on a real problem: my own job search. Th
 
 ## What it does
 
-1. **Reads your CV and notes once.** Claude turns a PDF/Markdown CV plus free-text preferences ("full remote,
+1. **Reads your CV and notes once.** Claude turns a CV (PDF, Word, Markdown) plus free-text preferences ("full remote,
    min. 95k CZK, no Java") into a structured profile – in the language of your CV. It runs again only when the CV
    or the notes change.
 2. **Plans the search.** AI suggests the job board's professions that fit the profile. Every suggestion is verified
@@ -33,8 +33,11 @@ It started as a way to learn applied AI on a real problem: my own job search. Th
 7. **Web app.** Jobs in tabs (to decide / in progress / closed / filtered out), detail with the AI's rating and letter,
    statuses with history and notes; rate or (re)write a letter on demand; the profile page shows "how the AI sees you".
 8. **E-mails.** Every morning a short summary of new jobs (can be turned off), plus access approval/rejection.
+9. **Feedback.** A "Feedback" page – the message is stored and e-mailed to the author, who can reply with one click.
 
-Every AI call is recorded with its tokens and price. A typical daily run for one user costs a few cents.
+Every AI call is recorded with its tokens and price. A typical daily run for one user costs a few cents. What a user
+starts by clicking is limited within any 24 hours – profile analyses, letters, evaluations and money – and the UI shows
+what is left ([ADR-0021](docs/adr/0021-ai-limits-for-clicks.md)).
 
 ```mermaid
 flowchart LR

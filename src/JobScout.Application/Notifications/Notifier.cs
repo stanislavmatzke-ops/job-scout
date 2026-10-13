@@ -15,8 +15,22 @@ public sealed class Notifier(IEmailSender sender, NotificationOptions options, I
 {
     public async Task AccessRequestedAsync(User user, CancellationToken ct = default)
     {
-        foreach (var admin in options.AdminAddresses.Where(a => !string.IsNullOrWhiteSpace(a)))
+        foreach (var admin in AdminAddresses())
             await SendAsync(Emails.AccessRequested(admin, user, options.AppUrl), ct);
+    }
+
+    /// <summary>A user wrote in "Zpětná vazba" – every admin gets it; Reply-To is the user when they want an answer.</summary>
+    public async Task FeedbackAsync(User user, Feedback feedback, CancellationToken ct = default)
+    {
+        foreach (var admin in AdminAddresses())
+            await SendAsync(Emails.FeedbackReceived(admin, user, feedback, options.AppUrl), ct);
+    }
+
+    /// <summary>The app-wide brake on AI clicks engaged (ADR-0021) – the admins should look at who spends what.</summary>
+    public async Task AiPausedAsync(decimal limitUsd, CancellationToken ct = default)
+    {
+        foreach (var admin in AdminAddresses())
+            await SendAsync(Emails.AiPaused(admin, limitUsd, options.AppUrl), ct);
     }
 
     public Task ApprovedAsync(User user, CancellationToken ct = default) =>
@@ -39,6 +53,8 @@ public sealed class Notifier(IEmailSender sender, NotificationOptions options, I
         await SendAsync(message, ct);
         return true;
     }
+
+    private IEnumerable<string> AdminAddresses() => options.AdminAddresses.Where(a => !string.IsNullOrWhiteSpace(a));
 
     private static bool Reachable(User user) =>
         !string.IsNullOrWhiteSpace(user.Email) && user.Provider is not (SignInUser.DevProvider or DemoAccount.Provider);

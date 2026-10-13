@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using JobScout.Api.Auth;
+using JobScout.Api.Limits;
 using JobScout.Application.Profiles;
 using JobScout.Core.Domain;
 
@@ -38,7 +39,8 @@ public static class ProfileEndpoints
             return Results.Ok(await get.ExecuteAsync(user.GetUserId(), ct));
         })
         .DisableAntiforgery()    // CSRF: the X-CSRF header for the whole API (5e)
-        .RequireAuthorization(Policies.Active);
+        .RequireAuthorization(Policies.Active)
+        .WithAiLimits();
 
         profile.MapPut("/notes", async (UpdateProfileNotesRequest body, ClaimsPrincipal user,
             UpdateProfileNotes update, GetProfile get, CancellationToken ct) =>
@@ -54,7 +56,7 @@ public static class ProfileEndpoints
             {
                 return Results.Problem(ex.Message, statusCode: StatusCodes.Status400BadRequest);
             }
-        }).RequireAuthorization(Policies.Active);
+        }).RequireAuthorization(Policies.Active).WithAiLimits();
 
         profile.MapPut("/settings", async (UpdateProfileSettingsRequest body, ClaimsPrincipal user,
             UpdateProfileSettings settings, CancellationToken ct) =>

@@ -4,12 +4,13 @@ import { firstValueFrom } from 'rxjs';
 import { GrammaticalGender, ProfileView } from './profile.models';
 import { t } from './i18n';
 
-export const CV_EXTENSIONS = ['.pdf', '.md', '.txt'];
+export const CV_EXTENSIONS = ['.pdf', '.docx', '.md', '.txt'];
 export const CV_MAX_BYTES = 5 * 1024 * 1024;   // = StoredCv.MaxBytes on the server
 
 /** Checked in the browser too – the user learns at once, and we don't upload 50 MB just to hear "too big". */
 export function cvProblem(file: File): string | null {
   const name = file.name.toLowerCase();
+  if (name.endsWith('.doc')) return t().profile.cvOldWord;                 // the old binary Word – .docx is fine
   if (!CV_EXTENSIONS.some(ext => name.endsWith(ext))) return t().profile.cvFormats;
   if (file.size === 0) return t().profile.cvEmpty;
   if (file.size > CV_MAX_BYTES) return t().profile.cvTooBig;

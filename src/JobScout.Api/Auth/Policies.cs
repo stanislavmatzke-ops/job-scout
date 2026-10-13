@@ -43,7 +43,7 @@ public sealed class AccessHandler(IAppDbContext db) : AuthorizationHandler<Acces
 }
 
 /// <summary>Admins come from configuration, not from the DB – a compromised database can't make anybody an admin.</summary>
-public sealed class AdminOptions
+public sealed class AdminOptions : IAdminDirectory
 {
     /// <summary>"provider:subject" – copy yours from GET /api/me ("identity"). In Azure: Key Vault / app settings.</summary>
     public List<string> Admins { get; init; } = [];

@@ -2,12 +2,14 @@
 using JobScout.Application.Evaluation;
 using JobScout.Application.Jobs;
 using JobScout.Application.Letters;
+using JobScout.Application.Limits;
 using JobScout.Application.Llm;
 using JobScout.Application.Matches;
 using JobScout.Application.Profiles;
 using JobScout.Application.Reports;
 using JobScout.Application.Scouting;
 using JobScout.Application.Triage;
+using JobScout.Application.UserFeedback;
 using JobScout.Application.Users;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -57,6 +59,11 @@ public static class DependencyInjection
         services.AddScoped<JobScout.Application.Demo.ResetDemo>();
         services.AddScoped<ListScoutUsers>();
         services.AddScoped<PrepareScoutProfile>();
+        // AI limits for clicks (ADR-0021): AiLimitOptions come from the host's configuration (Infrastructure)
+        services.AddSingleton<AiQuotaGate>();
+        services.AddScoped<AiQuota>();
+        services.AddScoped<SendFeedback>();
+        services.AddScoped<ListFeedback>();
         return services;
     }
 }

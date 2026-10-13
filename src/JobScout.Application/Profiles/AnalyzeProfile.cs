@@ -23,6 +23,21 @@ public sealed record AnalyzedProfile(User User, UserProfile Version, CandidatePr
 /// </summary>
 public sealed class AnalyzeProfile(IAppDbContext db, ProfileExtractor extractor, TimeProvider time)
 {
+    /// <summary>
+    /// Would <see cref="ExecuteAsync"/> call the AI for this CV and notes? (the same hash rule) – lets the UI use cases
+    /// apply the AI limits only to a real analysis, not to an unchanged CV (ADR-0021).
+    /// </summary>
+    public async Task<bool> WouldCallAiAsync(Guid userId, byte[] cv, string? notes, CancellationToken ct = default)
+    {
+        var hash = UserProfile.ComputeInputHash(cv, notes, ProfilePrompts.Version);
+        var latest = await db.UserProfiles
+            .Where(p => p.UserId == userId)
+            .OrderByDescending(p => p.Version)
+            .Select(p => p.InputHash)
+            .FirstOrDefaultAsync(ct);
+        return latest != hash;
+    }
+
     public async Task<AnalyzedProfile> ExecuteAsync(ProfileInput input, CancellationToken ct = default)
     {
         var now = time.GetUtcNow();

@@ -13,7 +13,7 @@ import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { firstValueFrom } from 'rxjs';
 import { AuthService } from '../../core/auth.service';
 import { AdminService, MAX_INVITATION_NOTE, formatUsd, invitationLinks } from '../../core/admin.service';
-import { AdminUser, CreatedInvitation, Invitation, InvitationLink } from '../../core/admin.models';
+import { AdminUser, CreatedInvitation, FeedbackRow, Invitation, InvitationLink } from '../../core/admin.models';
 import { AccessStatus } from '../../core/models';
 import { problemMessage } from '../../core/match-format';
 import { ConfirmService } from '../../shared/confirm-dialog';
@@ -87,6 +87,7 @@ import { lang, t } from '../../core/i18n';
             <div class="cost" [title]="t().admin.costTitle">
               <span>7 d: {{ usd(u.costLast7DaysUsd) }}</span>
               <span>30 d: {{ usd(u.costLast30DaysUsd) }}</span>
+              @if (u.clickCostLast24hUsd) { <span class="clicks">{{ t().admin.clicks24 }}: {{ usd(u.clickCostLast24hUsd) }}</span> }
             </div>
             <div class="actions">
               @switch (u.access) {
@@ -98,6 +99,30 @@ import { lang, t } from '../../core/i18n';
               }
             </div>
           </div>
+        }
+      </div>
+    </section>
+
+    <!-- ───── feedback (13 Oct) ───── -->
+    <section>
+      <h2>{{ t().admin.feedback }} @if (feedback().length) { <span class="count">{{ feedback().length }}</span> }</h2>
+      @if (feedbackError(); as e) { <p class="error">{{ e }}</p> }
+      <div class="feedback">
+        @for (f of feedback(); track f.id) {
+          <div class="message">
+            <div class="who">
+              <span class="chip" [attr.data-kind]="f.kind">{{ t().feedback.kinds[f.kind] }}</span>
+              <strong>{{ f.userName }}</strong>
+              @if (f.rating) { <span class="stars" [attr.aria-label]="t().feedback.star(f.rating)">{{ stars(f.rating) }}</span> }
+              <span class="muted">{{ f.createdAt | date: t().fmt.dateTime : undefined : lang() }}</span>
+              @if (f.replyWanted && f.email) {
+                <a mat-button class="reply" [href]="mailto(f)"><mat-icon>reply</mat-icon> {{ t().admin.reply }}</a>
+              }
+            </div>
+            <p class="text">{{ f.message }}</p>
+          </div>
+        } @empty {
+          @if (!loading()) { <p class="muted">{{ t().admin.noFeedback }}</p> }
         }
       </div>
     </section>
@@ -190,6 +215,14 @@ import { lang, t } from '../../core/i18n';
     .provider { min-width: 80px; font-weight: 500; }
     .link code { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; }
     .invitations { display: flex; flex-direction: column; gap: 6px; }
+    .clicks { color: var(--mat-sys-on-surface-variant); }
+    .feedback { display: flex; flex-direction: column; gap: 8px; }
+    .message { padding: 12px 16px; background: var(--js-surface); border: 1px solid var(--js-border); border-radius: var(--js-radius); }
+    .message .text { margin: 8px 0 0; white-space: pre-line; }
+    .stars { color: #e3a008; letter-spacing: 1px; }
+    .reply { margin-left: auto; }
+    .chip[data-kind='Problem'] { background: var(--mat-sys-error-container); color: var(--mat-sys-on-error-container); }
+    .chip[data-kind='Praise'] { background: var(--mat-sys-primary-container); color: var(--mat-sys-on-primary-container); }
     .invitation { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
   `,
 })
@@ -207,6 +240,8 @@ export class AdminPage {
   protected readonly error = signal<string | null>(null);
   protected readonly users = signal<AdminUser[]>([]);
   protected readonly invitations = signal<Invitation[]>([]);
+  protected readonly feedback = signal<FeedbackRow[]>([]);
+  protected readonly feedbackError = signal<string | null>(null);
   protected readonly note = signal('');
   protected readonly created = signal<{ invitation: CreatedInvitation; links: InvitationLink[] } | null>(null);
 
@@ -222,6 +257,26 @@ export class AdminPage {
 
   constructor() {
     void this.reload();
+    void this.loadFeedback();
+  }
+
+  protected stars(rating: number): string {
+    return '★'.repeat(rating) + '☆'.repeat(5 - rating);
+  }
+
+  /** "Odpovědět" opens the admin's mail client with the user's message quoted. */
+  protected mailto(f: FeedbackRow): string {
+    const subject = `Re: Job Scout – ${t().feedback.kinds[f.kind]}`;
+    const body = `\n\n> ${f.message.replace(/\n/g, '\n> ')}`;
+    return `mailto:${f.email ?? ''}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+  }
+
+  private async loadFeedback(): Promise<void> {
+    try {
+      this.feedback.set(await this.admin.feedback());
+    } catch (e) {
+      this.feedbackError.set(problemMessage(e, t().admin.feedbackFailed));
+    }
   }
 
   protected accessLabel(access: AccessStatus): string {

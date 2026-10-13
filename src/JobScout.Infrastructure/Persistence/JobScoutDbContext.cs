@@ -18,6 +18,7 @@ public sealed class JobScoutDbContext(DbContextOptions<JobScoutDbContext> option
     public DbSet<LlmCall> LlmCalls => Set<LlmCall>();
     public DbSet<StoredCv> StoredCvs => Set<StoredCv>();
     public DbSet<Invitation> Invitations => Set<Invitation>();
+    public DbSet<Feedback> Feedback => Set<Feedback>();
 
     /// <summary>
     /// The keys that encrypt the session cookie and the sign-in round trip (ASP.NET Core Data Protection).
@@ -36,6 +37,7 @@ public sealed class JobScoutDbContext(DbContextOptions<JobScoutDbContext> option
         builder.Properties<MatchStatus>().HaveConversion<string>().HaveMaxLength(20);
         builder.Properties<GrammaticalGender>().HaveConversion<string>().HaveMaxLength(20);
         builder.Properties<AccessStatus>().HaveConversion<string>().HaveMaxLength(20);
+        builder.Properties<FeedbackKind>().HaveConversion<string>().HaveMaxLength(20);
 
         // SQLite stores DateTimeOffset as text and can't ORDER BY it → store as a sortable number.
         // PostgreSQL (Azure) has native timestamptz, so this applies to SQLite only.

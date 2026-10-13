@@ -25,6 +25,8 @@ export interface MatchListItem {
   updatedAt: string;
   /** Evaluated with an older profile version than the current one (6d). */
   evaluationOutdated: boolean;
+  /** New AI drafts over an existing letter – limited per job (ADR-0021). */
+  letterRewrites?: number;
 }
 
 export interface MatchList { view: MatchView; items: MatchListItem[]; counts: MatchCounts; }
@@ -64,4 +66,6 @@ export interface MatchDetail {
   history: MatchHistoryEntry[];
   /** Evaluated with an older profile version than the current one (6d). */
   evaluationOutdated: boolean;
+  /** New AI drafts over an existing letter – limited per job (ADR-0021). */
+  letterRewrites?: number;
 }

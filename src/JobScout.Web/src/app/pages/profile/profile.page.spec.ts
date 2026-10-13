@@ -5,6 +5,7 @@ import { HttpTestingController, provideHttpClientTesting } from '@angular/common
 import { provideRouter } from '@angular/router';
 import { ProfilePage } from './profile.page';
 import { AuthService } from '../../core/auth.service';
+import { LimitsService } from '../../core/limits.service';
 import { ProfileView } from '../../core/profile.models';
 
 const empty: ProfileView = {
@@ -30,6 +31,8 @@ describe('ProfilePage', () => {
       imports: [ProfilePage],
       providers: [
         provideRouter([]), provideHttpClient(), provideHttpClientTesting(),
+        // AI limits (ADR-0021) are only hints – a stub keeps these tests about the page itself
+        { provide: LimitsService, useValue: { limits: signal(null), refresh: () => Promise.resolve() } },
         { provide: AuthService, useValue: { me: signal({ access: 'Approved' }) } },
       ],
     });
@@ -63,7 +66,7 @@ describe('ProfilePage', () => {
   it('rejects an unsupported file without uploading it', async () => {
     const page = await render(empty);
     const input = page.querySelector('input[type="file"]') as HTMLInputElement;
-    Object.defineProperty(input, 'files', { value: [new File(['x'], 'cv.docx')] });
+    Object.defineProperty(input, 'files', { value: [new File(['x'], 'cv.doc')] });
 
     input.dispatchEvent(new Event('change'));
     await new Promise(resolve => setTimeout(resolve));

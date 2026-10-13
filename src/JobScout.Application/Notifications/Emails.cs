@@ -67,6 +67,53 @@ public static class Emails
         ],
         ("Job Scout", appUrl));
 
+    /// <summary>To the admin: what a user wrote in "Zpětná vazba". "Reply" goes to the user only when they asked for an answer.</summary>
+    public static EmailMessage FeedbackReceived(string to, User user, Feedback feedback, string appUrl)
+    {
+        var (cs, en) = KindNames(feedback.Kind);
+        var stars = feedback.Rating is { } r ? new string('★', r) + new string('☆', 5 - r) : null;
+        var who = string.IsNullOrWhiteSpace(user.Email) ? $"{user.DisplayName} ({user.Provider})" : $"{user.DisplayName} ({user.Email}, {user.Provider})";
+        var replyTo = feedback.ReplyWanted && !string.IsNullOrWhiteSpace(user.Email) ? user.Email : null;
+
+        var message = Build(to,
+            $"Job Scout: zpětná vazba ({cs}) – {user.DisplayName}",
+            [
+                $"{who} posílá zpětnou vazbu – {cs}.",
+                stars is null ? "" : $"Hodnocení: {stars}",
+                $"„{feedback.Message}“",
+                replyTo is null ? "Odpověď si nepřeje (nebo nemá e-mail)." : "Přeje si odpověď – stačí na tento e-mail odpovědět.",
+            ],
+            [
+                $"{who} sent feedback – {en}.",
+                stars is null ? "" : $"Rating: {stars}",
+                replyTo is null ? "No reply wanted (or no e-mail address)." : "Wants a reply – just answer this e-mail.",
+            ],
+            ("Otevřít správu / Open administration", $"{appUrl}/admin"));
+        return message with { ReplyTo = replyTo };
+    }
+
+    /// <summary>To the admin: the app-wide brake on AI clicks engaged (ADR-0021).</summary>
+    public static EmailMessage AiPaused(string to, decimal limitUsd, string appUrl) => Build(to,
+        "Job Scout: funkce AI na kliknutí jsou pozastavené / AI on demand paused",
+        [
+            $"Kliknutí na funkce AI (profil, hodnocení, dopisy) stála za posledních 24 hodin všechny uživatele dohromady {limitUsd:0.00} $ nebo víc.",
+            "Do té doby, než starší volání vypadnou z 24hodinového okna, jsou tyto funkce pro všechny kromě správců vypnuté. Ranní hledání běží dál.",
+            "Ve správě se podívejte, kdo kolik utratil, případně limit AiLimits:AppCostPer24hUsd zvyšte.",
+        ],
+        [
+            $"AI clicks (profile, evaluation, letters) of all users together cost {limitUsd:0.00} USD or more in the last 24 hours.",
+            "Until older calls leave the 24-hour window, these features are off for everybody except the admins. The morning search keeps running.",
+        ],
+        ("Otevřít správu / Open administration", $"{appUrl}/admin"));
+
+    private static (string Cs, string En) KindNames(FeedbackKind kind) => kind switch
+    {
+        FeedbackKind.Idea => ("nápad", "idea"),
+        FeedbackKind.Problem => ("něco nefunguje", "something is broken"),
+        FeedbackKind.Praise => ("pochvala", "praise"),
+        _ => ("jiné", "other"),
+    };
+
     /// <summary>The morning e-mail: today's new jobs, the recommended ones first. Null = nothing new, nothing to send.</summary>
     public static EmailMessage? Morning(User user, MorningReport report, string appUrl)
     {

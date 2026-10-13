@@ -21,6 +21,7 @@ import {
   STATUS_OPTIONS, aiErrorMessage, employmentLabel, problemMessage, remoteLabel, scoreTone, statusLabel,
 } from '../../core/match-format';
 import { ConfirmService } from '../../shared/confirm-dialog';
+import { LimitsService, blockedMessage, usageHint } from '../../core/limits.service';
 import { lang, t } from '../../core/i18n';
 
 /** What the AI is doing right now – one thing at a time, so a double click never pays twice. */
@@ -56,6 +57,8 @@ type AiWork = 'evaluate' | 'letter';
 
       @if (!aiEnabled() && !isDemo()) {
         <p class="ai-off">{{ t().detail.aiOff }}</p>
+      } @else if (blocked(); as message) {
+        <p class="ai-off" role="status">{{ message }}</p>
       }
 
       <div class="grid">
@@ -105,10 +108,11 @@ type AiWork = 'evaluate' | 'letter';
               }
             </mat-card-content>
             @if (evaluateLabel(d); as label) {
-              <mat-card-actions>
-                <button mat-stroked-button (click)="evaluate(d)" [disabled]="!aiEnabled() || working() !== null">
+              <mat-card-actions class="with-hint">
+                <button mat-stroked-button (click)="evaluate(d)" [disabled]="!aiEnabled() || noEvaluationLeft() || working() !== null">
                   <mat-icon>auto_awesome</mat-icon> {{ label }}
                 </button>
+                @if (aiEnabled() && evaluationHint(); as hint) { <span class="hint">{{ hint }}</span> }
               </mat-card-actions>
             }
           </mat-card>
@@ -156,12 +160,15 @@ type AiWork = 'evaluate' | 'letter';
                   }
                 }
                 @if (d.stage === 'Evaluated') {
-                  <button mat-button (click)="writeLetter(d)" [disabled]="!aiEnabled() || working() !== null">
+                  <button mat-button (click)="writeLetter(d)" [disabled]="!aiEnabled() || noLetterLeft(d) || working() !== null">
                     <mat-icon>auto_awesome</mat-icon> {{ d.coverLetter ? t().detail.writeNew : t().detail.writeLetter }}
                   </button>
                 }
               }
             </mat-card-actions>
+            @if (aiEnabled() && !editingLetter() && d.stage === 'Evaluated' && letterHint(d); as hint) {
+              <p class="hint letter-hint">{{ hint }}</p>
+            }
           </mat-card>
 
           @if (d.adText) {
@@ -249,6 +256,9 @@ type AiWork = 'evaluate' | 'letter';
     .reasons li::marker { content: '✓  '; color: #2e7d32; }
     .risks li::marker { content: '!  '; color: #c62828; }
     .letter, .ad { white-space: pre-wrap; font-family: inherit; margin: 0; line-height: 1.55; }
+    .with-hint { flex-wrap: wrap; gap: 4px 12px; }
+    .hint { color: var(--js-muted); font-size: 0.85em; }
+    .letter-hint { margin: 0; padding: 0 16px 12px; }
     .letter { margin-top: 8px; padding: 16px; background: var(--js-surface); border: 1px solid var(--js-border); border-radius: 8px; }
     .actions { flex-wrap: wrap; gap: 4px; }
     .full { width: 100%; }
@@ -266,6 +276,7 @@ export class MatchDetailPage {
   private readonly clipboard = inject(Clipboard);
   private readonly snackBar = inject(MatSnackBar);
   private readonly confirm = inject(ConfirmService);
+  private readonly limitsService = inject(LimitsService);
 
   /** :id from the route (component input binding). */
   readonly id = input.required<string>();
@@ -279,6 +290,15 @@ export class MatchDetailPage {
   /** Only Approved users may spend AI tokens (ADR-0017) – the API enforces it, the UI just doesn't offer it. */
   protected readonly aiEnabled = computed(() => this.auth.me()?.access === 'Approved' && !this.auth.me()?.isDemo);
   protected readonly isDemo = computed(() => !!this.auth.me()?.isDemo);
+
+  // AI limits for clicks (ADR-0021) – the server decides, the page only says what is left
+  protected readonly blocked = computed(() => blockedMessage(this.limitsService.limits()));
+  protected readonly evaluationHint = computed(() =>
+    usageHint(this.limitsService.limits(), l => l.evaluations, t().limits.evaluationsLeft));
+  protected readonly noEvaluationLeft = computed(() => {
+    const l = this.limitsService.limits();
+    return !!l && !l.unlimited && (l.evaluations.left === 0 || !!blockedMessage(l));
+  });
 
   protected readonly statuses = STATUS_OPTIONS;
   protected readonly statusLabel = statusLabel;
@@ -295,6 +315,7 @@ export class MatchDetailPage {
   protected letterDraft = '';
 
   constructor() {
+    if (this.aiEnabled()) void this.limitsService.refresh();
     effect(() => {
       const id = this.id();
       untracked(() => this.load(id));
@@ -302,6 +323,26 @@ export class MatchDetailPage {
   }
 
   // ---------- AI on demand ----------
+
+  /** New drafts left for this job (null = no per-job limit: no letter yet, or an admin). */
+  private rewritesLeft(d: MatchDetail): number | null {
+    const l = this.limitsService.limits();
+    if (!l || l.unlimited || !d.coverLetter) return null;
+    return Math.max(0, l.letterRewritesPerJob - (d.letterRewrites ?? 0));
+  }
+
+  protected noLetterLeft(d: MatchDetail): boolean {
+    const l = this.limitsService.limits();
+    return !!l && !l.unlimited && (l.coverLetters.left === 0 || this.rewritesLeft(d) === 0 || !!blockedMessage(l));
+  }
+
+  /** Under the letter: the per-job drafts once there is a letter, otherwise the daily count. */
+  protected letterHint(d: MatchDetail): string | null {
+    const left = this.rewritesLeft(d);
+    if (left === 0) return t().limits.reason.LetterRewrites(this.limitsService.limits()!.letterRewritesPerJob);
+    const daily = usageHint(this.limitsService.limits(), l => l.coverLetters, t().limits.lettersLeft);
+    return left === null ? daily : [t().limits.rewritesLeft(left), daily].filter(Boolean).join(' ');
+  }
 
   /**
    * A fresh evaluation is not offered again – the same profile and ad would give the same result and cost money.
@@ -409,6 +450,7 @@ export class MatchDetailPage {
       if (error instanceof HttpErrorResponse && error.status === 410) await this.load(id);
     } finally {
       this.working.set(null);
+      void this.limitsService.refresh();                    // one less left
     }
   }
 

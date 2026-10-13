@@ -20,6 +20,7 @@ import { t } from '../core/i18n';
         <nav class="nav">
           <a routerLink="/matches" routerLinkActive="active">{{ t().shell.matches }}</a>
           <a routerLink="/profile" routerLinkActive="active">{{ t().shell.profile }}</a>
+          <a routerLink="/feedback" routerLinkActive="active">{{ t().shell.feedback }}</a>
           @if (auth.me()?.isAdmin) { <a routerLink="/admin" routerLinkActive="active">{{ t().shell.admin }}</a> }
         </nav>
       }

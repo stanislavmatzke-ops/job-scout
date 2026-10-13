@@ -8,7 +8,7 @@ export const en: Dict = {
 
   titles: {
     login: 'Sign in', access: 'Access', matches: 'Jobs', matchDetail: 'Job detail',
-    profile: 'Profile', admin: 'Administration', notFound: 'Page not found',
+    profile: 'Profile', admin: 'Administration', notFound: 'Page not found', feedback: 'Feedback',
   },
 
   lang: { label: 'Language', cs: 'Čeština', en: 'English' },
@@ -25,6 +25,25 @@ export const en: Dict = {
     ai410: 'The job posting is no longer available on the job portal.',
     ai502: 'The AI’s answer was incomplete. Please try again.',
     ai503: 'The job portal is not available right now. Please try again later.',
+    ai429: 'The AI limit has been reached. Please try again later.',
+  },
+
+  limits: {
+    profileLeft: (left: number, limit: number) => `New profile analyses: ${left} of ${limit} left for 24 hours.`,
+    lettersLeft: (left: number, limit: number) => `Cover letters: ${left} of ${limit} left for 24 hours.`,
+    evaluationsLeft: (left: number, limit: number) => `Evaluations on demand: ${left} of ${limit} left for 24 hours.`,
+    rewritesLeft: (left: number) => left === 1
+      ? 'You can have 1 more new draft written for this job.'
+      : `You can have ${left} more new drafts written for this job.`,
+    again: (when: string) => `You can try again on ${when}.`,
+    reason: {
+      Profile: (limit: number) => `The profile can be analysed at most ${limit} times in 24 hours.`,
+      CoverLetter: (limit: number) => `Cover letters can be written at most ${limit} times in 24 hours.`,
+      Evaluation: (limit: number) => `Jobs can be evaluated on demand at most ${limit} times in 24 hours.`,
+      LetterRewrites: (limit: number) => `You’ve already had ${limit} new drafts written for this job. You can still edit the letter yourself.`,
+      UserCost: (_: number) => 'Today’s AI limit has been reached.',
+      AppPaused: (_: number) => 'AI features are paused for all users for a while. Please try again later – the morning search keeps running.',
+    },
   },
 
   login: {
@@ -48,7 +67,7 @@ export const en: Dict = {
   },
 
   shell: {
-    matches: 'Jobs', profile: 'Profile', admin: 'Admin', signOut: 'Sign out',
+    matches: 'Jobs', profile: 'Profile', feedback: 'Feedback', admin: 'Admin', signOut: 'Sign out',
     suspendedTitle: 'Your account is suspended.',
     suspendedText: 'You can still browse your jobs, but the daily search and AI features are turned off.',
     askRestore: 'Ask to restore access',
@@ -177,7 +196,7 @@ export const en: Dict = {
     noStoredCv: 'This profile was created before we started storing CV files. To edit your notes, please upload your CV again – if it’s the same, the profile won’t change and nothing is recalculated.',
     startTitle: 'Start by uploading your CV',
     startText: 'Upload your CV so we can find suitable jobs for you. From your CV and notes, the AI builds a profile – what you can do, what job you want and where. Then you start the first search, and we look for new jobs every morning: we rate them and draft a cover letter for the best ones. Nothing is ever sent – you decide on every response.',
-    formats: 'PDF, Markdown or plain text, up to 5 MB. We don’t store contact details from your CV in the profile.',
+    formats: 'PDF, Word (.docx), Markdown or plain text, up to 5 MB. We don’t store contact details from your CV in the profile.',
     uploadNew: 'Upload a new CV', upload: 'Upload CV',
     notesTitle: 'Notes and preferences',
     notesHelp: 'What isn’t in your CV: what job you want, where, how much you want to earn, what you’re not interested in. For example: “I want to work mostly from home, at most 1 day a week in the office in Brno. At least CZK 95,000 gross. No projects that only maintain an old system.”',
@@ -202,7 +221,8 @@ export const en: Dict = {
     also: (places: string) => `, also ${places}`,
     priorities: 'What matters to you', avoid: 'What to avoid', searchAs: 'We search as',
     mismatch: 'Something’s off? Add it to your notes – the profile will be re-analysed.',
-    cvFormats: 'Supported CV formats are PDF, Markdown (.md) and plain text (.txt).',
+    cvFormats: 'Supported CV formats are PDF, Word (.docx), Markdown (.md) and plain text (.txt).',
+    cvOldWord: 'We can’t read the old Word format (.doc) – please save your CV as .docx or PDF.',
     cvEmpty: 'The file is empty.', cvTooBig: 'The CV can be at most 5 MB.',
   },
 
@@ -219,7 +239,11 @@ export const en: Dict = {
     lastSignIn: (when: string) => `last sign-in ${when}`, neverSignedIn: 'never signed in',
     hasProfile: 'has a profile', noProfile: 'no profile',
     reason: (r: string) => `Reason: ${r}`,
-    costTitle: 'AI costs over 7 / 30 days',
+    costTitle: 'AI costs over 7 / 30 days; clicks = AI started by buttons in the last 24 hours',
+    clicks24: 'clicks 24 h',
+    feedback: 'Feedback', noFeedback: 'No feedback yet.',
+    replyWanted: 'wants a reply', reply: 'Reply',
+    feedbackFailed: 'We couldn’t load the feedback.',
     suspend: 'Suspend', restore: 'Restore access',
     rejected: (when: string) => `rejected ${when}`,
     rejectTitle: (name: string) => `Reject request – ${name}`,
@@ -253,6 +277,32 @@ export const en: Dict = {
     suspendHelp: 'The user can still sign in and see their jobs, but the morning search and AI features are turned off. They will see the reason exactly as written:',
     suspendReason: 'Reason for suspension',
     defaultReason: 'This account is temporarily suspended for capacity reasons.',
+  },
+
+  feedback: {
+    title: 'Feedback',
+    intro: 'Job Scout is new and every remark helps. Tell us what you miss, what doesn’t work or what you like – the messages go straight to the app’s author.',
+    kindLabel: 'What is it about',
+    kinds: { Idea: 'Idea', Problem: 'Something doesn’t work', Praise: 'Praise', Other: 'Other' },
+    ratingLabel: 'How do you like Job Scout so far? (optional)',
+    star: (n: number) => `${n} of 5`,
+    clearRating: 'No rating',
+    message: 'Your message',
+    placeholders: {
+      Idea: 'E.g. I’d welcome searching other job portals too…',
+      Problem: 'What you did, what happened and what you expected…',
+      Praise: 'What helped you or saved you time…',
+      Other: 'Anything you want to tell us…',
+    },
+    reply: (email: string) => `I’d like a reply to ${email}`,
+    replyDemo: 'If you’d like a reply, write in the message how we can reach you.',
+    privacy: 'We add your name and sign-in e-mail to the message, so we know who it’s from.',
+    send: 'Send',
+    sentTitle: 'Thank you, we’ve received your message.',
+    sentText: 'We read every message. If you asked for a reply, we’ll get back to you by e-mail.',
+    another: 'Write another message',
+    failed: 'We couldn’t send the message. Please try again.',
+    tooMany: 'Thank you, we’ve had enough messages from you today. You can send more tomorrow.',
   },
 
   notFound: {

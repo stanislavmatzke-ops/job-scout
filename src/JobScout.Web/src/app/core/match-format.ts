@@ -1,6 +1,7 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import { EmploymentType, MatchCounts, MatchStatus, MatchView, RemoteWork } from './matches.models';
 import { lang, t } from './i18n';
+import { limitMessage } from './limits.service';
 
 export interface ViewTab { view: MatchView; param: string; readonly label: string; countKey: keyof MatchCounts; readonly empty: string; }
 
@@ -63,6 +64,7 @@ export function aiErrorMessage(error: unknown): string {
   const status = error instanceof HttpErrorResponse ? error.status : 0;
   const e = t().errors;
   if (status === 403) return e.aiUnavailable;
+  if (status === 429) return limitMessage(error);           // an AI limit (ADR-0021) – worded in the user's language
   const byStatus: Record<number, string> = { 409: e.ai409, 410: e.ai410, 502: e.ai502, 503: e.ai503 };
   return problemMessage(error, byStatus[status] ?? t().common.actionFailed);
 }

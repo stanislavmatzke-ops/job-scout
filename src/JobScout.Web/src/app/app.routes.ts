@@ -36,6 +36,11 @@ export const routes: Routes = [
             loadComponent: () => import('./pages/profile/profile.page').then(m => m.ProfilePage),
           },
           {
+            path: 'feedback',
+            title: 'feedback',
+            loadComponent: () => import('./pages/feedback/feedback.page').then(m => m.FeedbackPage),
+          },
+          {
             path: 'admin',
             canActivate: [adminGuard],
             title: 'admin',

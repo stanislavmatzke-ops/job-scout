@@ -7,7 +7,7 @@ export const cs = {
 
   titles: {
     login: 'Přihlášení', access: 'Přístup', matches: 'Nabídky', matchDetail: 'Detail nabídky',
-    profile: 'Profil', admin: 'Správa', notFound: 'Stránka nenalezena',
+    profile: 'Profil', admin: 'Správa', notFound: 'Stránka nenalezena', feedback: 'Zpětná vazba',
   },
 
   lang: { label: 'Jazyk', cs: 'Čeština', en: 'English' },
@@ -25,6 +25,26 @@ export const cs = {
     ai410: 'Inzerát již na portálu není k dispozici.',
     ai502: 'Odpověď AI nebyla úplná. Zkuste to prosím znovu.',
     ai503: 'Portál s inzeráty je momentálně nedostupný. Zkuste to prosím později.',
+    ai429: 'Limit funkcí AI je vyčerpaný. Zkuste to prosím později.',
+  },
+
+  /** AI limits for clicks (ADR-0021) – a sliding 24-hour window, admins have none. */
+  limits: {
+    profileLeft: (left: number, limit: number) => `Nové vyhodnocení profilu: zbývá ${left} z ${limit} za 24 hodin.`,
+    lettersLeft: (left: number, limit: number) => `Psaní dopisů: zbývá ${left} z ${limit} za 24 hodin.`,
+    evaluationsLeft: (left: number, limit: number) => `Hodnocení na vyžádání: zbývá ${left} z ${limit} za 24 hodin.`,
+    rewritesLeft: (left: number) => left === 1
+      ? 'K této nabídce lze nechat napsat ještě 1 nový návrh.'
+      : `K této nabídce lze nechat napsat ještě ${left} nové návrhy.`,
+    again: (when: string) => `Znovu to půjde ${when}.`,
+    reason: {
+      Profile: (limit: number) => `Profil lze nechat vyhodnotit nejvýš ${limit}× za 24 hodin.`,
+      CoverLetter: (limit: number) => `Průvodní dopis lze nechat napsat nejvýš ${limit}× za 24 hodin.`,
+      Evaluation: (limit: number) => `Nabídky lze nechat ohodnotit nejvýš ${limit}× za 24 hodin.`,
+      LetterRewrites: (limit: number) => `K této nabídce už jste nechali napsat nový návrh ${limit}×. Dopis můžete dál upravit sami.`,
+      UserCost: (_: number) => 'Dnešní limit funkcí AI je vyčerpaný.',
+      AppPaused: (_: number) => 'Funkce AI jsou dočasně pozastavené pro všechny uživatele. Zkuste to prosím později – ranní hledání běží dál.',
+    },
   },
 
   login: {
@@ -48,7 +68,7 @@ export const cs = {
   },
 
   shell: {
-    matches: 'Nabídky', profile: 'Profil', admin: 'Správa', signOut: 'Odhlásit se',
+    matches: 'Nabídky', profile: 'Profil', feedback: 'Zpětná vazba', admin: 'Správa', signOut: 'Odhlásit se',
     suspendedTitle: 'Účet je pozastaven.',
     suspendedText: 'Své nabídky si můžete dál prohlížet, vyhledávání nových nabídek a funkce AI jsou však vypnuté.',
     askRestore: 'Požádat o obnovení přístupu',
@@ -177,7 +197,7 @@ export const cs = {
     noStoredCv: 'Profil vznikl dříve, než jsme začali ukládat soubor životopisu. Pro úpravu poznámek prosím nahrajte životopis znovu – pokud je stejný, profil se nezmění a nic se nepřepočítává.',
     startTitle: 'Začněte nahráním životopisu',
     startText: 'Nahrajte svůj životopis, abychom pro vás mohli najít vhodné pozice. Z životopisu a vašich poznámek AI sestaví profil – co umíte, jakou práci hledáte a kde. Pak spustíte první hledání a další nabídky budeme hledat každé ráno: ohodnotíme je a k nejvhodnějším připravíme návrh průvodního dopisu. Nic se neodesílá – o každé reakci rozhodujete vy.',
-    formats: 'PDF, Markdown nebo text, nejvýš 5 MB. Kontaktní údaje z životopisu do profilu neukládáme.',
+    formats: 'PDF, Word (.docx), Markdown nebo text, nejvýš 5 MB. Kontaktní údaje z životopisu do profilu neukládáme.',
     uploadNew: 'Nahrát nový životopis', upload: 'Nahrát životopis',
     notesTitle: 'Poznámky a preference',
     notesHelp: 'Co v životopisu není: jakou práci hledáte, kde, kolik chcete vydělávat, co vás nezajímá. Například: „Chci pracovat převážně z domova, nejvýš 1 den v kanceláři v Brně. Minimálně 95 000 Kč hrubého. Nechci projekty, kde se jen udržuje starý systém.“',
@@ -202,7 +222,8 @@ export const cs = {
     also: (places: string) => `, také ${places}`,
     priorities: 'Co je pro vás důležité', avoid: 'Čemu se vyhnout', searchAs: 'Hledáme jako',
     mismatch: 'Nesedí něco? Doplňte to do poznámek – profil se podle nich znovu vyhodnotí.',
-    cvFormats: 'Podporované formáty životopisu jsou PDF, Markdown (.md) a text (.txt).',
+    cvFormats: 'Podporované formáty životopisu jsou PDF, Word (.docx), Markdown (.md) a text (.txt).',
+    cvOldWord: 'Starý formát Word (.doc) neumíme přečíst – uložte prosím životopis jako .docx nebo PDF.',
     cvEmpty: 'Soubor je prázdný.', cvTooBig: 'Životopis může mít nejvýš 5 MB.',
   },
 
@@ -219,7 +240,11 @@ export const cs = {
     lastSignIn: (when: string) => `naposledy ${when}`, neverSignedIn: 'zatím nepřihlášen(a)',
     hasProfile: 'má profil', noProfile: 'bez profilu',
     reason: (r: string) => `Důvod: ${r}`,
-    costTitle: 'Náklady na AI za 7 / 30 dní',
+    costTitle: 'Náklady na AI za 7 / 30 dní; kliky = AI spuštěná tlačítky za posledních 24 hodin',
+    clicks24: 'kliky 24 h',
+    feedback: 'Zpětná vazba', noFeedback: 'Zatím žádná zpětná vazba.',
+    replyWanted: 'chce odpověď', reply: 'Odpovědět',
+    feedbackFailed: 'Zpětnou vazbu se nepodařilo načíst.',
     suspend: 'Pozastavit', restore: 'Obnovit přístup',
     rejected: (when: string) => `zamítnuto ${when}`,
     rejectTitle: (name: string) => `Zamítnout žádost – ${name}`,
@@ -253,6 +278,32 @@ export const cs = {
     suspendHelp: 'Uživatel se dál přihlásí a uvidí své nabídky, ale ranní vyhledávání a funkce AI se pro něj vypnou. Důvod uvidí v aplikaci přesně takto:',
     suspendReason: 'Důvod pozastavení',
     defaultReason: 'Z kapacitních důvodů je účet dočasně pozastaven.',
+  },
+
+  feedback: {
+    title: 'Zpětná vazba',
+    intro: 'Job Scout je nový a každý postřeh pomůže. Napište, co vám chybí, co nefunguje nebo co se vám líbí – zprávy čte přímo autor aplikace.',
+    kindLabel: 'Čeho se zpráva týká',
+    kinds: { Idea: 'Nápad', Problem: 'Něco nefunguje', Praise: 'Pochvala', Other: 'Jiné' },
+    ratingLabel: 'Jak se vám Job Scout zatím líbí? (nepovinné)',
+    star: (n: number) => `${n} z 5`,
+    clearRating: 'Bez hodnocení',
+    message: 'Vaše zpráva',
+    placeholders: {
+      Idea: 'Např. uvítal(a) bych hledání i na dalších portálech…',
+      Problem: 'Co jste dělali, co se stalo a co jste čekali…',
+      Praise: 'Co vám pomohlo nebo ušetřilo čas…',
+      Other: 'Cokoli, co nám chcete sdělit…',
+    },
+    reply: (email: string) => `Chci odpověď na ${email}`,
+    replyDemo: 'Pokud chcete odpověď, napište do zprávy, jak vás můžeme kontaktovat.',
+    privacy: 'Ke zprávě připojíme vaše jméno a e-mail z přihlášení, abychom věděli, od koho je.',
+    send: 'Odeslat',
+    sentTitle: 'Děkujeme, zprávu jsme přijali.',
+    sentText: 'Každou zprávu čteme. Pokud jste si přáli odpověď, ozveme se vám e-mailem.',
+    another: 'Napsat další zprávu',
+    failed: 'Zprávu se nepodařilo odeslat. Zkuste to prosím znovu.',
+    tooMany: 'Děkujeme, dnes už jsme od vás dostali zpráv dost. Další můžete poslat zítra.',
   },
 
   notFound: {

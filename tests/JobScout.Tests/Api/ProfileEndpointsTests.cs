@@ -74,7 +74,7 @@ public sealed class ProfileEndpointsTests : IDisposable
     {
         var browser = await SignInAsync();
 
-        var response = await browser.PutAsync("/api/profile/cv", CvForm("cv.docx", CvMarkdown));
+        var response = await browser.PutAsync("/api/profile/cv", CvForm("cv.exe", CvMarkdown));
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
         Assert.Equal(0, _factory.Llm.Calls);

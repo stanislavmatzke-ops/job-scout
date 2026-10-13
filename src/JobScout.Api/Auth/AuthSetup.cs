@@ -85,6 +85,8 @@ public static class AuthSetup
 
         services.AddSingleton(new ExternalProviders(external));
         services.AddSingleton(config.GetSection("Auth").Get<AdminOptions>() ?? new AdminOptions());
+        // The use cases ask "is this an admin?" too – e.g. admins have no AI limits (ADR-0021)
+        services.AddSingleton<Application.Abstractions.IAdminDirectory>(sp => sp.GetRequiredService<AdminOptions>());
         services.AddScoped<IAuthorizationHandler, AccessHandler>();
         services.AddScoped<IAuthorizationHandler, AdminHandler>();
         services.AddAuthorizationBuilder()

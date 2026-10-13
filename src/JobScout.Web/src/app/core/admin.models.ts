@@ -17,6 +17,23 @@ export interface AdminUser {
   costLast30DaysUsd: number;
   rejectedAt?: string | null;
   rejectedReason?: string | null;
+  /** AI started by clicking in the last 24 hours (ADR-0021). */
+  clickCostLast24hUsd?: number;
+}
+
+export type FeedbackKind = 'Idea' | 'Problem' | 'Praise' | 'Other';
+
+/** One row of GET /api/admin/feedback – newest first. */
+export interface FeedbackRow {
+  id: string;
+  userId: string;
+  userName: string;
+  email: string | null;
+  kind: FeedbackKind;
+  rating: number | null;
+  message: string;
+  replyWanted: boolean;
+  createdAt: string;
 }
 
 export interface Invitation {

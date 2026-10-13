@@ -17,6 +17,7 @@ import { ScoutService, ScoutStatus } from '../../core/scout.service';
 import { ProfileService, cvProblem } from '../../core/profile.service';
 import { GrammaticalGender, ProfileView, Seniority } from '../../core/profile.models';
 import { aiErrorMessage, employmentLabel, problemMessage, remoteLabel } from '../../core/match-format';
+import { LimitsService, blockedMessage, usageHint } from '../../core/limits.service';
 import { lang, t } from '../../core/i18n';
 
 type Work = 'cv' | 'notes';
@@ -39,6 +40,8 @@ type Work = 'cv' | 'notes';
     @if (view(); as v) {
       @if (!aiEnabled() && !isDemo()) {
         <p class="ai-off">{{ t().profile.aiOff }}</p>
+      } @else if (blocked(); as message) {
+        <p class="ai-off" role="status">{{ message }}</p>
       }
 
       @if (canStartFirstSearch()) {
@@ -93,10 +96,11 @@ type Work = 'cv' | 'notes';
               }
               @if (fileError(); as message) { <p class="error">{{ message }}</p> }
               <p class="muted small">{{ t().profile.formats }}</p>
+              @if (aiEnabled() && profileHint(); as hint) { <p class="muted small limit">{{ hint }}</p> }
             </mat-card-content>
             <mat-card-actions>
-              <input #file type="file" hidden accept=".pdf,.md,.txt" (change)="onFile(file)" />
-              <button mat-flat-button (click)="file.click()" [disabled]="!aiEnabled() || working() !== null">
+              <input #file type="file" hidden accept=".pdf,.docx,.md,.txt" (change)="onFile(file)" />
+              <button mat-flat-button (click)="file.click()" [disabled]="!aiEnabled() || noAnalysisLeft() || working() !== null">
                 <mat-icon>upload_file</mat-icon> {{ v.hasCv ? t().profile.uploadNew : t().profile.upload }}
               </button>
             </mat-card-actions>
@@ -108,6 +112,7 @@ type Work = 'cv' | 'notes';
             @if (working() === 'notes') { <mat-progress-bar mode="indeterminate" /> }
             <mat-card-content>
               <p class="muted small">{{ t().profile.notesHelp }}</p>
+              @if (aiEnabled() && v.hasCv && profileHint(); as hint) { <p class="muted small limit">{{ hint }}</p> }
               <mat-form-field appearance="outline" class="full">
                 <mat-label>{{ t().profile.notes }}</mat-label>
                 <textarea matInput rows="7" name="notes" maxlength="4000" [(ngModel)]="notes"
@@ -119,7 +124,7 @@ type Work = 'cv' | 'notes';
             </mat-card-content>
             <mat-card-actions>
               <button mat-stroked-button (click)="saveNotes()"
-                      [disabled]="!v.hasCv || !aiEnabled() || working() !== null || notes.trim() === (v.notes ?? '')">
+                      [disabled]="!v.hasCv || !aiEnabled() || noAnalysisLeft() || working() !== null || notes.trim() === (v.notes ?? '')">
                 {{ t().profile.saveNotes }}
               </button>
             </mat-card-actions>
@@ -220,6 +225,7 @@ type Work = 'cv' | 'notes';
     }
     .info .mat-icon { color: var(--js-primary); flex-shrink: 0; }
     .ai-off { background: #fff7e6; border-color: #f3dfb0; }
+    .limit { margin: 4px 0 0; }
     .headline { font-size: 1.2rem; font-weight: 600; line-height: 1.35; margin: 8px 0 4px; }
     h3 { margin: 16px 0 6px; font-size: 1rem; }
     .facts { display: grid; grid-template-columns: max-content 1fr; gap: 4px 16px; margin: 0; }
@@ -243,6 +249,7 @@ export class ProfilePage implements OnInit {
   private readonly auth = inject(AuthService);
   private readonly snackBar = inject(MatSnackBar);
   private readonly scout = inject(ScoutService);
+  private readonly limitsService = inject(LimitsService);
 
   protected readonly view = signal<ProfileView | null>(null);
   protected readonly loadError = signal(false);
@@ -260,6 +267,15 @@ export class ProfilePage implements OnInit {
   protected readonly aiEnabled = computed(() => this.auth.me()?.access === 'Approved' && !this.auth.me()?.isDemo);
   protected readonly isDemo = computed(() => !!this.auth.me()?.isDemo);
 
+  // AI limits for clicks (ADR-0021) – the server decides, the page only says what is left
+  protected readonly blocked = computed(() => blockedMessage(this.limitsService.limits()));
+  protected readonly profileHint = computed(() =>
+    usageHint(this.limitsService.limits(), l => l.profile, t().limits.profileLeft));
+  protected readonly noAnalysisLeft = computed(() => {
+    const l = this.limitsService.limits();
+    return !!l && !l.unlimited && (l.profile.left === 0 || !!blockedMessage(l));
+  });
+
   protected notes = '';
 
   protected readonly remoteLabel = remoteLabel;
@@ -269,6 +285,7 @@ export class ProfilePage implements OnInit {
   protected readonly employmentList = (types: Parameters<typeof employmentLabel>[0][]) => types.map(employmentLabel).join(', ');
 
   async ngOnInit(): Promise<void> {
+    if (this.aiEnabled()) void this.limitsService.refresh();
     try {
       this.show(await this.profiles.get());
     } catch {
@@ -352,6 +369,7 @@ export class ProfilePage implements OnInit {
       this.toast(aiErrorMessage(error), 6000);
     } finally {
       this.working.set(null);
+      void this.limitsService.refresh();                    // one less left (or the same, when nothing changed)
     }
   }
 

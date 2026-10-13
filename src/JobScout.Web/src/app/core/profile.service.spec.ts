@@ -47,14 +47,16 @@ describe('ProfileService', () => {
 describe('cvProblem', () => {
   const file = (name: string, size: number) => new File([new Uint8Array(size)], name);
 
-  it('accepts PDF, Markdown and text, whatever the letter case', () => {
+  it('accepts PDF, Word, Markdown and text, whatever the letter case', () => {
     expect(cvProblem(file('CV.PDF', 10))).toBeNull();
+    expect(cvProblem(file('Životopis.DOCX', 10))).toBeNull();
     expect(cvProblem(file('cv.md', 10))).toBeNull();
     expect(cvProblem(file('cv.txt', 10))).toBeNull();
   });
 
   it('rejects other formats, empty and too big files before uploading', () => {
-    expect(cvProblem(file('cv.docx', 10))).toContain('PDF');
+    expect(cvProblem(file('cv.odt', 10))).toContain('PDF');
+    expect(cvProblem(file('cv.doc', 10))).toContain('.docx');            // the old Word: say what to do
     expect(cvProblem(file('cv.pdf', 0))).toContain('prázdný');
     expect(cvProblem(file('cv.pdf', 5 * 1024 * 1024 + 1))).toContain('5 MB');
   });
