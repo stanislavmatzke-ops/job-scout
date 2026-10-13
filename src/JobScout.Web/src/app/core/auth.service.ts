@@ -40,7 +40,7 @@ export class AuthService {
   signInWith(provider: string, returnUrl = '/', invite?: string): void {
     const params = new URLSearchParams({ returnUrl });
     if (invite) params.set('invite', invite);
-    window.location.href = `/api/auth/login/${provider}?${params}`;
+    window.location.href = `/api/auth/login/${encodeURIComponent(provider)}?${params.toString()}`;
   }
 
   /** Test personas – only when the API has dev sign-in enabled (never in Production). */

@@ -44,7 +44,8 @@ export function formatWhen(iso: string): string {
 export function limitMessage(error: unknown): string {
   const problem = (error instanceof HttpErrorResponse ? error.error : null) as AiLimitProblem | null;
   const reason = problem?.reason;
-  if (!reason || !(reason in t().limits.reason)) return t().errors.ai429;
+  // Only our own keys – `in` would also accept inherited ones like "constructor" from a forged response (Codacy, 13 Oct)
+  if (!reason || !Object.hasOwn(t().limits.reason, reason)) return t().errors.ai429;
   const text = t().limits.reason[reason](problem?.limit ?? 0);
   const retryAt = problem?.retryAt;
   return retryAt ? `${text} ${t().limits.again(formatWhen(retryAt))}` : text;

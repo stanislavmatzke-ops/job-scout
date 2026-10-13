@@ -54,6 +54,7 @@ describe('AI limits', () => {
 
   it('a 429 without a known reason still says something sensible', () => {
     expect(limitMessage(tooMany({}))).toBe(t().errors.ai429);
+    expect(limitMessage(tooMany({ reason: 'constructor' }))).toBe(t().errors.ai429);   // only our own keys
     expect(limitMessage(tooMany({ reason: 'LetterRewrites', limit: 2 }))).toContain('nový návrh 2×');
   });
 });
