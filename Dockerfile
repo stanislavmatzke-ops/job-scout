@@ -4,7 +4,7 @@
 # Build from the repository root:  docker build -t job-scout .
 
 # ---------- 1. Angular ----------
-FROM node:22-bookworm-slim AS web
+FROM node:26-bookworm-slim AS web
 WORKDIR /src/src/JobScout.Web
 COPY src/JobScout.Web/package.json src/JobScout.Web/package-lock.json ./
 # The same npm as the lock file was written with (package.json "packageManager") – see ci.yml
