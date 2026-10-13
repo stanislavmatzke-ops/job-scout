@@ -26,6 +26,12 @@ jobs:
       - name: Test
         run: dotnet test JobScout.slnx --configuration Release --no-build --verbosity normal
 
+      # Known vulnerabilities in NuGet packages (also the transitive ones) fail the build (13 Oct)
+      - name: Vulnerable packages
+        run: |
+          dotnet list JobScout.slnx package --vulnerable --include-transitive 2>&1 | tee vulnerable.txt
+          ! grep -q "has the following vulnerable packages" vulnerable.txt
+
   # The Angular app (6f): unit tests (Vitest + jsdom, no browser needed) and the production build,
   # which also checks the size budgets. The build lands in src/JobScout.Api/wwwroot (angular.json).
   frontend:
@@ -49,6 +55,10 @@ jobs:
 
       - name: Install
         run: npm ci
+
+      # Known high/critical vulnerabilities in what ships to the browser fail the build (dev tools are not shipped)
+      - name: Audit
+        run: npm audit --omit=dev --audit-level=high
 
       - name: Test
         run: npx ng test --watch=false

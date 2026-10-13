@@ -40,6 +40,24 @@ public sealed class NotifierTests : IDisposable
     }
 
     [Fact]
+    public async Task Asking_again_the_same_day_does_not_flood_the_admin()
+    {
+        var jana = AddUser();
+
+        for (var i = 0; i < 5; i++)
+        {
+            await using var db = _database.CreateContext();
+            await new RequestAccess(db, _time, _notifier).ExecuteAsync(jana, $"Hledám práci ({i}).");
+        }
+        Assert.Single(_mail.Sent);
+
+        _time.Now = T0.AddHours(25);
+        await using (var db = _database.CreateContext())
+            await new RequestAccess(db, _time, _notifier).ExecuteAsync(jana, "Pořád hledám.");
+        Assert.Equal(2, _mail.Sent.Count);                                  // a day later it's news again
+    }
+
+    [Fact]
     public async Task The_admin_hears_about_a_new_request()
     {
         var jana = AddUser();

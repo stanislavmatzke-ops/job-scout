@@ -1,3 +1,4 @@
+using JobScout.Api;
 using JobScout.Api.Admin;
 using JobScout.Api.Auth;
 using JobScout.Api.Demo;
@@ -38,6 +39,7 @@ builder.Services.Configure<ForwardedHeadersOptions>(o =>
     o.KnownProxies.Clear();
 });
 builder.Services.AddHealthChecks();
+builder.Services.AddJobScoutRateLimits(builder.Configuration);      // requests per minute – RateLimits.cs
 builder.Services.ConfigureHttpJsonOptions(o =>
     o.SerializerOptions.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter()));
 
@@ -57,6 +59,9 @@ app.UseExceptionHandler(new ExceptionHandlerOptions
 });
 
 app.UseCsrfHeader();
+app.UseSecurityHeaders();                  // nosniff, no framing, CSP (report-only for now) – SecurityHeaders.cs
+if (!app.Environment.IsDevelopment())
+    app.UseHsts();                         // "this domain is HTTPS only" – browsers then never try plain HTTP
 
 // The Angular app (6f): built into wwwroot (npm run build), served by the API itself – one origin, so the session
 // cookie just works and no CORS is needed. Hashed files (main-AB12CD34.js) never change → cache for a year;
@@ -64,6 +69,7 @@ app.UseCsrfHeader();
 app.UseStaticFiles(new StaticFileOptions { OnPrepareResponse = ctx => SpaCaching.Apply(ctx.Context, ctx.File.Name) });
 
 app.UseAuthentication();
+app.UseJobScoutRateLimits();               // after authentication: per user, not per shared IP
 app.UseAuthorization();
 
 app.MapHealthChecks("/health");

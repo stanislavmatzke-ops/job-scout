@@ -1,0 +1,21 @@
+# Dependabot (13 Oct): a pull request when a dependency has a known vulnerability or a new version –
+# NuGet packages, the Angular app, the GitHub Actions and the Docker base images. Weekly, grouped, so it's not noisy.
+version: 2
+updates:
+  - package-ecosystem: nuget
+    directory: /
+    schedule: { interval: weekly }
+    groups:
+      nuget: { patterns: ["*"] }
+  - package-ecosystem: npm
+    directory: /src/JobScout.Web
+    schedule: { interval: weekly }
+    groups:
+      angular: { patterns: ["@angular/*", "@angular-devkit/*"] }
+      npm: { patterns: ["*"] }
+  - package-ecosystem: github-actions
+    directory: /
+    schedule: { interval: weekly }
+  - package-ecosystem: docker
+    directory: /
+    schedule: { interval: weekly }

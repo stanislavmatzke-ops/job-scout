@@ -39,6 +39,9 @@ public static class ProfileEndpoints
             return Results.Ok(await get.ExecuteAsync(user.GetUserId(), ct));
         })
         .DisableAntiforgery()    // CSRF: the X-CSRF header for the whole API (5e)
+        // The CV may have 5 MB – anything much bigger is refused before it is read at all (the default would be 30 MB)
+        .WithMetadata(new Microsoft.AspNetCore.Mvc.RequestSizeLimitAttribute(StoredCv.MaxBytes + 1024 * 1024))
+        .WithFormOptions(multipartBodyLengthLimit: StoredCv.MaxBytes + 1024 * 1024)
         .RequireAuthorization(Policies.Active)
         .WithAiLimits();
 
