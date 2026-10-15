@@ -4,7 +4,9 @@ export type Dict = typeof cs;
 
 /** English texts – the compiler checks that every key of cs.ts is here. Product voice: "we", plain and polite. */
 export const en: Dict = {
-  fmt: { date: 'MMM d, y', dateTime: 'MMM d, y, HH:mm', dayMonth: 'MMM d' },
+  fmt: { date: 'MMM d, y', dateTime: 'MMM d, y, HH:mm', dayMonth: 'MMM d', dayHeading: 'EEEE, MMM d' },
+
+  days: { today: 'today', yesterday: 'yesterday' },
 
   titles: {
     login: 'Sign in', access: 'Access', matches: 'Jobs', matchDetail: 'Job detail',
@@ -32,6 +34,7 @@ export const en: Dict = {
     profileLeft: (left: number, limit: number) => `New profile analyses: ${left} of ${limit} left for 24 hours.`,
     lettersLeft: (left: number, limit: number) => `Cover letters: ${left} of ${limit} left for 24 hours.`,
     evaluationsLeft: (left: number, limit: number) => `Evaluations on demand: ${left} of ${limit} left for 24 hours.`,
+    importsLeft: (left: number, limit: number) => `Jobs added by hand: ${left} of ${limit} left for 24 hours.`,
     rewritesLeft: (left: number) => left === 1
       ? 'You can have 1 more new draft written for this job.'
       : `You can have ${left} more new drafts written for this job.`,
@@ -43,6 +46,7 @@ export const en: Dict = {
       LetterRewrites: (limit: number) => `You’ve already had ${limit} new drafts written for this job. You can still edit the letter yourself.`,
       UserCost: (_: number) => 'Today’s AI limit has been reached.',
       AppPaused: (_: number) => 'AI features are paused for all users for a while. Please try again later – the morning search keeps running.',
+      JobImport: (limit: number) => `You can add jobs by hand at most ${limit} times in 24 hours.`,
     },
   },
 
@@ -128,7 +132,22 @@ export const en: Dict = {
     waitingEval: (n: number | null) => `Waiting to be rated (preliminary relevance ${n}/5).`,
     outdated: 'older profile', outdatedHint: 'Rated against an older version of your profile',
     letterReady: 'Cover letter ready', openAd: 'View job posting',
+    add: 'Add a job',
+    manual: 'yours', manualHint: 'You added this job yourself – only you can see it.',
+    waitingManual: 'You added it yourself and it hasn’t been rated yet – you can have it rated in its detail.',
+    sortLabel: 'Sort', sortScore: 'By match', sortActivity: 'By last change', sortDay: 'By day',
+    day: 'Day found', pickDay: 'Pick a day in the calendar', today: 'Today', allDays: 'All days',
+    dayEmpty: 'We found no jobs in this tab on that day.',
+    shownOf: (shown: number, total: number) => `Showing ${shown} of ${total}.`,
+    dayCount: (n: number) => n === 1 ? '1 job' : `${n} jobs`,
     noCv: 'Haven’t uploaded your CV yet?', startProfile: 'Start on the Profile page.',
+    select: (title: string) => `Select job ${title}`,
+    selectAll: 'Select all', clearSelection: 'Clear selection',
+    selected: (n: number) => n === 1 ? '1 job selected' : `${n} jobs selected`,
+    bulkStatus: 'New status', bulkNote: 'Note for the history (optional)', bulkApply: 'Change status',
+    bulkConfirmTitle: 'Change the status of the selected jobs?',
+    bulkConfirmText: (n: number, status: string) => `The status of ${n === 1 ? '1 job' : `${n} jobs`} will change to “${status}”. The change is recorded in the history of each one.`,
+    bulkDone: (n: number) => n === 1 ? 'The status of 1 job was changed.' : `The status of ${n} jobs was changed.`,
   },
 
   detail: {
@@ -136,7 +155,10 @@ export const en: Dict = {
     notFound: 'Job not found.',
     loadFailed: 'We couldn’t load the job. Please refresh the page.',
     openAd: 'View job posting',
-    meta: (company: string, location: string, source: string, when: string) => `${company} · ${location} · ${source} · found ${when}`,
+    meta: (company: string, location: string, source: string, when: string) =>
+      [company, location, source, `found ${when}`].filter(Boolean).join(' · '),
+    manualSource: 'added by hand',
+    manualAd: 'You added this job yourself – only you can see it, and the morning run doesn’t rate it on its own.',
     scoreLabel: (n: number) => `Match with your profile ${n} out of 10`,
     aiOff: 'AI features (rating and cover letters) are turned off for a suspended account.',
     evaluation: 'Match rating',
@@ -172,6 +194,28 @@ export const en: Dict = {
     notes: 'Notes', notesPlaceholder: 'Contacts, dates, interview impressions…',
     saveNotes: 'Save notes', notesSaved: 'Notes saved.',
     history: 'History',
+  },
+
+  addJob: {
+    title: 'Add a job',
+    intro: 'A job that reached you some other way – an e-mail from a recruiter, a PDF or a link. The AI picks out the title, company and location and rates it against your profile. Only you can see it.',
+    modeText: 'Text', modeFile: 'File', modeUrl: 'Link',
+    text: 'Text of the job posting or e-mail',
+    textPlaceholder: 'Paste the whole job posting or the recruiter’s e-mail…',
+    chooseFile: 'Choose a file', noFile: 'No file chosen.',
+    fileFormats: 'PDF, Word (.docx), text (.txt, .md) or a saved e-mail (.eml), up to 5 MB. Save an Outlook e-mail as .eml, or copy its text.',
+    url: 'Link to the job posting', urlHint: 'A jobs.cz posting is taken straight from the portal; any other page is read by the AI.',
+    status: 'Job status', statusHint: 'If you have already applied, set the status right away.',
+    evaluate: 'Rate it against my profile now',
+    submit: 'Add',
+    working: 'Reading the posting and rating it against your profile – usually within 30 seconds…',
+    workingNoEval: 'Reading the posting…',
+    added: 'The job was added.',
+    addedNotEvaluated: 'The job was added, but we couldn’t rate it right now – please try again in its detail.',
+    alreadyInList: 'This job is already in your list.',
+    notAJobAd: 'We didn’t find a job offer in what you added. Please check it.',
+    pageUnavailable: 'We couldn’t load the page. Please copy the text of the posting and paste it as text.',
+    tooBig: 'The file can be at most 5 MB.',
   },
 
   profile: {

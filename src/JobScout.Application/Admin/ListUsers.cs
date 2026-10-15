@@ -42,7 +42,8 @@ public sealed class ListUsers(IAppDbContext db, TimeProvider time)
         await db.LlmCalls
             .Where(c => c.UserId != null && c.At >= since)
             .Where(c => !clicksOnly || (c.ScoutRunId == null
-                && (c.Purpose == ProfilePurpose || c.Purpose == LetterPurpose || c.Purpose == EvaluationPurpose)))
+                && (c.Purpose == ProfilePurpose || c.Purpose == LetterPurpose || c.Purpose == EvaluationPurpose
+                    || c.Purpose == ImportPurpose)))
             .GroupBy(c => c.UserId!.Value)
             .Select(g => new { UserId = g.Key, MicroUsd = g.Sum(c => c.CostMicroUsd) })
             .ToDictionaryAsync(x => x.UserId, x => x.MicroUsd, ct);
@@ -50,6 +51,7 @@ public sealed class ListUsers(IAppDbContext db, TimeProvider time)
     private const string ProfilePurpose = nameof(Llm.LlmPurpose.Profile);
     private const string LetterPurpose = nameof(Llm.LlmPurpose.CoverLetter);
     private const string EvaluationPurpose = nameof(Llm.LlmPurpose.Evaluation);
+    private const string ImportPurpose = nameof(Llm.LlmPurpose.JobImport);
 
     private static decimal Usd(Dictionary<Guid, long> costs, Guid userId) => costs.GetValueOrDefault(userId) / 1_000_000m;
 }

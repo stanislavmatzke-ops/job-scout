@@ -8,7 +8,7 @@ const usage = (used: number, limit: number, resetsAt: string | null = null) => (
 
 function limits(overrides: Partial<AiLimits> = {}): AiLimits {
   return {
-    unlimited: false, profile: usage(1, 3), coverLetters: usage(0, 10), evaluations: usage(0, 20),
+    unlimited: false, profile: usage(1, 3), coverLetters: usage(0, 10), evaluations: usage(0, 20), imports: usage(0, 10),
     letterRewritesPerJob: 2, costUsd: 0.02, costLimitUsd: 0.5, costResetsAt: null, paused: false,
     ...overrides,
   };

@@ -1,12 +1,12 @@
-using JobScout.Application.Llm;
+﻿using JobScout.Application.Llm;
 
 namespace JobScout.Application.Limits;
 
 /// <summary>What a user can start by clicking – each one is a paid AI call.</summary>
-public enum AiAction { Profile, CoverLetter, Evaluation }
+public enum AiAction { Profile, CoverLetter, Evaluation, JobImport }
 
 /// <summary>Which limit was hit – the UI words the message by it (Czech / English).</summary>
-public enum AiLimitReason { Profile, CoverLetter, Evaluation, LetterRewrites, UserCost, AppPaused }
+public enum AiLimitReason { Profile, CoverLetter, Evaluation, LetterRewrites, UserCost, AppPaused, JobImport }
 
 /// <param name="Limit">The number that was reached (null for the money limits).</param>
 /// <param name="RetryAt">When it frees up again (null = not by waiting: rewrites per job, or unknown).</param>
@@ -28,7 +28,7 @@ public sealed record AiLimitUsage(int Used, int Limit, DateTimeOffset? ResetsAt)
 /// <summary>GET /api/me/limits – the UI shows "2 of 3 left today" next to the buttons.</summary>
 public sealed record AiLimitsView(
     bool Unlimited,
-    AiLimitUsage Profile, AiLimitUsage CoverLetters, AiLimitUsage Evaluations,
+    AiLimitUsage Profile, AiLimitUsage CoverLetters, AiLimitUsage Evaluations, AiLimitUsage Imports,
     int LetterRewritesPerJob,
     decimal CostUsd, decimal CostLimitUsd, DateTimeOffset? CostResetsAt,
     bool Paused);
@@ -41,6 +41,7 @@ internal static class AiActions
         AiAction.Profile => nameof(LlmPurpose.Profile),
         AiAction.CoverLetter => nameof(LlmPurpose.CoverLetter),
         AiAction.Evaluation => nameof(LlmPurpose.Evaluation),
+        AiAction.JobImport => nameof(LlmPurpose.JobImport),
         _ => throw new ArgumentOutOfRangeException(nameof(action), action, null),
     };
 
@@ -48,6 +49,7 @@ internal static class AiActions
     {
         AiAction.Profile => AiLimitReason.Profile,
         AiAction.CoverLetter => AiLimitReason.CoverLetter,
+        AiAction.JobImport => AiLimitReason.JobImport,
         _ => AiLimitReason.Evaluation,
     };
 }

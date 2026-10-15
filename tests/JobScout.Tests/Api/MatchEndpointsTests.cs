@@ -1,4 +1,4 @@
-using System.Net;
+﻿using System.Net;
 using System.Net.Http.Json;
 using JobScout.Core.Domain;
 using JobScout.Tests.TestUtils;
@@ -193,6 +193,44 @@ public sealed class MatchEndpointsTests : IDisposable
         var response = await browser.PostAsJsonAsync($"/api/matches/{foreign}/status", new { status = "Hidden" });
 
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+    }
+
+    private sealed record BulkResult(int Changed);
+
+    [Fact]
+    public async Task Bulk_status_change_moves_the_selected_jobs_and_skips_foreign_ones()
+    {
+        var (browser, me) = await SignInAsync();
+        var (_, other) = await SignInAsync("zednik");
+        var first = Seed(me, "Architekt");
+        var second = Seed(me, "Tech Lead");
+        var untouched = Seed(me, "Vývojář");
+        var foreign = Seed(other, "Stavbyvedoucí");
+
+        var response = await browser.PostAsJsonAsync("/api/matches/status",
+            new { ids = new[] { first, second, foreign }, status = "Rejected", note = "Odpověď e-mailem" });
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Equal(2, (await response.Content.ReadFromJsonAsync<BulkResult>())!.Changed);
+        var closed = await browser.GetFromJsonAsync<ListResponse>("/api/matches?view=closed");
+        Assert.Equal(new[] { first, second }.Order(), closed!.Items.Select(i => i.Id).Order().ToArray());
+        var open = await browser.GetFromJsonAsync<ListResponse>("/api/matches?view=open");
+        Assert.Equal(untouched, Assert.Single(open!.Items).Id);
+    }
+
+    [Theory]
+    [InlineData("""{ "ids": [], "status": "Rejected" }""")]
+    [InlineData("""{ "status": "Rejected" }""")]
+    [InlineData("""{ "ids": ["0199c3a0-0000-7000-8000-000000000001"], "status": "Bogus" }""")]
+    [InlineData("""{ "ids": ["0199c3a0-0000-7000-8000-000000000001"] }""")]
+    public async Task Invalid_bulk_status_is_400(string json)
+    {
+        var (browser, _) = await SignInAsync();
+
+        var response = await browser.PostAsync("/api/matches/status",
+            new StringContent(json, System.Text.Encoding.UTF8, "application/json"));
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
     }
 
     // ---------- notes ----------

@@ -20,7 +20,7 @@ Format: lightweight version of [Michael Nygard's ADR](https://cognitect.com/blog
 | [0010](0010-rich-domain-model.md) | Rich domain model; status history without a strict state machine | Accepted |
 | [0011](0011-authentication-bff.md) | Authentication: BFF with Microsoft/Google OIDC, invite links, CSRF header | Accepted |
 | [0012](0012-multiple-sources-search-intent.md) | Multiple job sources: source-agnostic search intent, per-source search plans | Proposed |
-| [0013](0013-manual-job-ads-private.md) | Manually added job ads are private to the user | Proposed |
+| [0013](0013-manual-job-ads-private.md) | Manually added job ads are private to the user | Accepted |
 | [0014](0014-dev-sign-in-test-personas.md) | Dev sign-in and test personas; the app is not IT-only | Accepted |
 | [0015](0015-jobscz-profession-resolution.md) | jobs.cz professions resolved by verified URL slugs, not a full catalogue | Accepted |
 | [0016](0016-llm-cost-tracking.md) | LLM cost tracking: recording decorator, ambient context, micro-dollars | Accepted |

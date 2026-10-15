@@ -5,6 +5,8 @@ import { provideRouter } from '@angular/router';
 import { MatchesPage } from './matches.page';
 import { MatchList } from '../../core/matches.models';
 import { ScoutStatus } from '../../core/scout.service';
+import { ConfirmService } from '../../shared/confirm-dialog';
+import { dayKey } from '../../core/match-days';
 
 const list: MatchList = {
   view: 'Open',
@@ -30,7 +32,10 @@ describe('MatchesPage', () => {
   beforeEach(() => {
     TestBed.configureTestingModule({
       imports: [MatchesPage],
-      providers: [provideRouter([]), provideHttpClient(), provideHttpClientTesting()],
+      providers: [
+        provideRouter([]), provideHttpClient(), provideHttpClientTesting(),
+        { provide: ConfirmService, useValue: { ask: async () => true } },
+      ],
     });
     http = TestBed.inject(HttpTestingController);
   });
@@ -125,5 +130,91 @@ describe('MatchesPage', () => {
     } finally {
       vi.useRealTimers();
     }
+  });
+
+  // ---------- bulk action ----------
+
+  it('changes the status of the selected jobs at once and reloads the tab', async () => {
+    const { fixture } = await render();
+    const host = fixture.nativeElement as HTMLElement;
+
+    const boxes = host.querySelectorAll<HTMLInputElement>('.item input[type="checkbox"]');
+    boxes[0].click();
+    boxes[1].click();
+    fixture.detectChanges();
+    expect(host.textContent).toContain('Vybrány 2 nabídky');
+
+    (fixture.componentInstance as unknown as { bulkStatus: { set(v: string): void } }).bulkStatus.set('Rejected');
+    fixture.detectChanges();
+    const apply = Array.from(host.querySelectorAll('button')).find(b => b.textContent?.includes('Změnit stav'))!;
+    apply.click();
+    await new Promise(resolve => setTimeout(resolve));
+
+    const req = http.expectOne('/api/matches/status');
+    expect(req.request.method).toBe('POST');
+    expect(req.request.body).toEqual({ ids: ['a', 'b'], status: 'Rejected', note: null });
+    req.flush({ changed: 2 });
+    await new Promise(resolve => setTimeout(resolve));
+
+    http.expectOne(r => r.url === '/api/matches').flush({ ...list, items: [] });
+    await new Promise(resolve => setTimeout(resolve));
+    fixture.detectChanges();
+    expect(host.textContent).not.toContain('Vybrány');
+  });
+
+  it('select all picks every job in the tab', async () => {
+    const { fixture } = await render();
+    const host = fixture.nativeElement as HTMLElement;
+
+    host.querySelector<HTMLInputElement>('.bulk input[type="checkbox"]')!.click();
+    fixture.detectChanges();
+
+    expect(host.textContent).toContain('Vybrány 2 nabídky');
+  });
+
+  // ---------- jobs of one day, grouped by day ----------
+
+  const twoDays: MatchList = {
+    ...list,
+    items: [
+      { ...list.items[0], id: 'old', title: 'Starší nabídka', foundAt: '2026-10-08T08:00:00Z' },
+      { ...list.items[0], id: 'new', title: 'Novější nabídka', foundAt: '2026-10-10T08:00:00Z', score: 6 },
+    ],
+  };
+
+  async function renderWith(params: Record<string, string>) {
+    const fixture = TestBed.createComponent(MatchesPage);
+    for (const [name, value] of Object.entries(params)) fixture.componentRef.setInput(name, value);
+    fixture.detectChanges();
+    http.expectOne(r => r.url === '/api/matches').flush(twoDays);
+    http.expectOne('/api/scout/status').flush({ searching: false, lastSearchAt: null });
+    await new Promise(resolve => setTimeout(resolve));
+    await fixture.whenStable();
+    fixture.detectChanges();
+    return (fixture.nativeElement as HTMLElement);
+  }
+
+  it('shows only the jobs of the day from the URL', async () => {
+    const host = await renderWith({ day: dayKey(new Date('2026-10-10T08:00:00Z')) });
+
+    expect(host.textContent).toContain('Novější nabídka');
+    expect(host.textContent).not.toContain('Starší nabídka');
+    expect(host.textContent).toContain('Zobrazeno 1 z 2.');
+  });
+
+  it('groups the jobs by day with a heading, newest first', async () => {
+    const host = await renderWith({ sort: 'day' });
+
+    const headings = Array.from(host.querySelectorAll('.day-heading')).map(h => h.textContent ?? '');
+    expect(headings.length).toBe(2);
+    expect(headings[0]).toContain('10. 10.');
+    const titles = Array.from(host.querySelectorAll('.item .title')).map(a => a.textContent);
+    expect(titles).toEqual(['Novější nabídka', 'Starší nabídka']);
+  });
+
+  it('a day without jobs says so', async () => {
+    const host = await renderWith({ day: '2026-01-01' });
+
+    expect(host.textContent).toContain('V tento den jsme v této záložce žádné nabídky nenašli.');
   });
 });

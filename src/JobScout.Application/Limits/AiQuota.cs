@@ -1,4 +1,4 @@
-using JobScout.Application.Abstractions;
+﻿using JobScout.Application.Abstractions;
 using JobScout.Application.Llm;
 using JobScout.Application.Notifications;
 using JobScout.Core.Domain;
@@ -93,6 +93,7 @@ public sealed class AiQuota(
             await UsageAsync(userId, AiAction.Profile, now, ct),
             await UsageAsync(userId, AiAction.CoverLetter, now, ct),
             await UsageAsync(userId, AiAction.Evaluation, now, ct),
+            await UsageAsync(userId, AiAction.JobImport, now, ct),
             options.LetterRewritesPerJob,
             Usd(costs.GetValueOrDefault(userId)), options.UserCostPer24hUsd, await CostResetsAtAsync(userId, now, ct),
             Paused: !unlimited && await AppCostAsync(costs, ct) >= options.AppCostPer24hUsd);
@@ -115,6 +116,7 @@ public sealed class AiQuota(
         {
             AiAction.Profile => options.ProfilePer24h,
             AiAction.CoverLetter => options.LettersPer24h,
+            AiAction.JobImport => options.ImportsPer24h,
             _ => options.EvaluationsPer24h,
         };
         // Full: the click that must drop out of the window is the one at [used - limit]; not full: the oldest one
@@ -159,11 +161,13 @@ public sealed class AiQuota(
     private IQueryable<LlmCall> ClickCalls(DateTimeOffset since) =>
         db.LlmCalls.AsNoTracking().Where(c =>
             c.UserId != null && c.ScoutRunId == null && c.At >= since
-            && (c.Purpose == ProfilePurpose || c.Purpose == LetterPurpose || c.Purpose == EvaluationPurpose));
+            && (c.Purpose == ProfilePurpose || c.Purpose == LetterPurpose || c.Purpose == EvaluationPurpose
+                || c.Purpose == ImportPurpose));
 
     private const string ProfilePurpose = nameof(LlmPurpose.Profile);
     private const string LetterPurpose = nameof(LlmPurpose.CoverLetter);
     private const string EvaluationPurpose = nameof(LlmPurpose.Evaluation);
+    private const string ImportPurpose = nameof(LlmPurpose.JobImport);
 
     private static decimal Usd(long microUsd) => microUsd / 1_000_000m;
 

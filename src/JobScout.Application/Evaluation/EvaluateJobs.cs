@@ -32,7 +32,8 @@ public sealed class EvaluateJobs(IAppDbContext db, MatchEvaluator matchEvaluator
         var shortlisted = await db.JobMatches
             .Include(m => m.JobOffer)
             // null = triaged before relevance existed → evaluate as before
-            .Where(m => m.UserId == userId && m.Stage == MatchStage.Shortlisted
+            // Jobs the user added by hand wait for their click – they decide whether to spend the AI on them (ADR-0013)
+            .Where(m => m.UserId == userId && m.Stage == MatchStage.Shortlisted && !m.AddedManually
                         && (m.TriageScore == null || m.TriageScore >= MinAutoRelevance))
             .OrderByDescending(m => m.TriageScore)      // the per-run limit hits the best candidates first
             .ThenBy(m => m.CreatedAt)

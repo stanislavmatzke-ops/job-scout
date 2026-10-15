@@ -170,7 +170,8 @@ without them the login page offers only the test personas. E-mails are only logg
 | 6 | Angular UI: jobs, detail, AI on demand, profile, admin panel, Czech/English | ✅ |
 | 7 | Azure: Container Apps + morning job, PostgreSQL, Key Vault, custom domain, e-mails, Bicep | ✅ live |
 | 8 | Demo account, first real users | ✅ demo / in progress |
-| later | More sources (prace.cz, StartupJobs…), manually added postings ([ADR-0013](docs/adr/0013-manual-job-ads-private.md)), prompt caching, evals for prompts | |
+| 9 | Bulk status change on the job list; postings added by hand – text, PDF/Word, e-mail (.eml) or a link ([ADR-0013](docs/adr/0013-manual-job-ads-private.md)) | ✅ |
+| later | More sources (prace.cz, StartupJobs…), prompt caching, evals for prompts | |
 
 ## Data and privacy
 

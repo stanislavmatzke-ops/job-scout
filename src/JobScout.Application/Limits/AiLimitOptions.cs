@@ -1,4 +1,4 @@
-namespace JobScout.Application.Limits;
+﻿namespace JobScout.Application.Limits;
 
 /// <summary>
 /// Configuration "AiLimits" (ADR-0021): how much AI a user may start by clicking within any 24 hours.
@@ -25,6 +25,9 @@ public sealed class AiLimitOptions
 
     /// <summary>"Ohodnotit" / "Přesto ohodnotit" / "Přehodnotit".</summary>
     public int EvaluationsPer24h { get; init; } = 20;
+
+    /// <summary>Job ads added by hand (ADR-0013) – reading the text, PDF, e-mail or web page; the evaluation counts on its own.</summary>
+    public int ImportsPer24h { get; init; } = 10;
 
     /// <summary>What one user's clicks may cost in total.</summary>
     public decimal UserCostPer24hUsd { get; init; } = 0.50m;

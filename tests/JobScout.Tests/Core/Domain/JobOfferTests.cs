@@ -1,4 +1,4 @@
-using JobScout.Core.Domain;
+﻿using JobScout.Core.Domain;
 using JobScout.Core.Jobs;
 
 namespace JobScout.Tests.Core.Domain;
@@ -74,5 +74,27 @@ public class JobOfferTests
         Assert.Equal(isComplete, offer.DetailIsComplete);
         Assert.Equal(T0.AddMinutes(30), offer.DetailFetchedAt);
         Assert.Equal(T0, offer.LastSeenAt);   // fetching the detail is not "seen in search results"
+    }
+
+    // ---------- added by hand (ADR-0013) ----------
+
+    [Fact]
+    public void Ad_added_by_hand_is_private_complete_and_has_its_own_id()
+    {
+        var owner = Guid.NewGuid();
+
+        var offer = JobOffer.AddedByUser(owner, "Stavbyvedoucí", "Stavby Morava a.s.", "Brno", "", "Hledáme stavbyvedoucího.", T0);
+
+        Assert.True(offer.IsPrivate);
+        Assert.Equal(owner, offer.OwnerUserId);
+        Assert.Equal((JobOffer.ManualSource, offer.Id.ToString("N")), (offer.Source, offer.ExternalId));
+        Assert.Equal(("Hledáme stavbyvedoucího.", true, (DateTimeOffset?)T0), (offer.DetailText, offer.DetailIsComplete, offer.DetailFetchedAt));
+        Assert.False(JobOffer.FromListing(Listing(), T0).IsPrivate);
+    }
+
+    [Fact]
+    public void Ad_added_by_hand_needs_its_text()
+    {
+        Assert.Throws<ArgumentException>(() => JobOffer.AddedByUser(Guid.NewGuid(), "Pozice", "", "", "", "  ", T0));
     }
 }

@@ -1,7 +1,7 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
-import { MatchDetail, MatchList, MatchStatus, MatchView } from './matches.models';
+import { AddJobRequest, AddJobResult, MatchDetail, MatchList, MatchStatus, MatchView } from './matches.models';
 
 /** /api/matches – the user's jobs (only ever their own – the API checks the owner). */
 @Injectable({ providedIn: 'root' })
@@ -20,8 +20,24 @@ export class MatchesService {
     return firstValueFrom(this.http.post<void>(`/api/matches/${id}/status`, { status, note }));
   }
 
+  /** The same status (and note) for several jobs at once; returns how many of them were the user's. */
+  changeStatusMany(ids: string[], status: MatchStatus, note: string | null): Promise<{ changed: number }> {
+    return firstValueFrom(this.http.post<{ changed: number }>('/api/matches/status', { ids, status, note }));
+  }
+
   updateNotes(id: string, notes: string | null): Promise<void> {
     return firstValueFrom(this.http.put<void>(`/api/matches/${id}/notes`, { notes }));
+  }
+
+  /** A job ad from elsewhere (ADR-0013) – the AI reads it (and evaluates it, if asked); takes up to half a minute. */
+  addManually(request: AddJobRequest): Promise<AddJobResult> {
+    const form = new FormData();
+    if (request.text) form.append('text', request.text);
+    if (request.url) form.append('url', request.url);
+    if (request.file) form.append('file', request.file, request.file.name);
+    form.append('status', request.status);
+    form.append('evaluate', String(request.evaluate));
+    return firstValueFrom(this.http.post<AddJobResult>('/api/matches/manual', form));
   }
 
   // ---------- on demand (6c) – these call the AI and take a few seconds; they return the fresh detail ----------

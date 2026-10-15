@@ -27,6 +27,8 @@ export interface MatchListItem {
   evaluationOutdated: boolean;
   /** New AI drafts over an existing letter – limited per job (ADR-0021). */
   letterRewrites?: number;
+  /** Brought by the user from elsewhere (ADR-0013) – private, never evaluated by the morning run. */
+  addedManually?: boolean;
 }
 
 export interface MatchList { view: MatchView; items: MatchListItem[]; counts: MatchCounts; }
@@ -68,4 +70,18 @@ export interface MatchDetail {
   evaluationOutdated: boolean;
   /** New AI drafts over an existing letter – limited per job (ADR-0021). */
   letterRewrites?: number;
+  /** Brought by the user from elsewhere (ADR-0013). */
+  addedManually?: boolean;
+}
+
+/** POST /api/matches/manual – the new job, or the one already in the list. */
+export interface AddJobResult { id: string; evaluated: boolean; alreadyInList: boolean; }
+
+/** What "Přidat nabídku" sends – exactly one of text, url, file. */
+export interface AddJobRequest {
+  text?: string;
+  url?: string;
+  file?: File;
+  status: MatchStatus;
+  evaluate: boolean;
 }

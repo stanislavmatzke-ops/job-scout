@@ -106,6 +106,9 @@ namespace JobScout.Migrations.Postgres.Migrations
                     b.Property<Guid>("Id")
                         .HasColumnType("uuid");
 
+                    b.Property<bool>("AddedManually")
+                        .HasColumnType("boolean");
+
                     b.Property<string>("CoverLetter")
                         .HasColumnType("text");
 
@@ -232,6 +235,9 @@ namespace JobScout.Migrations.Postgres.Migrations
                         .HasMaxLength(300)
                         .HasColumnType("character varying(300)");
 
+                    b.Property<Guid?>("OwnerUserId")
+                        .HasColumnType("uuid");
+
                     b.Property<string>("Source")
                         .IsRequired()
                         .HasMaxLength(50)
@@ -252,6 +258,8 @@ namespace JobScout.Migrations.Postgres.Migrations
                         .HasColumnType("character varying(500)");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("OwnerUserId");
 
                     b.HasIndex("Source", "ExternalId")
                         .IsUnique();

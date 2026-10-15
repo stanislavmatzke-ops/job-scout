@@ -3,7 +3,9 @@
  * Rule for all texts (copilot-instructions.md): formal "vy", the product speaks as "we", no personal "I".
  */
 export const cs = {
-  fmt: { date: 'd. M. y', dateTime: 'd. M. y H:mm', dayMonth: 'd. M.' },
+  fmt: { date: 'd. M. y', dateTime: 'd. M. y H:mm', dayMonth: 'd. M.', dayHeading: 'EEEE d. M.' },
+
+  days: { today: 'dnes', yesterday: 'včera' },
 
   titles: {
     login: 'Přihlášení', access: 'Přístup', matches: 'Nabídky', matchDetail: 'Detail nabídky',
@@ -33,6 +35,7 @@ export const cs = {
     profileLeft: (left: number, limit: number) => `Nové vyhodnocení profilu: zbývá ${left} z ${limit} za 24 hodin.`,
     lettersLeft: (left: number, limit: number) => `Psaní dopisů: zbývá ${left} z ${limit} za 24 hodin.`,
     evaluationsLeft: (left: number, limit: number) => `Hodnocení na vyžádání: zbývá ${left} z ${limit} za 24 hodin.`,
+    importsLeft: (left: number, limit: number) => `Ruční přidání nabídek: zbývá ${left} z ${limit} za 24 hodin.`,
     rewritesLeft: (left: number) => left === 1
       ? 'K této nabídce lze nechat napsat ještě 1 nový návrh.'
       : `K této nabídce lze nechat napsat ještě ${left} nové návrhy.`,
@@ -44,6 +47,7 @@ export const cs = {
       LetterRewrites: (limit: number) => `K této nabídce už jste nechali napsat nový návrh ${limit}×. Dopis můžete dál upravit sami.`,
       UserCost: (_: number) => 'Dnešní limit funkcí AI je vyčerpaný.',
       AppPaused: (_: number) => 'Funkce AI jsou dočasně pozastavené pro všechny uživatele. Zkuste to prosím později – ranní hledání běží dál.',
+      JobImport: (limit: number) => `Nabídky lze ručně přidat nejvýš ${limit}× za 24 hodin.`,
     },
   },
 
@@ -129,7 +133,22 @@ export const cs = {
     waitingEval: (n: number | null) => `Čeká na ohodnocení (předběžná relevance ${n}/5).`,
     outdated: 'starší profil', outdatedHint: 'Ohodnoceno podle starší verze profilu',
     letterReady: 'Průvodní dopis je připraven', openAd: 'Otevřít inzerát',
+    add: 'Přidat nabídku',
+    manual: 'vlastní', manualHint: 'Nabídku jste přidali sami – vidíte ji jen vy.',
+    waitingManual: 'Přidali jste ji sami a zatím není ohodnocená – ohodnotit ji můžete v detailu.',
+    sortLabel: 'Řazení', sortScore: 'Podle shody', sortActivity: 'Podle poslední změny', sortDay: 'Po dnech',
+    day: 'Den nalezení', pickDay: 'Vybrat den v kalendáři', today: 'Dnes', allDays: 'Všechny dny',
+    dayEmpty: 'V tento den jsme v této záložce žádné nabídky nenašli.',
+    shownOf: (shown: number, total: number) => `Zobrazeno ${shown} z ${total}.`,
+    dayCount: (n: number) => n === 1 ? '1 nabídka' : n < 5 ? `${n} nabídky` : `${n} nabídek`,
     noCv: 'Ještě nemáte nahraný životopis?', startProfile: 'Začněte na stránce Profil.',
+    select: (title: string) => `Vybrat nabídku ${title}`,
+    selectAll: 'Vybrat vše', clearSelection: 'Zrušit výběr',
+    selected: (n: number) => n === 1 ? 'Vybrána 1 nabídka' : n < 5 ? `Vybrány ${n} nabídky` : `Vybráno ${n} nabídek`,
+    bulkStatus: 'Nový stav', bulkNote: 'Poznámka do historie (nepovinné)', bulkApply: 'Změnit stav',
+    bulkConfirmTitle: 'Změnit stav vybraných nabídek?',
+    bulkConfirmText: (n: number, status: string) => `Stav ${n === 1 ? '1 nabídky' : `${n} nabídek`} se změní na „${status}“. Změna se zapíše do historie každé z nich.`,
+    bulkDone: (n: number) => n === 1 ? 'Stav 1 nabídky byl změněn.' : `Stav ${n} nabídek byl změněn.`,
   },
 
   detail: {
@@ -137,7 +156,10 @@ export const cs = {
     notFound: 'Nabídka nebyla nalezena.',
     loadFailed: 'Nabídku se nepodařilo načíst. Zkuste prosím stránku obnovit.',
     openAd: 'Otevřít inzerát',
-    meta: (company: string, location: string, source: string, when: string) => `${company} · ${location} · ${source} · nalezeno ${when}`,
+    meta: (company: string, location: string, source: string, when: string) =>
+      [company, location, source, `nalezeno ${when}`].filter(Boolean).join(' · '),
+    manualSource: 'přidáno ručně',
+    manualAd: 'Nabídku jste přidali sami – vidíte ji jen vy a ranní běh ji sám nehodnotí.',
     scoreLabel: (n: number) => `Shoda s profilem ${n} z 10`,
     aiOff: 'Funkce AI (hodnocení a psaní dopisů) jsou u pozastaveného účtu vypnuté.',
     evaluation: 'Hodnocení shody',
@@ -173,6 +195,29 @@ export const cs = {
     notes: 'Poznámky', notesPlaceholder: 'Kontakty, termíny, dojmy z pohovoru…',
     saveNotes: 'Uložit poznámky', notesSaved: 'Poznámky byly uloženy.',
     history: 'Historie',
+  },
+
+  /** "Přidat nabídku" – a job ad from elsewhere (ADR-0013). */
+  addJob: {
+    title: 'Přidat nabídku',
+    intro: 'Nabídka, která k vám přišla jinudy – e-mailem od personalisty, v PDF nebo jako odkaz. AI z ní vytáhne název, firmu a místo a podle vašeho profilu ji ohodnotí. Nabídku vidíte jen vy.',
+    modeText: 'Text', modeFile: 'Soubor', modeUrl: 'Odkaz',
+    text: 'Text inzerátu nebo e-mailu',
+    textPlaceholder: 'Vložte celý text inzerátu nebo e-mailu od personalisty…',
+    chooseFile: 'Vybrat soubor', noFile: 'Není vybrán žádný soubor.',
+    fileFormats: 'PDF, Word (.docx), text (.txt, .md) nebo uložený e-mail (.eml), nejvýš 5 MB. E-mail z Outlooku uložte jako .eml, případně zkopírujte jeho text.',
+    url: 'Odkaz na inzerát', urlHint: 'Inzerát z jobs.cz převezmeme přímo z portálu, jinou stránku přečte AI.',
+    status: 'Stav nabídky', statusHint: 'Pokud jste na nabídku už reagovali, nastavte stav rovnou.',
+    evaluate: 'Hned ohodnotit podle mého profilu',
+    submit: 'Přidat',
+    working: 'Čteme inzerát a hodnotíme ho podle vašeho profilu – obvykle do 30 sekund…',
+    workingNoEval: 'Čteme inzerát…',
+    added: 'Nabídka byla přidána.',
+    addedNotEvaluated: 'Nabídka byla přidána, ohodnotit se ji ale teď nepodařilo – zkuste to prosím v detailu.',
+    alreadyInList: 'Tuto nabídku už máte v seznamu.',
+    notAJobAd: 'V podkladech jsme nenašli nabídku práce. Zkontrolujte prosím, co jste vložili.',
+    pageUnavailable: 'Stránku se nepodařilo načíst. Zkopírujte prosím text inzerátu a vložte ho jako text.',
+    tooBig: 'Soubor může mít nejvýš 5 MB.',
   },
 
   profile: {

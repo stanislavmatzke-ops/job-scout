@@ -1,4 +1,4 @@
-using JobScout.Core.Domain;
+﻿using JobScout.Core.Domain;
 
 namespace JobScout.Tests.Core.Domain;
 
@@ -146,5 +146,15 @@ public class JobMatchTests
         Assert.Equal("Dobrý den, …", match.CoverLetter);
         Assert.Equal("Zeptat se na HO", match.Notes);
         Assert.Equal(T0.AddMinutes(2), match.UpdatedAt);
+    }
+
+    [Fact]
+    public void Job_added_by_hand_waits_for_evaluation_without_triage()
+    {
+        var match = JobMatch.AddedByUser(Guid.NewGuid(), Guid.NewGuid(), profileVersion: 2, T0);
+
+        Assert.True(match.AddedManually);
+        Assert.Equal((MatchStage.Shortlisted, MatchStatus.New, (int?)null), (match.Stage, match.Status, match.TriageScore));
+        Assert.False(new JobMatch(Guid.NewGuid(), Guid.NewGuid(), 1, T0).AddedManually);
     }
 }

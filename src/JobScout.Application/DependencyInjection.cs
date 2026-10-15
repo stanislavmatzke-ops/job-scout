@@ -4,6 +4,7 @@ using JobScout.Application.Jobs;
 using JobScout.Application.Letters;
 using JobScout.Application.Limits;
 using JobScout.Application.Llm;
+using JobScout.Application.ManualJobs;
 using JobScout.Application.Matches;
 using JobScout.Application.Profiles;
 using JobScout.Application.Reports;
@@ -45,6 +46,8 @@ public static class DependencyInjection
         services.AddScoped<EvaluateMatchNow>();
         services.AddScoped<WriteCoverLetterNow>();
         services.AddScoped<UpdateCoverLetter>();
+        services.AddSingleton<JobAdExtractor>();
+        services.AddScoped<AddJobManually>();      // scoped: uses job sources and the evaluator
         services.AddScoped<GetProfile>();
         services.AddScoped<UploadCv>();
         services.AddScoped<UpdateProfileNotes>();

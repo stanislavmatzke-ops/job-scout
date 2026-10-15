@@ -1,4 +1,4 @@
-using JobScout.Application.Jobs;
+﻿using JobScout.Application.Jobs;
 using JobScout.Core.Jobs;
 
 namespace JobScout.Tests.TestUtils;
@@ -53,6 +53,12 @@ internal sealed class FakeJobSource(string name = "fake.cz") : IJobSource
 
         return Task.FromResult<IReadOnlyList<JobListing>>(Listings.ToList());
     }
+
+    /// <summary>https://fake.cz/job/{id} is an ad of this source.</summary>
+    public string? ExternalIdFromUrl(Uri url) =>
+        url.Host == name && url.AbsolutePath.StartsWith("/job/", StringComparison.Ordinal)
+            ? url.AbsolutePath["/job/".Length..].Trim('/')
+            : null;
 
     public Task<JobDetail> GetDetailAsync(string externalId, CancellationToken ct = default)
     {

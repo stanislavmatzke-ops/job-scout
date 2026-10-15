@@ -24,6 +24,7 @@ afternoon could cost more than a month of morning runs.
   | New profile analysis (new CV or changed notes) | 3 per 24 h – an unchanged CV costs nothing and isn't counted |
   | Cover letter (new or rewritten) | 10 per 24 h, and at most 2 rewrites per job, ever (`JobMatch.LetterRewrites`) |
   | Evaluation on demand | 20 per 24 h |
+  | Job ad added by hand (reading text / file / e-mail / page, ADR-0013) | 10 per 24 h – the evaluation counts on its own |
   | All clicks of one user | 0.50 USD per 24 h |
   | All clicks of all users (emergency brake) | 5 USD per 24 h – AI clicks off for everybody, the admins get one e-mail |
 

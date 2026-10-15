@@ -6,7 +6,9 @@ using JobScout.Application.Limits;
 using JobScout.Application.Llm;
 using Azure.Communication.Email;
 using JobScout.Application.Notifications;
+using JobScout.Application.ManualJobs;
 using JobScout.Infrastructure.Browser;
+using JobScout.Infrastructure.Web;
 using JobScout.Infrastructure.Email;
 using JobScout.Infrastructure.Claude;
 using JobScout.Infrastructure.JobsCz;
@@ -37,6 +39,15 @@ public static class DependencyInjection
             c.Timeout = TimeSpan.FromSeconds(30);
         }).AddHttpMessageHandler(() => new PoliteDelayHandler(TimeSpan.FromSeconds(2)));
         services.AddSingleton<IPageRenderer, PlaywrightPageRenderer>();
+        // Job ads the user adds by hand (ADR-0013): any public page they paste a link to – never inside our network
+        services.AddHttpClient<IWebPageReader, WebPageReader>(c =>
+        {
+            c.DefaultRequestHeaders.UserAgent.ParseAdd("JobScout/0.1 (personal job search assistant; reads a page the user asked for)");
+            c.DefaultRequestHeaders.Accept.ParseAdd("text/html,application/xhtml+xml,application/pdf;q=0.9,text/plain;q=0.8");
+            c.DefaultRequestHeaders.AcceptLanguage.ParseAdd("cs-CZ,cs;q=0.9,en;q=0.8");
+            c.Timeout = TimeSpan.FromSeconds(20);
+        }).ConfigurePrimaryHttpMessageHandler(WebPageReader.SafeHandler);
+        services.AddSingleton<IEmailReader, MimeEmailReader>();
         // Factory for short-lived contexts (usage recorder) + the usual scoped context for use cases
         // SQLite locally and in tests, PostgreSQL in Azure – Database:Provider (ADR-0018)
         services.AddDbContextFactory<JobScoutDbContext>(o => DatabaseProvider.Configure(o, config));

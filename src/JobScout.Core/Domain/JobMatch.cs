@@ -33,6 +33,8 @@ public sealed class JobMatch
     public int LetterRewrites { get; private set; }
     public MatchStatus Status { get; private set; }
     public string? Notes { get; private set; }
+    /// <summary>The user brought the job themselves (ADR-0013) – the morning run never evaluates it on its own.</summary>
+    public bool AddedManually { get; private set; }
     public DateTimeOffset CreatedAt { get; private set; }
     public DateTimeOffset UpdatedAt { get; private set; }
     public IReadOnlyList<JobMatchEvent> Events => _events;
@@ -49,6 +51,17 @@ public sealed class JobMatch
         Status = MatchStatus.New;
         CreatedAt = UpdatedAt = now;
     }
+
+    /// <summary>
+    /// A job the user added by hand: no triage – the user already chose it. It waits in "K rozhodnutí" until they have it
+    /// evaluated (straight away, or later with the button); the morning run leaves it alone, the AI costs are theirs to start.
+    /// </summary>
+    public static JobMatch AddedByUser(Guid userId, Guid jobOfferId, int profileVersion, DateTimeOffset now) =>
+        new(userId, jobOfferId, profileVersion, now)
+        {
+            Stage = MatchStage.Shortlisted,
+            AddedManually = true,
+        };
 
     public void MarkTriagedOut(string reason, DateTimeOffset now, int? relevance = null)
     {

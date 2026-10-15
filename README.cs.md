@@ -173,7 +173,8 @@ bez nich přihlašovací stránka nabídne jen testovací persony. E-maily se lo
 | 6 | Angular UI: nabídky, detail, AI na vyžádání, profil, správa, čeština/angličtina | ✅ |
 | 7 | Azure: Container Apps + ranní job, PostgreSQL, Key Vault, vlastní doména, e-maily, Bicep | ✅ naživo |
 | 8 | Ukázkový účet, první skuteční uživatelé | ✅ ukázka / probíhá |
-| později | Další zdroje (prace.cz, StartupJobs…), ručně přidané inzeráty ([ADR-0013](docs/adr/0013-manual-job-ads-private.md)), prompt caching, evaly promptů | |
+| 9 | Hromadná změna stavu v seznamu nabídek; ručně přidané inzeráty – text, PDF/Word, e-mail (.eml) nebo odkaz ([ADR-0013](docs/adr/0013-manual-job-ads-private.md)) | ✅ |
+| později | Další zdroje (prace.cz, StartupJobs…), prompt caching, evaly promptů | |
 
 ## Data a soukromí
 

@@ -73,6 +73,15 @@ internal sealed partial class JobsCzSource(HttpClient http, IPageRenderer render
         return detail;
     }
 
+    /// <summary>https://www.jobs.cz/rpd/2001234567/?searchId=… → "2001234567" – the same id the search results carry.</summary>
+    public string? ExternalIdFromUrl(Uri url)
+    {
+        if (url.Scheme is not ("http" or "https") || url.Host is not ("www.jobs.cz" or "jobs.cz"))
+            return null;
+        var match = AdPath().Match(url.AbsolutePath);
+        return match.Success ? match.Groups[1].Value : null;
+    }
+
     private async Task<JobDetail?> RenderCareerPageAsync(string externalId, Uri url, CancellationToken ct)
     {
         try
@@ -149,6 +158,9 @@ internal sealed partial class JobsCzSource(HttpClient http, IPageRenderer render
         logger.LogInformation("jobs.cz: profese '{Label}' → {Slug}", label.Trim(), slug);
         return new JobCategory(slug, label.Trim());
     }
+
+    [GeneratedRegex(@"^/rpd/(\d{5,20})/?$")]
+    private static partial Regex AdPath();
 
     [GeneratedRegex("-+")]
     private static partial Regex DashRuns();

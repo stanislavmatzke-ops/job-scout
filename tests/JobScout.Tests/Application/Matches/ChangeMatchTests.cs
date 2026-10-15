@@ -1,4 +1,4 @@
-using JobScout.Application.Matches;
+﻿using JobScout.Application.Matches;
 using JobScout.Core.Domain;
 using JobScout.Tests.TestUtils;
 using Microsoft.EntityFrameworkCore;
@@ -93,6 +93,68 @@ public sealed class ChangeMatchTests : IDisposable
     public async Task Undefined_status_value_is_rejected()
     {
         await Assert.ThrowsAsync<ArgumentOutOfRangeException>(() => ChangeStatusAsync((MatchStatus)99));
+    }
+
+    // ---------- bulk ----------
+
+    private async Task<int> ChangeManyAsync(IReadOnlyCollection<Guid> ids, MatchStatus status, string? note = null, Guid? asUser = null)
+    {
+        await using var db = _database.CreateContext();
+        return await new ChangeMatchStatus(db, _time).ExecuteManyAsync(asUser ?? _userId, ids, status, note);
+    }
+
+    private Guid SeedAnother(Guid userId, string title)
+    {
+        using var db = _database.CreateContext();
+        return MatchSeeder.Add(db, userId, title, T0);
+    }
+
+    [Fact]
+    public async Task Bulk_change_records_history_for_every_job()
+    {
+        var second = SeedAnother(_userId, "Tech Lead");
+
+        var changed = await ChangeManyAsync([_matchId, second], MatchStatus.Rejected, "Odmítnuto e-mailem");
+
+        Assert.Equal(2, changed);
+        using var db = _database.CreateContext();
+        var stored = db.JobMatches.Include(m => m.Events).Where(m => m.UserId == _userId).ToList();
+        Assert.All(stored, m =>
+        {
+            Assert.Equal(MatchStatus.Rejected, m.Status);
+            var entry = Assert.Single(m.Events);
+            Assert.Equal((MatchStatus.New, MatchStatus.Rejected, "Odmítnuto e-mailem"), (entry.From, entry.To, entry.Note));
+        });
+    }
+
+    [Fact]
+    public async Task Bulk_change_skips_somebody_elses_and_unknown_jobs()
+    {
+        var foreign = SeedAnother(_otherUserId, "Zedník");
+
+        var changed = await ChangeManyAsync([_matchId, foreign, Guid.NewGuid()], MatchStatus.Dismissed);
+
+        Assert.Equal(1, changed);
+        Assert.Equal(MatchStatus.Dismissed, Stored().Status);
+        using var db = _database.CreateContext();
+        Assert.Equal(MatchStatus.New, db.JobMatches.Single(m => m.Id == foreign).Status);
+    }
+
+    [Fact]
+    public async Task Bulk_change_with_the_same_id_twice_records_it_once()
+    {
+        await ChangeManyAsync([_matchId, _matchId], MatchStatus.Applied);
+
+        Assert.Single(Stored().Events);
+    }
+
+    [Fact]
+    public async Task Bulk_change_needs_a_selection_within_the_limit()
+    {
+        await Assert.ThrowsAsync<ArgumentException>(() => ChangeManyAsync([], MatchStatus.Rejected));
+        var tooMany = Enumerable.Range(0, ChangeMatchStatus.MaxBulk + 1).Select(_ => Guid.NewGuid()).ToList();
+        await Assert.ThrowsAsync<ArgumentException>(() => ChangeManyAsync(tooMany, MatchStatus.Rejected));
+        Assert.Equal(MatchStatus.New, Stored().Status);
     }
 
     // ---------- notes ----------

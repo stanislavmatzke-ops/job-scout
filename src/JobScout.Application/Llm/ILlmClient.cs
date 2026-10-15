@@ -1,4 +1,4 @@
-namespace JobScout.Application.Llm;
+﻿namespace JobScout.Application.Llm;
 
 public enum LlmTier
 {
@@ -7,7 +7,7 @@ public enum LlmTier
 }
 
 /// <summary>What the call is for – the cost report groups by it.</summary>
-public enum LlmPurpose { Other, Profile, SearchPlan, Triage, Evaluation, CoverLetter }
+public enum LlmPurpose { Other, Profile, SearchPlan, Triage, Evaluation, CoverLetter, JobImport }
 
 public interface ILlmClient
 {

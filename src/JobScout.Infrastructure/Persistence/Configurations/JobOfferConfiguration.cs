@@ -21,5 +21,9 @@ internal sealed class JobOfferConfiguration : IEntityTypeConfiguration<JobOffer>
 
         // One row per ad per source – the dedup key of the whole app
         b.HasIndex(o => new { o.Source, o.ExternalId }).IsUnique();
+
+        // Private ads added by hand (ADR-0013) – the owner's id, no navigation: only ever read through the owner's matches
+        b.HasIndex(o => o.OwnerUserId);
+        b.Ignore(o => o.IsPrivate);   // computed in C#, not a column
     }
 }

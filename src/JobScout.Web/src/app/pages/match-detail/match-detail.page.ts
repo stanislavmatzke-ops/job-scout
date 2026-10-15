@@ -50,10 +50,13 @@ type AiWork = 'evaluate' | 'letter';
         </div>
         <div class="head-text">
           <h1>{{ d.title }}</h1>
-          <div class="meta">{{ t().detail.meta(d.company, d.location, d.source, (d.foundAt | date: t().fmt.date : undefined : lang()) ?? '') }}</div>
+          <div class="meta">{{ t().detail.meta(d.company, d.location, d.source === 'manual' ? t().detail.manualSource : d.source, (d.foundAt | date: t().fmt.date : undefined : lang()) ?? '') }}</div>
         </div>
-        <a mat-stroked-button [href]="d.url" target="_blank" rel="noopener"><mat-icon>open_in_new</mat-icon> {{ t().detail.openAd }}</a>
+        @if (d.url) {
+          <a mat-stroked-button [href]="d.url" target="_blank" rel="noopener"><mat-icon>open_in_new</mat-icon> {{ t().detail.openAd }}</a>
+        }
       </header>
+      @if (d.addedManually) { <p class="manual-note">{{ t().detail.manualAd }}</p> }
 
       @if (!aiEnabled() && !isDemo()) {
         <p class="ai-off">{{ t().detail.aiOff }}</p>
@@ -244,6 +247,7 @@ type AiWork = 'evaluate' | 'letter';
     .score.big { width: 68px; padding: 8px 0 7px; }
     .score.big .value { font-size: 1.7rem; }
     mat-card-subtitle { margin-top: 2px; }
+    .manual-note { margin: -12px 0 16px; color: var(--js-muted); font-size: 0.9em; }
     .ai-off { padding: 8px 12px; border-radius: 8px; background: var(--mat-sys-surface-container-high); }
     .outdated { padding: 6px 10px; border-radius: 8px; border: 1px dashed var(--mat-sys-outline); font-size: 0.9em; }
     .grid { display: grid; grid-template-columns: 2fr 1fr; gap: 16px; align-items: start; }

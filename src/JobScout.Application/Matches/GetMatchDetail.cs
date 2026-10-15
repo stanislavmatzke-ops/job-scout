@@ -15,7 +15,8 @@ public sealed record MatchDetail(
     string? AdText, bool AdTextIncomplete, DateTimeOffset FoundAt, DateTimeOffset UpdatedAt,
     IReadOnlyList<MatchHistoryEntry> History,
     bool EvaluationOutdated,                        // evaluated with an older profile version (6d)
-    int LetterRewrites = 0);                        // new AI drafts over an existing letter – limited per job (ADR-0021)
+    int LetterRewrites = 0,                         // new AI drafts over an existing letter – limited per job (ADR-0021)
+    bool AddedManually = false);                    // brought by the user from elsewhere (ADR-0013)
 
 /// <summary>Everything about one of my jobs. Somebody else's job = null, exactly like a missing one.</summary>
 public sealed class GetMatchDetail(IAppDbContext db)
@@ -39,6 +40,7 @@ public sealed class GetMatchDetail(IAppDbContext db)
             m.CreatedAt, m.UpdatedAt,
             m.Events.OrderBy(e => e.At).Select(e => new MatchHistoryEntry(e.From, e.To, e.Note, e.At)).ToList(),
             EvaluationOutdated: m.Stage == MatchStage.Evaluated && m.ProfileVersion < currentVersion,
-            m.LetterRewrites);
+            m.LetterRewrites,
+            m.AddedManually);
     }
 }

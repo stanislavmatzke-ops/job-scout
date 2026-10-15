@@ -10,7 +10,8 @@ public sealed record MatchListItem(
     Guid Id, string Title, string Company, string Location, string Url,
     MatchStage Stage, MatchStatus Status, int? Score, int? TriageScore, string? Summary, string? TriageReason,
     bool HasCoverLetter, DateTimeOffset FoundAt, DateTimeOffset UpdatedAt,
-    bool EvaluationOutdated);                       // evaluated with an older profile version (6d)
+    bool EvaluationOutdated,                        // evaluated with an older profile version (6d)
+    bool AddedManually = false);                    // brought by the user from elsewhere (ADR-0013)
 
 public sealed record MatchCounts(int Open, int InProgress, int Closed, int TriagedOut);
 
@@ -37,7 +38,7 @@ public sealed class ListMatches(IAppDbContext db)
             {
                 m.Id, m.JobOffer!.Title, m.JobOffer.Company, m.JobOffer.Location, m.JobOffer.Url,
                 m.Stage, m.Status, m.Score, m.TriageScore, m.EvaluationJson, m.TriageReason,
-                HasCoverLetter = m.CoverLetter != null, m.CreatedAt, m.UpdatedAt, m.ProfileVersion
+                HasCoverLetter = m.CoverLetter != null, m.CreatedAt, m.UpdatedAt, m.ProfileVersion, m.AddedManually
             })
             .ToListAsync(ct);
 
@@ -45,7 +46,8 @@ public sealed class ListMatches(IAppDbContext db)
                 r.Id, r.Title, r.Company, r.Location, r.Url, r.Stage, r.Status, r.Score, r.TriageScore,
                 JobEvaluationJson.TryParse(r.EvaluationJson)?.Summary, r.TriageReason, r.HasCoverLetter,
                 r.CreatedAt, r.UpdatedAt,
-                EvaluationOutdated: r.Stage == MatchStage.Evaluated && r.ProfileVersion < currentVersion))
+                EvaluationOutdated: r.Stage == MatchStage.Evaluated && r.ProfileVersion < currentVersion,
+                r.AddedManually))
             .ToList();
 
         // Tab counts: two small columns of all my jobs, sorted out in C# by the same rule

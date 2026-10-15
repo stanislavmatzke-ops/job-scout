@@ -1,4 +1,4 @@
-using System.Globalization;
+﻿using System.Globalization;
 using System.Security.Claims;
 using JobScout.Api.Auth;
 using JobScout.Application.Limits;
@@ -66,6 +66,7 @@ public sealed class AiLimitFilter : IEndpointFilter
             AiLimitReason.Profile => $"Profil lze nechat vyhodnotit nejvýš {d.Limit}× za 24 hodin.{when}",
             AiLimitReason.CoverLetter => $"Průvodní dopis lze nechat napsat nejvýš {d.Limit}× za 24 hodin.{when}",
             AiLimitReason.Evaluation => $"Nabídky lze nechat ohodnotit nejvýš {d.Limit}× za 24 hodin.{when}",
+            AiLimitReason.JobImport => $"Inzeráty lze ručně vložit nejvýš {d.Limit}× za 24 hodin.{when}",
             AiLimitReason.LetterRewrites => $"K této nabídce už jste nechali napsat nový návrh {d.Limit}×. Dopis můžete dál upravit sami.",
             AiLimitReason.UserCost => $"Dnešní limit funkcí AI je vyčerpaný.{when}",
             _ => "Funkce AI jsou dočasně pozastavené. Zkuste to prosím později – ranní hledání běží dál.",

@@ -116,3 +116,10 @@ h1, h2, h3 { color: var(--js-text); letter-spacing: -0.01em; }
 }
 :focus-visible { outline: 2px solid var(--js-primary); outline-offset: 2px; }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+
+// Days with jobs in the "Den nalezení" calendar (the calendar lives in an overlay, outside the page's own styles)
+.mat-calendar-body-cell.has-jobs .mat-calendar-body-cell-content {
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}

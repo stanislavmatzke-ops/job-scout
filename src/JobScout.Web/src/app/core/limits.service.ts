@@ -19,6 +19,7 @@ export interface AiLimits {
   profile: AiLimitUsage;
   coverLetters: AiLimitUsage;
   evaluations: AiLimitUsage;
+  imports: AiLimitUsage;
   letterRewritesPerJob: number;
   costUsd: number;
   costLimitUsd: number;
@@ -26,7 +27,7 @@ export interface AiLimits {
   paused: boolean;
 }
 
-export type AiLimitReason = 'Profile' | 'CoverLetter' | 'Evaluation' | 'LetterRewrites' | 'UserCost' | 'AppPaused';
+export type AiLimitReason = 'Profile' | 'CoverLetter' | 'Evaluation' | 'LetterRewrites' | 'UserCost' | 'AppPaused' | 'JobImport';
 
 /** The 429 problem of an AI button: why, the number reached, when to try again. */
 interface AiLimitProblem {

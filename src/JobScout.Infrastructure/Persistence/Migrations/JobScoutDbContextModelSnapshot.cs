@@ -100,6 +100,9 @@ namespace JobScout.Infrastructure.Persistence.Migrations
                     b.Property<Guid>("Id")
                         .HasColumnType("TEXT");
 
+                    b.Property<bool>("AddedManually")
+                        .HasColumnType("INTEGER");
+
                     b.Property<string>("CoverLetter")
                         .HasColumnType("TEXT");
 
@@ -226,6 +229,9 @@ namespace JobScout.Infrastructure.Persistence.Migrations
                         .HasMaxLength(300)
                         .HasColumnType("TEXT");
 
+                    b.Property<Guid?>("OwnerUserId")
+                        .HasColumnType("TEXT");
+
                     b.Property<string>("Source")
                         .IsRequired()
                         .HasMaxLength(50)
@@ -246,6 +252,8 @@ namespace JobScout.Infrastructure.Persistence.Migrations
                         .HasColumnType("TEXT");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("OwnerUserId");
 
                     b.HasIndex("Source", "ExternalId")
                         .IsUnique();

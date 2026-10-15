@@ -1,4 +1,4 @@
-using System.Net;
+﻿using System.Net;
 using System.Text.RegularExpressions;
 using JobScout.Application.Jobs;
 using JobScout.Core.Jobs;
@@ -254,5 +254,22 @@ public class JobsCzSourceTests
     public void ToSlug_converts_place_name_to_url_segment(string location, string expected)
     {
         Assert.Equal(expected, JobsCzSource.ToSlug(location));
+    }
+
+    // ---------- ExternalIdFromUrl: a link the user pasted (ADR-0013) ----------
+
+    [Theory]
+    [InlineData("https://www.jobs.cz/rpd/2001234567/", "2001234567")]
+    [InlineData("https://www.jobs.cz/rpd/2001234567/?searchId=abc&rps=233", "2001234567")]
+    [InlineData("http://jobs.cz/rpd/2001234567", "2001234567")]
+    [InlineData("https://www.jobs.cz/prace/praha/", null)]
+    [InlineData("https://ukazka.jobs.cz/detail-pozice?id=2001234567", null)]
+    [InlineData("https://www.jobs.cz.evil.example/rpd/2001234567/", null)]
+    [InlineData("https://www.prace.cz/nabidka/2001234567/", null)]
+    public void Ad_link_is_recognised_only_on_jobs_cz(string url, string? expected)
+    {
+        var (source, _) = Create(_ => throw new InvalidOperationException("no request expected"), FakePageRenderer.Returning(""));
+
+        Assert.Equal(expected, source.ExternalIdFromUrl(new Uri(url)));
     }
 }
