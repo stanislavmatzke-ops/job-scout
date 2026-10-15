@@ -2,6 +2,9 @@
 //   az deployment group create -g rg-jobscout -p infra/main.bicepparam      (values come from environment variables)
 // Two passes (see infra/README.md): 1) deployApps=false – base resources; you then put the secrets into Key Vault;
 // 2) deployApps=true – the API and the morning job, which read those secrets at start.
+// The PostgreSQL server and its password (+ the db-connection secret) belong to pass 1 only: a new version of the apps
+// must never change the database password (15 Oct 2026 – a mistyped password in an apps deployment changed the
+// server's password while the running apps kept the old connection string).
 
 targetScope = 'resourceGroup'
 
@@ -27,8 +30,8 @@ param adminObjectId string
 param postgresAdminLogin string = 'jobscoutadmin'
 
 @secure()
-@description('PostgreSQL administrator password – given on the command line, never stored in the repo.')
-param postgresAdminPassword string
+@description('PostgreSQL administrator password – pass 1 only (it sets the server and the db-connection secret); ignored in pass 2. Never stored in the repo.')
+param postgresAdminPassword string = ''
 
 @description('Google OAuth client ID (not secret). Empty = no Google button.')
 param googleClientId string = ''
@@ -60,6 +63,7 @@ param morningCron string = '30 5 * * *'
 var suffix = uniqueString(resourceGroup().id)
 var keyVaultName = 'kv-${name}-${take(suffix, 6)}'        // globally unique, max 24 chars
 var postgresName = 'psql-${name}-${take(suffix, 6)}'       // globally unique (DNS name)
+var postgresHost = '${postgresName}.postgres.database.azure.com'
 
 // ---------- identity: the apps read Key Vault as this identity (no secrets in the app definition) ----------
 resource identity 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-01-31' = {
@@ -107,7 +111,8 @@ resource adminWritesSecrets 'Microsoft.Authorization/roleAssignments@2022-04-01'
 }
 
 // ---------- PostgreSQL Flexible Server – Burstable B1ms (free 12 months on the free account) ----------
-resource postgres 'Microsoft.DBforPostgreSQL/flexibleServers@2024-08-01' = {
+// Pass 1 only (see the top of the file): pass 2 leaves the server, its password and db-connection untouched.
+resource postgres 'Microsoft.DBforPostgreSQL/flexibleServers@2024-08-01' = if (!deployApps) {
   name: postgresName
   location: postgresLocation
   sku: { name: 'Standard_B1ms', tier: 'Burstable' }
@@ -122,26 +127,29 @@ resource postgres 'Microsoft.DBforPostgreSQL/flexibleServers@2024-08-01' = {
   }
 }
 
-resource database 'Microsoft.DBforPostgreSQL/flexibleServers/databases@2024-08-01' = {
+resource database 'Microsoft.DBforPostgreSQL/flexibleServers/databases@2024-08-01' = if (!deployApps) {
   parent: postgres
   name: name
   properties: { charset: 'UTF8', collation: 'en_US.utf8' }
 }
 
 // 0.0.0.0 = "allow Azure services" – the Container Apps reach the server; the rest of the internet doesn't
-resource allowAzure 'Microsoft.DBforPostgreSQL/flexibleServers/firewallRules@2024-08-01' = {
+resource allowAzure 'Microsoft.DBforPostgreSQL/flexibleServers/firewallRules@2024-08-01' = if (!deployApps) {
   parent: postgres
   name: 'AllowAzureServices'
   properties: { startIpAddress: '0.0.0.0', endIpAddress: '0.0.0.0' }
 }
 
-// The connection string goes straight into Key Vault – the password never leaves this deployment
-resource dbSecret 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = {
+// The connection string goes straight into Key Vault – the password never leaves this deployment.
+// Written after the server took the password. Apps that already run keep their copy of the secret until they are told
+// to read it again – deploy.ps1 -Base does that (infra/README.md).
+resource dbSecret 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = if (!deployApps) {
   parent: keyVault
   name: 'db-connection'
   properties: {
-    value: 'Host=${postgres.properties.fullyQualifiedDomainName};Database=${name};Username=${postgresAdminLogin};Password=${postgresAdminPassword};Ssl Mode=Require'
+    value: 'Host=${postgresHost};Database=${name};Username=${postgresAdminLogin};Password=${postgresAdminPassword};Ssl Mode=Require'
   }
+  dependsOn: [postgres, database]
 }
 
 // ---------- E-mail: Azure Communication Services (7f) ----------
@@ -313,7 +321,7 @@ resource morningJob 'Microsoft.App/jobs@2024-03-01' = if (deployApps) {
 }
 
 output keyVaultName string = keyVault.name
-output postgresHost string = postgres.properties.fullyQualifiedDomainName
+output postgresHost string = postgresHost
 output apiUrl string = deployApps ? 'https://${api!.properties.configuration.ingress.fqdn}' : ''
 output environmentDomain string = environment.properties.defaultDomain
 output environmentStaticIp string = environment.properties.staticIp

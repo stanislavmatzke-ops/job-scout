@@ -4,6 +4,7 @@
     ./infra/deploy.ps1 -Tag sha-1a2b3c4  # an exact image
     ./infra/deploy.ps1 -Base             # base resources only (Key Vault, PostgreSQL, e-mail service)
   Personal values live in infra/local.env.ps1 (not in git - copy infra/local.env.example.ps1).
+  The PostgreSQL password is asked for (and changed!) only with -Base; deploying the apps never touches it.
 #>
 param(
     [string]$Tag,
@@ -17,9 +18,16 @@ $local = Join-Path $PSScriptRoot 'local.env.ps1'
 if (-not (Test-Path $local)) { throw "Missing $local - copy infra/local.env.example.ps1 and fill it in." }
 . $local
 
-if (-not $env:JOBSCOUT_PG_PASSWORD) {
-    $secure = Read-Host 'PostgreSQL admin password' -AsSecureString
-    $env:JOBSCOUT_PG_PASSWORD = [System.Net.NetworkCredential]::new('', $secure).Password
+if ($Base) {
+    if (-not $env:JOBSCOUT_PG_PASSWORD) {
+        Write-Host 'The password you enter BECOMES the PostgreSQL admin password (server + db-connection in Key Vault).'
+        $secure = Read-Host 'PostgreSQL admin password' -AsSecureString
+        $env:JOBSCOUT_PG_PASSWORD = [System.Net.NetworkCredential]::new('', $secure).Password
+    }
+    if (-not $env:JOBSCOUT_PG_PASSWORD) { throw 'An empty PostgreSQL password is not allowed.' }
+}
+else {
+    $env:JOBSCOUT_PG_PASSWORD = ''      # pass 2 never changes the database password (main.bicep)
 }
 $env:JOBSCOUT_ADMIN_OBJECT_ID = az ad signed-in-user show --query id -o tsv --only-show-errors
 if ($LASTEXITCODE -ne 0 -or -not $env:JOBSCOUT_ADMIN_OBJECT_ID) { throw 'az ad signed-in-user show failed - run az login first.' }
@@ -50,3 +58,20 @@ az deployment group create -g rg-jobscout -n $deployment -p (Join-Path $PSScript
 if ($LASTEXITCODE -ne 0) { throw "Deployment '$deployment' failed (see above)." }
 Write-Host "Deployment '$deployment' done."
 
+# -Base may have written a new db-connection (a new password). Running apps keep their copy of a Key Vault secret even
+# across restarts - set the same reference again so they read it, and restart the API. The morning job reads it at its next run.
+if ($Base) {
+    $kv = az deployment group show -g rg-jobscout -n base --query properties.outputs.keyVaultName.value -o tsv --only-show-errors
+    $identity = az identity show -g rg-jobscout -n id-jobscout --query id -o tsv --only-show-errors
+    $ref = "db-connection=keyvaultref:https://$kv.vault.azure.net/secrets/db-connection,identityref:$identity"
+    if (az containerapp show -g rg-jobscout -n ca-jobscout-api --query name -o tsv --only-show-errors 2>$null) {
+        az containerapp secret set -g rg-jobscout -n ca-jobscout-api --secrets $ref --only-show-errors -o none
+        $revision = az containerapp show -g rg-jobscout -n ca-jobscout-api --query properties.latestRevisionName -o tsv --only-show-errors
+        az containerapp revision restart -g rg-jobscout -n ca-jobscout-api --revision $revision --only-show-errors -o none
+        Write-Host "API: db-connection reloaded, revision $revision restarted."
+    }
+    if (az containerapp job show -g rg-jobscout -n caj-jobscout-daily --query name -o tsv --only-show-errors 2>$null) {
+        az containerapp job secret set -g rg-jobscout -n caj-jobscout-daily --secrets $ref --only-show-errors -o none
+        Write-Host 'Morning job: db-connection reloaded.'
+    }
+}

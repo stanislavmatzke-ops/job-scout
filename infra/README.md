@@ -42,6 +42,11 @@ az deployment group show -g rg-jobscout -n apps --query properties.outputs.apiUr
 A new version = the same pass 2 with a new `JOBSCOUT_IMAGE`. Admins: `$env:JOBSCOUT_ADMINS = "microsoft:<subject>"`
 (comma-separated), then pass 2 again.
 
+**The database password belongs to pass 1 only.** `./infra/deploy.ps1` (the apps) neither asks for it nor changes it;
+`./infra/deploy.ps1 -Base` sets the password you enter on the server *and* in `db-connection`, then makes the running API
+and the morning job read the secret again – Container Apps keep their copy of a Key Vault secret even across a restart,
+until the reference is set again (`az containerapp secret set … keyvaultref:…`).
+
 ## Custom domain (once)
 
 ```powershell
