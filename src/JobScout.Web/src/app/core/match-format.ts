@@ -16,6 +16,7 @@ function tab(view: MatchView, param: string, countKey: keyof MatchCounts): ViewT
 
 export const VIEWS: ViewTab[] = [
   tab('Open', 'open', 'open'),
+  tab('Saved', 'saved', 'saved'),
   tab('InProgress', 'inprogress', 'inProgress'),
   tab('Closed', 'closed', 'closed'),
   tab('TriagedOut', 'triagedout', 'triagedOut'),

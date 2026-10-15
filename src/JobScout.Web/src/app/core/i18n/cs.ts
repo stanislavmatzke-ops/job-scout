@@ -97,7 +97,8 @@ export const cs = {
   },
 
   views: {
-    Open: { label: 'K rozhodnutí', empty: 'Žádné nabídky nečekají na vaše rozhodnutí. Nové přibudou po ranním vyhledávání.' },
+    Open: { label: 'Nové', empty: 'Žádné nové nabídky. Další přibudou po ranním vyhledávání.' },
+    Saved: { label: 'Odložené', empty: 'Nemáte žádné nabídky uložené na později. Odložíte je stavem „Uloženo na později“.' },
     InProgress: { label: 'V procesu', empty: 'Zatím jste na žádnou nabídku nereagovali.' },
     Closed: { label: 'Uzavřené', empty: 'Žádné uzavřené nabídky.' },
     TriagedOut: { label: 'Vyřazené tříděním', empty: 'Automatické třídění zatím nic nevyřadilo.' },

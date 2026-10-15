@@ -1,4 +1,5 @@
-export type MatchView = 'Open' | 'InProgress' | 'Closed' | 'TriagedOut';
+/** Open = "Nové", Saved = "Odložené" – the names stay, they are in the URLs and the API. */
+export type MatchView = 'Open' | 'Saved' | 'InProgress' | 'Closed' | 'TriagedOut';
 export type MatchStage = 'Found' | 'Shortlisted' | 'TriagedOut' | 'Evaluated';
 export type MatchStatus =
   | 'New' | 'SavedForLater' | 'Applied' | 'Call' | 'Round1' | 'Round2' | 'Offer'
@@ -6,7 +7,7 @@ export type MatchStatus =
 export type RemoteWork = 'Unknown' | 'Full' | 'Hybrid' | 'Onsite';
 export type EmploymentType = 'Unknown' | 'Employee' | 'Contractor' | 'Both';
 
-export interface MatchCounts { open: number; inProgress: number; closed: number; triagedOut: number; }
+export interface MatchCounts { open: number; saved: number; inProgress: number; closed: number; triagedOut: number; }
 
 export interface MatchListItem {
   id: string;

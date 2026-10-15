@@ -96,7 +96,8 @@ export const en: Dict = {
   },
 
   views: {
-    Open: { label: 'To decide', empty: 'No jobs are waiting for your decision. New ones arrive after the morning search.' },
+    Open: { label: 'New', empty: 'No new jobs. More arrive after the morning search.' },
+    Saved: { label: 'Saved', empty: 'You have no jobs saved for later. Set a job’s status to “Saved for later” to put it here.' },
     InProgress: { label: 'In progress', empty: 'You haven’t responded to any job yet.' },
     Closed: { label: 'Closed', empty: 'No closed jobs.' },
     TriagedOut: { label: 'Filtered out', empty: 'The automatic filter hasn’t removed anything yet.' },

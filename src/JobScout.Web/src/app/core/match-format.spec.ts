@@ -10,7 +10,7 @@ describe('match-format', () => {
   });
 
   it('has a tab for every view of the API', () => {
-    expect(VIEWS.map(v => v.view)).toEqual(['Open', 'InProgress', 'Closed', 'TriagedOut']);
+    expect(VIEWS.map(v => v.view)).toEqual(['Open', 'Saved', 'InProgress', 'Closed', 'TriagedOut']);
   });
 
   it('colours the score: 7+ worth a reply, 4–6 maybe, up to 3 weak, none = waiting', () => {

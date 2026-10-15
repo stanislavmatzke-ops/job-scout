@@ -149,11 +149,27 @@ public sealed class ListMatchesTests : IDisposable
         Seed("Rejected", status: MatchStatus.Rejected);
         Seed("Triaged out", MatchStage.TriagedOut);
         Seed("Hidden", status: MatchStatus.Hidden);
+        Seed("Saved", status: MatchStatus.SavedForLater);
 
         var list = await ListAsync(MatchView.Closed);
 
-        Assert.Equal(new MatchCounts(Open: 2, InProgress: 1, Closed: 2, TriagedOut: 1), list.Counts);
+        Assert.Equal(new MatchCounts(Open: 2, InProgress: 1, Closed: 2, TriagedOut: 1, Saved: 1), list.Counts);
         Assert.Equal(MatchView.Closed, list.View);
         Assert.Equal(2, list.Items.Count);
+    }
+
+    [Fact]
+    public async Task Jobs_saved_for_later_leave_the_new_ones_for_their_own_tab()
+    {
+        Seed("New");
+        Seed("Saved", status: MatchStatus.SavedForLater);
+        Seed("Saved after triage", MatchStage.TriagedOut, status: MatchStatus.SavedForLater);
+
+        var open = await ListAsync(MatchView.Open);
+        var saved = await ListAsync(MatchView.Saved);
+
+        Assert.Equal("New", Assert.Single(open.Items).Title);
+        Assert.Equal(["Saved", "Saved after triage"], saved.Items.Select(i => i.Title).Order().ToArray());
+        Assert.Equal((1, 2, 0), (saved.Counts.Open, saved.Counts.Saved, saved.Counts.TriagedOut));
     }
 }

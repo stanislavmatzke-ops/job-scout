@@ -32,7 +32,7 @@
   an e-mail forwarded as an attachment, PDF/Word/text attachments. Outlook `.msg` is not supported (save as .eml).
 - **Extraction** (`JobAdExtractor`, cheap model, `LlmPurpose.JobImport`) returns title, company, location and
   `isJobAd`; the ad's text is asked back only for a PDF – pasted text, e-mails and web pages are stored as we have them.
-- `JobMatch.AddedManually`: the job waits in "K rozhodnutí" without triage; **the morning run never evaluates it**
+- `JobMatch.AddedManually`: the job waits in "Nové" without triage; **the morning run never evaluates it**
   on its own – the user decides when to spend the AI (the evaluate button in the detail works as for any job).
 - Limits (ADR-0021): a new click kind `JobImport` (10 per 24 h); with "evaluate now" the evaluation limit is checked
   too, both before anything is read, called or saved.

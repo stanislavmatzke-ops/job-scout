@@ -20,7 +20,7 @@ describe('MatchesService', () => {
     const loading = service.list('InProgress');
     const req = http.expectOne(r => r.url === '/api/matches');
     expect(req.request.params.get('view')).toBe('InProgress');
-    req.flush({ view: 'InProgress', items: [], counts: { open: 0, inProgress: 0, closed: 0, triagedOut: 0 } });
+    req.flush({ view: 'InProgress', items: [], counts: { open: 0, saved: 0, inProgress: 0, closed: 0, triagedOut: 0 } });
 
     expect((await loading).view).toBe('InProgress');
   });

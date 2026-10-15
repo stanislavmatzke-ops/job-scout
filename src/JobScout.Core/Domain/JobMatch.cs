@@ -53,7 +53,7 @@ public sealed class JobMatch
     }
 
     /// <summary>
-    /// A job the user added by hand: no triage – the user already chose it. It waits in "K rozhodnutí" until they have it
+    /// A job the user added by hand: no triage – the user already chose it. It waits in "Nové" until they have it
     /// evaluated (straight away, or later with the button); the morning run leaves it alone, the AI costs are theirs to start.
     /// </summary>
     public static JobMatch AddedByUser(Guid userId, Guid jobOfferId, int profileVersion, DateTimeOffset now) =>

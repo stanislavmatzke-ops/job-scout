@@ -83,7 +83,7 @@ import { MatchSort, arrangeByDay, dayDate, dayHeading, dayKey, dayLabel, parseDa
           <div class="filters">
             <mat-button-toggle-group [value]="sort()" (change)="setSort($event.value)" hideSingleSelectionIndicator
                                      [attr.aria-label]="t().matches.sortLabel">
-              <mat-button-toggle value="default">{{ current() === 'Open' ? t().matches.sortScore : t().matches.sortActivity }}</mat-button-toggle>
+              <mat-button-toggle value="default">{{ current() === 'Open' || current() === 'Saved' ? t().matches.sortScore : t().matches.sortActivity }}</mat-button-toggle>
               <mat-button-toggle value="day">{{ t().matches.sortDay }}</mat-button-toggle>
             </mat-button-toggle-group>
             <mat-form-field appearance="outline" subscriptSizing="dynamic" class="day-field">
@@ -304,7 +304,7 @@ export class MatchesPage {
   /** No jobs in any tab – most likely a new user without a CV. */
   protected isEmptyAccount(list: MatchList): boolean {
     const c = list.counts;
-    return c.open + c.inProgress + c.closed + c.triagedOut === 0;
+    return c.open + c.saved + c.inProgress + c.closed + c.triagedOut === 0;
   }
 
   // ---------- a job from elsewhere (ADR-0013) ----------

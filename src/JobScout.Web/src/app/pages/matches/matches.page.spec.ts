@@ -10,7 +10,7 @@ import { dayKey } from '../../core/match-days';
 
 const list: MatchList = {
   view: 'Open',
-  counts: { open: 2, inProgress: 1, closed: 0, triagedOut: 7 },
+  counts: { open: 2, saved: 3, inProgress: 1, closed: 0, triagedOut: 7 },
   items: [
     {
       id: 'a', title: 'Solution Architect', company: 'CloudNest s.r.o.', location: 'Praha', url: 'https://www.jobs.cz/rpd/1/',
@@ -68,7 +68,7 @@ describe('MatchesPage', () => {
   });
 
   it('a brand new account is sent to the profile page', async () => {
-    const empty = { view: 'Open' as const, items: [], counts: { open: 0, inProgress: 0, closed: 0, triagedOut: 0 } };
+    const empty = { view: 'Open' as const, items: [], counts: { open: 0, saved: 0, inProgress: 0, closed: 0, triagedOut: 0 } };
     const { fixture } = await render(undefined, empty);
 
     expect((fixture.nativeElement as HTMLElement).querySelector('a[href="/profile"]')).toBeTruthy();
@@ -78,8 +78,11 @@ describe('MatchesPage', () => {
     const { fixture } = await render();
 
     const tabs = Array.from((fixture.nativeElement as HTMLElement).querySelectorAll('[mat-tab-link]')).map(t => t.textContent?.trim());
+    expect(tabs[0]).toContain('Nové');
     expect(tabs[0]).toContain('2');
-    expect(tabs[3]).toContain('7');
+    expect(tabs[1]).toContain('Odložené');
+    expect(tabs[1]).toContain('3');
+    expect(tabs[4]).toContain('7');
   });
 
   it('asks for the tab from the URL', async () => {
@@ -96,7 +99,7 @@ describe('MatchesPage', () => {
 
   // ---------- 6h: the first search runs in the background ----------
 
-  const empty = { view: 'Open' as const, items: [], counts: { open: 0, inProgress: 0, closed: 0, triagedOut: 0 } };
+  const empty = { view: 'Open' as const, items: [], counts: { open: 0, saved: 0, inProgress: 0, closed: 0, triagedOut: 0 } };
 
   it('says that jobs are searched for every morning, and when the last search was', async () => {
     const { fixture } = await render();

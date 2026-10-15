@@ -10,9 +10,12 @@ namespace JobScout.Tests.Application.Matches;
 public class MatchViewsTests
 {
     [Theory]
-    // open = waiting for the user's decision
+    // open ("Nové") = new, waiting for the user's decision
     [InlineData(MatchStage.Evaluated, MatchStatus.New, MatchView.Open)]
-    [InlineData(MatchStage.Evaluated, MatchStatus.SavedForLater, MatchView.Open)]
+    // saved ("Odložené") = put aside by the user, whatever the pipeline did
+    [InlineData(MatchStage.Evaluated, MatchStatus.SavedForLater, MatchView.Saved)]
+    [InlineData(MatchStage.Shortlisted, MatchStatus.SavedForLater, MatchView.Saved)]
+    [InlineData(MatchStage.TriagedOut, MatchStatus.SavedForLater, MatchView.Saved)]
     [InlineData(MatchStage.Shortlisted, MatchStatus.New, MatchView.Open)]          // passed triage, not evaluated yet
     // the user acted
     [InlineData(MatchStage.Evaluated, MatchStatus.Applied, MatchView.InProgress)]

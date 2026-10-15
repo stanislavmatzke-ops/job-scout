@@ -20,7 +20,7 @@ describe('i18n', () => {
     expect(lang()).toBe('en');
     expect(t().matches.title).toBe('Jobs');
     expect(statusLabel('Applied')).toBe('Applied');
-    expect(VIEWS[0].label).toBe('To decide');
+    expect(VIEWS[0].label).toBe('New');
     expect(localStorage.getItem('jobscout.lang')).toBe('en');
 
     setLang('cs');

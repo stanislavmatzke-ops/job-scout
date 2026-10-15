@@ -30,7 +30,7 @@ public sealed class GetProfile(IAppDbContext db)
 
         var outdated = await db.JobMatches
             .Where(m => m.UserId == userId && m.Stage == MatchStage.Evaluated && m.ProfileVersion < latest.Version)
-            .Where(MatchViews.Filter(MatchView.Open))          // only what is still waiting for a decision
+            .Where(MatchViews.AwaitingDecision)                // only what is still waiting for a decision (new or put aside)
             .CountAsync(ct);
 
         return new ProfileView(latest.Version, latest.CvFileName, latest.Notes, latest.CreatedAt,

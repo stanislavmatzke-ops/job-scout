@@ -24,7 +24,7 @@ public static class MatchEndpoints
         matches.MapGet("", async (string? view, ClaimsPrincipal user, ListMatches list, CancellationToken ct) =>
             TryParseView(view, out var parsed)
                 ? Results.Ok(await list.ExecuteAsync(user.GetUserId(), parsed, ct))
-                : Results.Problem("Neznámý pohled. Povolené: Open, InProgress, Closed, TriagedOut.",
+                : Results.Problem("Neznámý pohled. Povolené: Open, Saved, InProgress, Closed, TriagedOut.",
                     statusCode: StatusCodes.Status400BadRequest));
 
         matches.MapGet("/{id:guid}", async (Guid id, ClaimsPrincipal user, GetMatchDetail get, CancellationToken ct) =>

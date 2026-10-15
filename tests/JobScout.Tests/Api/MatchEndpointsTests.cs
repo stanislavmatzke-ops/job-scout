@@ -19,7 +19,7 @@ public sealed class MatchEndpointsTests : IDisposable
     public void Dispose() => _factory.Dispose();
 
     // What the Angular app will read – enums as strings
-    private sealed record Counts(int Open, int InProgress, int Closed, int TriagedOut);
+    private sealed record Counts(int Open, int InProgress, int Closed, int TriagedOut, int Saved);
     private sealed record Item(Guid Id, string Title, string Stage, string Status, int? Score, int? TriageScore,
         string? Summary, bool HasCoverLetter, string Url);
     private sealed record ListResponse(string View, List<Item> Items, Counts Counts);
@@ -71,7 +71,7 @@ public sealed class MatchEndpointsTests : IDisposable
         Assert.NotNull(list);
         Assert.Equal("Open", list.View);
         Assert.Equal(new[] { "Tech Lead", "Architekt" }, list.Items.Select(i => i.Title).ToArray());
-        Assert.Equal(new Counts(Open: 2, InProgress: 1, Closed: 0, TriagedOut: 0), list.Counts);
+        Assert.Equal(new Counts(Open: 2, InProgress: 1, Closed: 0, TriagedOut: 0, Saved: 0), list.Counts);
 
         var architekt = list.Items[1];
         Assert.Equal(("Evaluated", "New", (int?)8, "Shrnutí Architekt", true),

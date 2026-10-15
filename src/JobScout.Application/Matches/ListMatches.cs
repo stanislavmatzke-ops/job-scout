@@ -13,11 +13,11 @@ public sealed record MatchListItem(
     bool EvaluationOutdated,                        // evaluated with an older profile version (6d)
     bool AddedManually = false);                    // brought by the user from elsewhere (ADR-0013)
 
-public sealed record MatchCounts(int Open, int InProgress, int Closed, int TriagedOut);
+public sealed record MatchCounts(int Open, int InProgress, int Closed, int TriagedOut, int Saved);
 
 public sealed record MatchList(MatchView View, IReadOnlyList<MatchListItem> Items, MatchCounts Counts);
 
-/// <summary>One tab of the user's jobs + counts for all tabs. Open = best first: evaluated by score, then waiting by relevance.</summary>
+/// <summary>One tab of the user's jobs + counts for all tabs. Open and Saved = best first: evaluated by score, then waiting by relevance.</summary>
 public sealed class ListMatches(IAppDbContext db)
 {
     public async Task<MatchList> ExecuteAsync(Guid userId, MatchView view, CancellationToken ct = default)
@@ -26,7 +26,7 @@ public sealed class ListMatches(IAppDbContext db)
         var currentVersion = await db.CurrentProfileVersionAsync(userId, ct);
 
         var query = mine.Where(MatchViews.Filter(view));
-        query = view == MatchView.Open
+        query = view is MatchView.Open or MatchView.Saved
             ? query.OrderByDescending(m => m.Score != null)        // evaluated first…
                 .ThenByDescending(m => m.Score)                     // …best first
                 .ThenByDescending(m => m.TriageScore)               // waiting ones by triage relevance
@@ -60,6 +60,7 @@ public sealed class ListMatches(IAppDbContext db)
         int Count(MatchView v) => perView.GetValueOrDefault(v);
 
         return new MatchList(view, items,
-            new MatchCounts(Count(MatchView.Open), Count(MatchView.InProgress), Count(MatchView.Closed), Count(MatchView.TriagedOut)));
+            new MatchCounts(Count(MatchView.Open), Count(MatchView.InProgress), Count(MatchView.Closed), Count(MatchView.TriagedOut),
+                Count(MatchView.Saved)));
     }
 }
