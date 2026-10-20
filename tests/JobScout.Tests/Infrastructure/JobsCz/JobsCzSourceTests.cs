@@ -272,4 +272,31 @@ public class JobsCzSourceTests
 
         Assert.Equal(expected, source.ExternalIdFromUrl(new Uri(url)));
     }
+
+    // ---------- a page that is not a results page (20 Oct 2026: zero jobs, the run still "succeeded") ----------
+
+    [Fact]
+    public async Task A_real_empty_search_is_simply_empty()
+    {
+        const string html = """
+            <html><head><title>Jobs.cz – Aktuální nabídka práce</title></head>
+            <body><div class="SearchBox"></div><div class="Alert">Nenašli jsme <strong><span>žádné nabídky</span></strong> práce odpovídající zadání</div></body></html>
+            """;
+        var (source, _) = Create(req => StubHttpHandler.Html(req, html), FakePageRenderer.Returning(""));
+
+        Assert.Empty(await source.SearchAsync(new JobSearchQuery { Keywords = "xqzwvjk" }));
+    }
+
+    [Fact]
+    public async Task A_page_without_jobs_and_without_the_empty_message_is_an_outage()
+    {
+        const string html = """
+            <html><head><title>Just a moment...</title></head><body><p>Checking your browser.</p></body></html>
+            """;
+        var (source, _) = Create(req => StubHttpHandler.Html(req, html), FakePageRenderer.Returning(""));
+
+        var ex = await Assert.ThrowsAsync<HttpRequestException>(() => source.SearchAsync(new JobSearchQuery { Category = "programator" }));
+
+        Assert.Contains("Just a moment...", ex.Message);
+    }
 }

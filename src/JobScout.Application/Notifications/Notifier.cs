@@ -33,6 +33,13 @@ public sealed class Notifier(IEmailSender sender, NotificationOptions options, I
             await SendAsync(Emails.AiPaused(admin, limitUsd, options.AppUrl), ct);
     }
 
+    /// <summary>The morning run failed for some users (a source down, a bot check…) – otherwise nobody would notice.</summary>
+    public async Task MorningRunFailedAsync(int failed, int total, string firstError, CancellationToken ct = default)
+    {
+        foreach (var admin in AdminAddresses())
+            await SendAsync(Emails.MorningRunFailed(admin, failed, total, firstError, options.AppUrl), ct);
+    }
+
     public Task ApprovedAsync(User user, CancellationToken ct = default) =>
         Reachable(user) ? SendAsync(Emails.Approved(user, options.AppUrl), ct) : Task.CompletedTask;
 

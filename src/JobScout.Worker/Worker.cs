@@ -312,6 +312,7 @@ public class Worker(
         logger.LogInformation("Ranní běh pro {Count} uživatelů{Dev}", userIds.Count, includeDev ? " (včetně dev person)" : "");
 
         var failed = 0;
+        string? firstError = null;
         foreach (var userId in userIds)
         {
             await using var scope = scopeFactory.CreateAsyncScope();
@@ -331,13 +332,19 @@ public class Worker(
             catch (Exception ex) when (ex is not OperationCanceledException)
             {
                 failed++;
+                firstError ??= ex.Message;
                 logger.LogError(ex, "Běh pro uživatele {UserId} selhal – pokračuji dalším", userId);
             }
         }
 
         logger.LogInformation("Ranní běh hotový: {Ok} v pořádku, {Failed} selhalo", userIds.Count - failed, failed);
         if (failed > 0)
+        {
             Environment.ExitCode = 1;
+            await using var scope = scopeFactory.CreateAsyncScope();
+            await scope.ServiceProvider.GetRequiredService<Notifier>()
+                .MorningRunFailedAsync(failed, userIds.Count, firstError ?? "", ct);
+        }
     }
 
     /// <summary>File-name-safe report name: "google-stanislav-matzke".</summary>

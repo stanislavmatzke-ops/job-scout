@@ -156,4 +156,17 @@ public sealed class NotifierTests : IDisposable
         Assert.False(await _notifier.MorningAsync(Jana(morningEmail: false), Report([Job(9, "Architekt")], [])));
         Assert.Empty(_mail.Sent);
     }
+
+    // ---------- a failed morning run ----------
+
+    [Fact]
+    public async Task The_admin_hears_about_a_failed_morning_run()
+    {
+        await _notifier.MorningRunFailedAsync(3, 3, "jobs.cz místo výsledků hledání vrátil jinou stránku");
+
+        var mail = Assert.Single(_mail.Sent);
+        Assert.Equal("admin@example.com", mail.To);
+        Assert.Contains("3 z 3", mail.Subject);
+        Assert.Contains("jobs.cz místo výsledků hledání vrátil jinou stránku", mail.Text);
+    }
 }

@@ -12,6 +12,17 @@ internal static partial class JobsCzParser
     public const string SourceName = "jobs.cz";
     private static readonly HtmlParser Parser = new();
 
+    /// <summary>
+    /// jobs.cz says so when a search really found nothing. A page with no job cards and without this message is something
+    /// else – a bot check, an error page, a new layout – and must not be taken for "no new jobs" (20 Oct 2026).
+    /// </summary>
+    private const string NoResultsMessage = "Nenašli jsme";    // the rest of the sentence is split by markup
+
+    public static bool IsNoResultsPage(string html) => html.Contains(NoResultsMessage, StringComparison.Ordinal);
+
+    /// <summary>The page's &lt;title&gt; – enough to tell from the log what jobs.cz sent instead of results.</summary>
+    public static string PageTitle(string html) => Clean(Parser.ParseDocument(html).Title);
+
     public static IReadOnlyList<JobListing> ParseSearchResults(string html)
     {
         var doc = Parser.ParseDocument(html);

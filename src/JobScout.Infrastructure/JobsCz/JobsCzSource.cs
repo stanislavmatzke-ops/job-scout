@@ -50,6 +50,18 @@ internal sealed partial class JobsCzSource(HttpClient http, IPageRenderer render
         var html = await response.Content.ReadAsStringAsync(ct);
         var listings = JobsCzParser.ParseSearchResults(html);
 
+        // No cards and no "nothing found" message = not a results page (e.g. a bot check for cloud servers). Failing makes
+        // the morning run count as failed: the next good run then searches back over the missed days instead of losing them.
+        // Only page 1 – a page past the end is not a results page with a message either.
+        if (listings.Count == 0 && query.Page <= 1 && !JobsCzParser.IsNoResultsPage(html))
+        {
+            var title = JobsCzParser.PageTitle(html);
+            logger.LogWarning("jobs.cz: {Url} nevrátil výsledky hledání ani hlášku o prázdném výsledku – {Length} znaků, titulek „{Title}“",
+                url, html.Length, title);
+            throw new HttpRequestException(
+                $"jobs.cz místo výsledků hledání vrátil jinou stránku („{title}“, {html.Length} znaků) – nejspíš ochrana proti robotům nebo nový vzhled webu.");
+        }
+
         logger.LogInformation("jobs.cz: nalezeno {Count} nabídek", listings.Count);
         return listings;
     }

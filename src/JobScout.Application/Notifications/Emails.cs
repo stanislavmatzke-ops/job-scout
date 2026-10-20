@@ -106,6 +106,21 @@ public static class Emails
         ],
         ("Otevřít správu / Open administration", $"{appUrl}/admin"));
 
+    /// <summary>The morning run failed for some users – they got no new jobs today; the next good run catches up.</summary>
+    public static EmailMessage MorningRunFailed(string to, int failed, int total, string firstError, string appUrl) => Build(to,
+        $"Job Scout: ranní běh selhal pro {failed} z {total} / morning run failed for {failed} of {total}",
+        [
+            $"Dnešní ranní hledání se nepovedlo pro {failed} z {total} uživatelů – nové nabídky dnes nedostali.",
+            $"První chyba: {firstError}",
+            "Příští úspěšný běh hledá zpětně až 3 dny, takže nic neuteče, pokud se problém do té doby vyřeší. Podrobnosti jsou v logu ranního jobu.",
+        ],
+        [
+            $"Today's morning search failed for {failed} of {total} users – they got no new jobs today.",
+            $"First error: {firstError}",
+            "The next successful run searches back up to 3 days, so nothing is lost if the problem is fixed by then.",
+        ],
+        ("Otevřít správu / Open administration", $"{appUrl}/admin"));
+
     private static (string Cs, string En) KindNames(FeedbackKind kind) => kind switch
     {
         FeedbackKind.Idea => ("nápad", "idea"),
