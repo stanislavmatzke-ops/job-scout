@@ -52,6 +52,32 @@ public sealed class DailyScoutTests : IDisposable
     // ---------- who ----------
 
     [Fact]
+    public async Task The_retry_an_hour_later_is_only_for_users_whose_run_failed_tonight()
+    {
+        var ok = AddUser("ok");
+        var failed = AddUser("failed");
+        var notYet = AddUser("not-yet");                                // e.g. approved after the first attempt
+        var tonight = T0;
+        using (var db = _database.CreateContext())
+        {
+            var good = new ScoutRun(ok, tonight.AddMinutes(1));
+            good.Succeed(10, 2, tonight.AddMinutes(3));
+            var bad = new ScoutRun(failed, tonight.AddMinutes(4));
+            bad.Fail("jobs.cz místo výsledků vrátil jinou stránku", tonight.AddMinutes(5));
+            var yesterday = new ScoutRun(failed, tonight.AddDays(-1));   // yesterday's success doesn't count tonight
+            yesterday.Succeed(5, 1, tonight.AddDays(-1).AddMinutes(2));
+            db.ScoutRuns.AddRange(good, bad, yesterday);
+            db.SaveChanges();
+        }
+
+        await using var check = _database.CreateContext();
+        var retry = await new ListScoutUsers(check).ExecuteAsync(withoutSuccessSince: tonight);
+
+        Assert.Equal(new HashSet<Guid> { failed, notYet }, retry.ToHashSet());
+        Assert.DoesNotContain(ok, retry);
+    }
+
+    [Fact]
     public async Task Only_approved_users_with_a_profile_get_the_morning_run()
     {
         var approved = AddUser("approved");

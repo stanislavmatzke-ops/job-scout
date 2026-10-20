@@ -57,8 +57,8 @@ param emailDomainVerified bool = false
 @description('Who gets the "new access request" e-mails.')
 param adminEmail string = ''
 
-@description('Morning run, cron in UTC. 30 5 * * * = 6:30 in winter (CET), 7:30 in summer (CEST).')
-param morningCron string = '30 5 * * *'
+@description('The job wakes up every night hour (cron in UTC = 0–7 o\'clock Prague time in summer and winter); NightSchedule picks tonight\'s hour (1–5, never the same two nights in a row) and the retry an hour later.')
+param morningCron string = '13 0-5,23 * * *'
 
 var suffix = uniqueString(resourceGroup().id)
 var keyVaultName = 'kv-${name}-${take(suffix, 6)}'        // globally unique, max 24 chars
@@ -298,8 +298,8 @@ resource morningJob 'Microsoft.App/jobs@2024-03-01' = if (deployApps) {
     configuration: {
       triggerType: 'Schedule'
       scheduleTriggerConfig: { cronExpression: morningCron, parallelism: 1, replicaCompletionCount: 1 }
-      replicaTimeout: 3600          // an hour is plenty; a stuck run doesn't burn money all day
-      replicaRetryLimit: 0          // a failed morning is logged and tried again tomorrow (the window covers 3 days)
+      replicaTimeout: 2700          // 45 min is plenty (a run takes minutes) and ends before the next hourly wake-up
+      replicaRetryLimit: 0          // the retry is our own (NightSchedule, an hour later); the search window covers 3 days
       secrets: concat(commonSecrets, emailSecrets)
     }
     template: {

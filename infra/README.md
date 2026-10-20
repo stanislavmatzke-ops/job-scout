@@ -12,7 +12,7 @@ variables, the apps read secrets from Key Vault through a managed identity.
 | `log-jobscout` (Log Analytics, 0.2 GB/day cap) | logs of both apps |
 | `cae-jobscout` (Container Apps environment) | where the apps run |
 | `ca-jobscout-api` (Container App, 1 replica) | web + API |
-| `caj-jobscout-daily` (Container Apps Job, cron UTC) | the morning run |
+| `caj-jobscout-daily` (Container Apps Job, cron UTC) | the night run: wakes up every night hour, runs at tonight's hour (1–5 o'clock Prague time, `NightSchedule`) and retries failed users an hour later |
 
 ## Deploy (PowerShell, from the repository root)
 

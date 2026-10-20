@@ -292,24 +292,38 @@ public class Worker(
     }
 
     /// <summary>
-    /// Scout:Mode=daily – the morning run for every approved user with a profile (the cloud job, phase 7).
-    /// One scope per user: one failure can't poison the next user's data.
+    /// Scout:Mode=daily – the run for every approved user with a profile (the cloud job, phase 7).
+    /// The job wakes up every night hour; NightSchedule says whether this is tonight's run, the retry an hour later
+    /// (only users whose run failed – a second failure tells the admins), or nothing. Started by hand in the daytime,
+    /// it runs for everybody as before. One scope per user: one failure can't poison the next user's data.
     /// </summary>
     private async Task DailyAsync(CancellationToken ct)
     {
         var includeDev = config.GetValue<bool>("Scout:IncludeDevUsers");
+        var now = TimeProvider.System.GetUtcNow();
+        var kind = NightSchedule.Decide(now);
+        var today = NightSchedule.Today(now);
+        if (kind == NightRun.NotNow)
+        {
+            logger.LogInformation("Dnes v noci se hledá v {Hour}:00 – teď nic", NightSchedule.HourFor(today));
+            return;
+        }
+        logger.LogInformation("Běh: {Kind} (dnešní noční hodina {Hour}:00)", kind, NightSchedule.HourFor(today));
 
         // The demo account starts every day clean – yesterday's visitors' statuses and notes go away (ADR-0020)
-        await using (var scope = scopeFactory.CreateAsyncScope())
+        if (kind != NightRun.Retry)
         {
+            await using var scope = scopeFactory.CreateAsyncScope();
             var reset = await scope.ServiceProvider.GetRequiredService<JobScout.Application.Demo.ResetDemo>().ExecuteAsync(ct);
             if (reset > 0) logger.LogInformation("Ukázkový účet: vráceno do výchozího stavu {Count} nabídek", reset);
         }
 
         IReadOnlyList<Guid> userIds;
         await using (var scope = scopeFactory.CreateAsyncScope())
-            userIds = await scope.ServiceProvider.GetRequiredService<ListScoutUsers>().ExecuteAsync(includeDev, ct);
-        logger.LogInformation("Ranní běh pro {Count} uživatelů{Dev}", userIds.Count, includeDev ? " (včetně dev person)" : "");
+            userIds = await scope.ServiceProvider.GetRequiredService<ListScoutUsers>().ExecuteAsync(includeDev, ct,
+                withoutSuccessSince: kind == NightRun.Retry ? NightSchedule.PlannedStart(today) : null);
+        logger.LogInformation("{Kind} pro {Count} uživatelů{Dev}", kind == NightRun.Retry ? "Opakovaný pokus" : "Ranní běh",
+            userIds.Count, includeDev ? " (včetně dev person)" : "");
 
         var failed = 0;
         string? firstError = null;
@@ -341,6 +355,12 @@ public class Worker(
         if (failed > 0)
         {
             Environment.ExitCode = 1;
+            // Tonight's first attempt stays quiet – the retry an hour later tries again and only then tells the admins
+            if (kind == NightRun.Main)
+            {
+                logger.LogWarning("Pro {Failed} uživatelů to zkusíme znovu za hodinu", failed);
+                return;
+            }
             await using var scope = scopeFactory.CreateAsyncScope();
             await scope.ServiceProvider.GetRequiredService<Notifier>()
                 .MorningRunFailedAsync(failed, userIds.Count, firstError ?? "", ct);

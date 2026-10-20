@@ -21,6 +21,9 @@ no idle VMs, nothing to patch by hand.
   (6h) and a cold start of .NET + Chromium would greet the first visitor with a long wait. HTTPS ends at the ingress;
   the app trusts `X-Forwarded-Proto` so OIDC redirect URIs are `https://…`.
 - **Morning run: Azure Container Apps Job** on a cron schedule (UTC) – billed only while it runs.
+  Since 20 Oct 2026 it wakes up every night hour and `NightSchedule` decides: tonight's hour (1–5 o'clock Prague time,
+  different on consecutive nights), a retry an hour later only for users whose run failed, an e-mail to the admins
+  after the second failure. A wake-up that isn't tonight's ends at once (seconds of billing).
 - Infrastructure as code (Bicep) and configuration/secrets: next step (7d).
 
 ## Alternatives considered
