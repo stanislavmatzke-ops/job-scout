@@ -140,9 +140,9 @@ public sealed class RunScoutTests : IDisposable
 
         var result = await RunAsync();
 
-        Assert.Equal(2, result.Searches.Count);                         // Kolín + 30 km, Praha
-        Assert.Equal(new[] { 1, 1 }, result.Searches.Select(s => s.Found));
-        Assert.Equal(new[] { 1, 0 }, result.Searches.Select(s => s.Added));     // the second search only repeated it
+        Assert.Equal(4, result.Searches.Count);                         // category and title text × Kolín + 30 km, Praha
+        Assert.All(result.Searches, s => Assert.Equal(1, s.Found));
+        Assert.Equal(new[] { 1, 0, 0, 0 }, result.Searches.Select(s => s.Added));   // the others only repeated it
         Assert.Equal(1, result.Recorded.Found);
         Assert.Equal(1, AiCalls(LlmPurpose.Evaluation));
     }

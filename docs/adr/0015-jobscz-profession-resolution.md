@@ -31,6 +31,11 @@
   mapped to `lakyrnik` the same way, instead of a slightly different guess every time. The catalogue grows from
   public pages only, one profession at a time.
 - Professions with no verified category fall back to a free-text query (`q[]`) – nothing is silently dropped.
+- **Update 22 Oct 2026 (plan v4):** the 3 most important job titles are *also* searched as free text, after all
+  categories. Categories still give the best recall per search, but employers file the same job under different
+  categories: in one day, "architect" as text found 30+ ads, the category `sw-architekt` 12. The text searches come
+  last, so when the cap of 12 searches is reached they are what is left out; the noise they bring (e.g. building
+  architects for "architekt") is cheap for the triage to drop.
 - Search uses the home location + commute radius (`locality[radius]`) from the search intent.
 - The small verified IT list (`JobsCzCatalog`) stays as known categories (no request needed) and as examples
   for the AI.

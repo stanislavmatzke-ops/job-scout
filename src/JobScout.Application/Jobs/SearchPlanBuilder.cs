@@ -9,6 +9,13 @@ public static class SearchPlanBuilder
     /// <summary>Be polite to the portal: at most this many searches per profile per source.</summary>
     public const int MaxSearches = 12;
 
+    /// <summary>
+    /// Also search the most important job titles as free text, next to their categories: employers file the same job
+    /// under different categories (22 Oct 2026: "architect" as text found 30+ ads a day, the category sw-architekt 12).
+    /// The noise ("architekt" also finds building architects) is what the cheap triage is for.
+    /// </summary>
+    public const int MaxTitleSearches = 3;
+
     public static IReadOnlyList<PlannedSearch> Build(
         SearchIntent intent, WorkPreferences preferences, IReadOnlyList<ResolvedProfession> professions)
     {
@@ -21,9 +28,18 @@ public static class SearchPlanBuilder
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .ToList();
 
-        // Categories first (an order of magnitude better recall), free text only as a fallback
+        // The top titles that do have categories – searched as text too, to catch ads filed under another category
+        var titles = professions
+            .Where(p => p.Categories.Count > 0 && !string.IsNullOrWhiteSpace(p.Profession))
+            .Select(p => p.Profession.Trim())
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .Take(MaxTitleSearches);
+
+        // Categories first (an order of magnitude better recall), then free text for professions without one,
+        // the titles last – when the cap is reached, they are what is left out
         var what = categories.Select(c => (Category: (string?)c.Id, Keywords: (string?)null))
-            .Concat(freeText.Select(k => (Category: (string?)null, Keywords: (string?)k)));
+            .Concat(freeText.Select(k => (Category: (string?)null, Keywords: (string?)k)))
+            .Concat(titles.Select(k => (Category: (string?)null, Keywords: (string?)k)));
 
         return what
             .SelectMany(w => places.Select(p => new PlannedSearch(w.Category, w.Keywords, p.Location, p.RadiusKm)))

@@ -73,7 +73,12 @@ public sealed class PlanSearchTests : IDisposable
         Assert.True(result.IsNew);
         var searches = result.Plan.For("jobs.cz");
         Assert.Equal(
-            new[] { new PlannedSearch("lakyrnik", null, "Kolín", 30), new PlannedSearch(null, "Smart repair technik", "Kolín", 30) },
+            new[]
+            {
+                new PlannedSearch("lakyrnik", null, "Kolín", 30),
+                new PlannedSearch(null, "Smart repair technik", "Kolín", 30),
+                new PlannedSearch(null, "Autolakýrník", "Kolín", 30),        // the title as text too (plan v4)
+            },
             searches.ToArray());
     }
 
@@ -125,7 +130,7 @@ public sealed class PlanSearchTests : IDisposable
         Assert.Empty(second.Calls);
         Assert.Single(_llm.Requests);
         Assert.Equal(3, _jobsCz.ResolveRequests.Count);
-        Assert.Equal(2, second.Plan.For("jobs.cz").Count);
+        Assert.Equal(3, second.Plan.For("jobs.cz").Count);
     }
 
     [Fact]
@@ -141,7 +146,7 @@ public sealed class PlanSearchTests : IDisposable
         var result = await RunAsync();
 
         Assert.True(result.IsNew);
-        Assert.Equal(2, result.Plan.For("jobs.cz").Count);
+        Assert.Equal(3, result.Plan.For("jobs.cz").Count);
     }
 
     [Fact]

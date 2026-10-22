@@ -24,8 +24,44 @@ public class SearchPlanBuilderTests
     {
         var plan = Build([new("Autolakýrník", [Lakyrnik])]);
 
-        var search = Assert.Single(plan);
-        Assert.Equal(new PlannedSearch("lakyrnik", null, "Kolín", 30), search);
+        Assert.Equal(new PlannedSearch("lakyrnik", null, "Kolín", 30), plan[0]);
+    }
+
+    [Fact]
+    public void The_job_title_is_also_searched_as_text_after_its_category()
+    {
+        // Employers file the same job under different categories – the text search catches those (22 Oct 2026)
+        var plan = Build([new("Autolakýrník", [Lakyrnik])]);
+
+        Assert.Equal(
+            new[] { new PlannedSearch("lakyrnik", null, "Kolín", 30), new PlannedSearch(null, "Autolakýrník", "Kolín", 30) },
+            plan.ToArray());
+    }
+
+    [Fact]
+    public void Only_the_most_important_titles_are_searched_as_text()
+    {
+        var professions = Enumerable.Range(1, 5)
+            .Select(i => new ResolvedProfession($"Profese {i}", [new JobCategory($"profese-{i}", $"Profese {i}")]))
+            .ToList();
+
+        var plan = Build(professions);
+
+        Assert.Equal(new string?[] { "Profese 1", "Profese 2", "Profese 3" },
+            plan.Where(s => s.Category is null).Select(s => s.Keywords).ToArray());
+    }
+
+    [Fact]
+    public void When_the_cap_is_reached_the_title_texts_are_left_out_not_the_categories()
+    {
+        var many = Enumerable.Range(1, 6)
+            .Select(i => new ResolvedProfession($"Profese {i}", [new JobCategory($"profese-{i}", $"Profese {i}")]))
+            .ToList();
+
+        var plan = Build(many, extra: ["Praha"]);   // 6 categories × 2 places = 12 = the cap
+
+        Assert.Equal(SearchPlanBuilder.MaxSearches, plan.Count);
+        Assert.All(plan, s => Assert.NotNull(s.Category));
     }
 
     [Fact]
@@ -42,7 +78,7 @@ public class SearchPlanBuilderTests
     {
         var plan = Build([new("Autolakýrník", [Lakyrnik]), new("Lakýrník automobilů", [Lakyrnik])]);
 
-        Assert.Single(plan);
+        Assert.Single(plan, s => s.Category == "lakyrnik");
     }
 
     [Fact]
@@ -50,8 +86,8 @@ public class SearchPlanBuilderTests
     {
         var plan = Build([new("Smart repair technik", []), new("Autolakýrník", [Lakyrnik, Pripravar])]);
 
-        Assert.Equal(new[] { "lakyrnik", "pripravar", null }, plan.Select(s => s.Category).ToArray());
-        Assert.Equal("Smart repair technik", plan[^1].Keywords);
+        Assert.Equal(new[] { "lakyrnik", "pripravar", null, null }, plan.Select(s => s.Category).ToArray());
+        Assert.Equal(new string?[] { "Smart repair technik", "Autolakýrník" }, plan.Skip(2).Select(s => s.Keywords).ToArray());
     }
 
     [Fact]
@@ -61,7 +97,7 @@ public class SearchPlanBuilderTests
 
         Assert.Equal(
             new[] { new PlannedSearch("lakyrnik", null, "Kolín", 30), new PlannedSearch("lakyrnik", null, "Praha", 0) },
-            plan.ToArray());
+            plan.Where(s => s.Category is not null).ToArray());
     }
 
     [Fact]
@@ -71,7 +107,9 @@ public class SearchPlanBuilderTests
         var plan = Build([new("SW architekt", [new("sw-architekt", "SW architekt")])],
             home: "Praha", radius: 0, extra: ["Brno"], acceptableRemote: [RemoteWork.Full, RemoteWork.Hybrid]);
 
-        Assert.Equal(new PlannedSearch("sw-architekt", null, null, 0), Assert.Single(plan));
+        Assert.Equal(
+            new[] { new PlannedSearch("sw-architekt", null, null, 0), new PlannedSearch(null, "SW architekt", null, 0) },
+            plan.ToArray());
     }
 
     [Fact]
@@ -79,7 +117,8 @@ public class SearchPlanBuilderTests
     {
         var plan = Build([new("Zedník", [new("zednik", "Zedník")])], home: "", radius: 0);
 
-        Assert.Equal(new PlannedSearch("zednik", null, null, 0), Assert.Single(plan));
+        Assert.Equal(new PlannedSearch("zednik", null, null, 0), plan[0]);
+        Assert.All(plan, s => Assert.Null(s.Location));
     }
 
     [Fact]
