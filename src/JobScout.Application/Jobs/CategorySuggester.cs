@@ -3,7 +3,8 @@
 namespace JobScout.Application.Jobs;
 
 public sealed record ProfessionMapping(string Profession, IReadOnlyList<string> Labels);
-public sealed record CategorySuggestions(IReadOnlyList<ProfessionMapping> Mappings);
+/// <param name="Field">The source's broad field ("obor") of the candidate's main profession, or empty – searched first (plan v5).</param>
+public sealed record CategorySuggestions(IReadOnlyList<ProfessionMapping> Mappings, string? Field = null);
 public sealed record CategorySuggestionResult(CategorySuggestions Suggestions, LlmResponse Response);
 
 /// <summary>Candidate's professions → catalogue-style names to verify. Simple task → the cheap Fast model.</summary>

@@ -36,6 +36,13 @@
   categories: in one day, "architect" as text found 30+ ads, the category `sw-architekt` 12. The text searches come
   last, so when the cap of 12 searches is reached they are what is left out; the noise they bring (e.g. building
   architects for "architekt") is cheap for the triage to drop.
+- **Update 23 Oct 2026 (plan v5): the whole field first.** The AI also names the portal's broad field ("obor") of the
+  candidate's main profession; it is verified like a category and searched first – the way a person reads the
+  portal: every ad of the field, by its title. IS/IT: Vývoj aplikací a systémů had 90 ads a day, all our narrower
+  searches together 58. The triage (titles only, 40 per cheap call) sorts it out for well under a cent a day. The
+  professions' categories stay after it, for a field too big for the page limit. Not sure, or a field of mostly other
+  work → no field. A category counts as verified only if jobs.cz keeps it on www.jobs.cz (`/prace/prodej-a-obchod/`
+  redirects to beta.jobs.cz, whose pages the parser doesn't know).
 - Search uses the home location + commute radius (`locality[radius]`) from the search intent.
 - The small verified IT list (`JobsCzCatalog`) stays as known categories (no request needed) and as examples
   for the AI.

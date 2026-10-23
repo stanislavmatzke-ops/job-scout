@@ -96,6 +96,15 @@ public class JobsCzProfessionAndRadiusTests
     }
 
     [Fact]
+    public async Task Redirect_to_another_jobs_cz_site_is_not_a_category()
+    {
+        // Seen on 23 Oct 2026: a field that lives on beta.jobs.cz – a page our parser doesn't know
+        var (source, _) = Create(req => StubHttpHandler.Html(req, ListingHtml, finalUrl: "https://beta.jobs.cz/prace/prodej-a-obchod/"));
+
+        Assert.Null(await source.ResolveCategoryAsync("Prodej a obchod"));
+    }
+
+    [Fact]
     public async Task Server_error_is_reported_not_treated_as_missing()
     {
         // 500 ≠ "profession doesn't exist" – the caller must not store a wrong plan because of an outage

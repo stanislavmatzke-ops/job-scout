@@ -16,12 +16,22 @@ public static class SearchPlanBuilder
     /// </summary>
     public const int MaxTitleSearches = 3;
 
+    /// <param name="field">
+    /// The broad field ("obor") of the candidate's main profession – searched first: the way a person reads the portal,
+    /// every ad of the field by its title, so nothing filed under an unexpected category is missed (23 Oct 2026:
+    /// IS/IT: Vývoj aplikací a systémů had 90 ads a day, all our narrower searches together 58). The triage sorts it out
+    /// cheaply. The professions' own categories follow – they still count if a huge field doesn't fit the page limit.
+    /// </param>
     public static IReadOnlyList<PlannedSearch> Build(
-        SearchIntent intent, WorkPreferences preferences, IReadOnlyList<ResolvedProfession> professions)
+        SearchIntent intent, WorkPreferences preferences, IReadOnlyList<ResolvedProfession> professions,
+        JobCategory? field = null)
     {
         var places = Places(intent, preferences);
 
-        var categories = professions.SelectMany(p => p.Categories).DistinctBy(c => c.Id).ToList();
+        var categories = (field is null ? [] : new[] { field })
+            .Concat(professions.SelectMany(p => p.Categories))
+            .DistinctBy(c => c.Id)
+            .ToList();
         var freeText = professions
             .Where(p => p.Categories.Count == 0 && !string.IsNullOrWhiteSpace(p.Profession))
             .Select(p => p.Profession.Trim())

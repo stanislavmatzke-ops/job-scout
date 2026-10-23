@@ -38,6 +38,7 @@ public sealed class PlanSearch(
         foreach (var source in sources)
         {
             var resolved = new List<ResolvedProfession>();
+            JobCategory? field = null;
             if (professions.Count > 0)
             {
                 var known = await resolver.KnownAsync(source, ct);
@@ -46,9 +47,10 @@ public sealed class PlanSearch(
 
                 foreach (var profession in professions)
                     resolved.Add(new ResolvedProfession(profession, await VerifyAsync(source, profession, suggestion.Suggestions, ct)));
+                field = await VerifyFieldAsync(source, suggestion.Suggestions.Field, ct);
             }
 
-            plans[source.Name] = SearchPlanBuilder.Build(profile.Search, profile.Preferences, resolved);
+            plans[source.Name] = SearchPlanBuilder.Build(profile.Search, profile.Preferences, resolved, field);
         }
 
         var plan = new SearchPlan(SearchPlan.CurrentVersion, plans);
@@ -56,6 +58,16 @@ public sealed class PlanSearch(
         await db.SaveChangesAsync(ct);
 
         return new SearchPlanResult(plan, IsNew: true, calls);
+    }
+
+    /// <summary>The broad field the AI named – verified like any category; a made-up one simply doesn't exist (404).</summary>
+    private async Task<JobCategory?> VerifyFieldAsync(IJobSource source, string? field, CancellationToken ct)
+    {
+        var label = field?.Trim() ?? "";
+        // The verified list shows fields as "Obor IS/IT: …" – the portal's name (and slug) is without the word
+        if (label.StartsWith("Obor ", StringComparison.OrdinalIgnoreCase))
+            label = label["Obor ".Length..].Trim();
+        return label.Length == 0 ? null : await resolver.ResolveAsync(source, label, ct);
     }
 
     private async Task<IReadOnlyList<JobCategory>> VerifyAsync(

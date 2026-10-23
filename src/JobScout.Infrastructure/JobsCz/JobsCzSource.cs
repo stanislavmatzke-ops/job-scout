@@ -163,8 +163,10 @@ internal sealed partial class JobsCzSource(HttpClient http, IPageRenderer render
         }
         response.EnsureSuccessStatusCode();   // 5xx = outage, not "doesn't exist" – don't store a wrong plan
 
-        // 200 after a redirect elsewhere (e.g. to /prace/) is not this profession
-        if (response.RequestMessage?.RequestUri?.AbsolutePath != path)
+        // 200 after a redirect elsewhere (e.g. to /prace/) is not this profession – nor a redirect to another site
+        // (23 Oct 2026: /prace/prodej-a-obchod/ goes to beta.jobs.cz, whose pages our parser doesn't know)
+        var final = response.RequestMessage?.RequestUri;
+        if (final?.AbsolutePath != path || final.Host != http.BaseAddress?.Host)
             return null;
 
         logger.LogInformation("jobs.cz: profese '{Label}' → {Slug}", label.Trim(), slug);

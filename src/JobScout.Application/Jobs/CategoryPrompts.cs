@@ -16,12 +16,18 @@ internal static class CategoryPrompts
                                  - Pole profession opiš přesně tak, jak je v zadání.
                                  - Obecnou nadřazenou kategorii (např. "Programátor", "IT analytik", "IT konzultant") navrhni jen tehdy,
                                  když je to přímo kandidátova profese. Architekt ani vedoucí vývoje není "IT konzultant" ani "IT analytik".
+
+                                 Navíc vrať field: jeden obor portálu – širší skupinu, pod kterou portál řadí nabídky –, do kterého patří
+                                 hlavní profese kandidáta. Napiš ho tak, jak ho portál pojmenovává, bez slova "Obor"
+                                 (např. "IS/IT: Vývoj aplikací a systémů"). Ze seznamu ověřených ho přeber přesně.
+                                 Když si nejsi jistý, nebo by obor zahrnoval převážně úplně jinou práci, než kandidát hledá, vrať "".
                                  """;
 
     public const string Schema = """
                                  {
                                    "type": "object",
                                    "properties": {
+                                     "field": { "type": "string", "description": "Obor portálu, do kterého patří hlavní profese kandidáta, nebo prázdný řetězec" },
                                      "mappings": {
                                        "type": "array",
                                        "items": {
@@ -35,7 +41,7 @@ internal static class CategoryPrompts
                                        }
                                      }
                                    },
-                                   "required": ["mappings"],
+                                   "required": ["mappings", "field"],
                                    "additionalProperties": false
                                  }
                                  """;

@@ -207,4 +207,43 @@ public sealed class PlanSearchTests : IDisposable
 
         Assert.Null(StoredPlanJson());   // next run tries again instead of keeping a crippled plan
     }
+
+    // ---------- the whole field (plan v5) ----------
+
+    private async Task<SearchPlanResult> RunWithFieldAsync(string field)
+    {
+        var llm = new FakeLlmClient(Suggestions.Replace("\"mappings\"", $"\"field\": \"{field}\", \"mappings\""));
+        await using var db = _database.CreateContext();
+        var version = await db.UserProfiles.SingleAsync(p => p.Id == _profileId);
+        return await new PlanSearch(db, new CategoryResolver(db, _time), new CategorySuggester(llm), [_jobsCz])
+            .ExecuteAsync(version, TestProfiles.With(Professions), CancellationToken.None);
+    }
+
+    [Fact]
+    public async Task The_field_the_ai_names_is_verified_and_searched_first()
+    {
+        _jobsCz.Existing["Automobilový průmysl"] = "automobilovy-prumysl";
+
+        // The verified list shows fields as "Obor …" – the word is dropped before the check
+        var result = await RunWithFieldAsync("Obor Automobilový průmysl");
+
+        Assert.Equal(new PlannedSearch("automobilovy-prumysl", null, "Kolín", 30), result.Plan.For("jobs.cz")[0]);
+        Assert.Contains("Automobilový průmysl", _jobsCz.ResolveRequests);
+    }
+
+    [Fact]
+    public async Task A_field_the_portal_does_not_know_is_left_out()
+    {
+        var result = await RunWithFieldAsync("Vymyšlený obor");
+
+        Assert.Equal("lakyrnik", result.Plan.For("jobs.cz")[0].Category);
+    }
+
+    [Fact]
+    public async Task No_field_keeps_the_plan_as_before()
+    {
+        var result = await RunWithFieldAsync("");
+
+        Assert.Equal(3, result.Plan.For("jobs.cz").Count);
+    }
 }

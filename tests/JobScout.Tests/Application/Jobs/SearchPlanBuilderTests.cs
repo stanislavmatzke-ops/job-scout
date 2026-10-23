@@ -150,4 +150,29 @@ public class SearchPlanBuilderTests
         Assert.Equal(JobAge.Day, query.MaxAge);
         Assert.Equal(1, query.Page);
     }
+
+    // ---------- the whole field first (plan v5) ----------
+
+    [Fact]
+    public void The_whole_field_is_searched_first_then_the_professions()
+    {
+        var field = new JobCategory("automobilovy-prumysl", "Automobilový průmysl");
+        var profile = TestProfiles.With(["Autolakýrník"], "Kolín", 30, null, null);
+
+        var plan = SearchPlanBuilder.Build(profile.Search, profile.Preferences, [new("Autolakýrník", [Lakyrnik])], field);
+
+        Assert.Equal(new[] { "automobilovy-prumysl", "lakyrnik", null }, plan.Select(s => s.Category).ToArray());
+        Assert.All(plan, s => Assert.Equal(("Kolín", 30), (s.Location, s.RadiusKm)));     // the same places as everything else
+    }
+
+    [Fact]
+    public void A_field_that_is_also_a_profession_category_is_searched_once()
+    {
+        var field = new JobCategory("lakyrnik", "Lakýrník");
+        var profile = TestProfiles.With(["Autolakýrník"], "Kolín", 30, null, null);
+
+        var plan = SearchPlanBuilder.Build(profile.Search, profile.Preferences, [new("Autolakýrník", [Lakyrnik])], field);
+
+        Assert.Single(plan, s => s.Category == "lakyrnik");
+    }
 }
