@@ -7,6 +7,7 @@ using JobScout.Api.Matches;
 using JobScout.Api.Me;
 using JobScout.Api.Profile;
 using JobScout.Api.Scouting;
+using JobScout.Api.Site;
 using JobScout.Api.UserFeedback;
 using JobScout.Application;
 using JobScout.Infrastructure;
@@ -21,6 +22,7 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddInfrastructure(builder.Configuration);
 builder.Services.AddApplication();
 builder.Services.AddFirstSearch(builder.Configuration);
+builder.Services.AddSite(builder.Configuration);              // Operator:* – the privacy page and the footer
 builder.Services.AddDemo(builder.Configuration);              // "Try it without signing up" (ADR-0020)   // 6h – the first search right after the first CV
 builder.Services.AddJobScoutAuth(builder.Configuration, builder.Environment);
 // Keys for the session cookie and the OIDC round trip live in the database (ADR-0018) – a container restart
@@ -82,6 +84,7 @@ app.MapScoutEndpoints();
 app.MapDemoEndpoints();
 app.MapAiLimitEndpoints();
 app.MapFeedbackEndpoints();
+app.MapSiteEndpoints();
 
 // An unknown /api address is an API error (JSON 404), not the app; every other unknown path (/matches/123 after F5)
 // gets index.html and the Angular router takes over

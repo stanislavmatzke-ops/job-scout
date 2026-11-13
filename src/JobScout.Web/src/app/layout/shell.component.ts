@@ -7,12 +7,13 @@ import { MatMenuModule } from '@angular/material/menu';
 import { AuthService } from '../core/auth.service';
 import { Logo } from '../shared/logo';
 import { LangSwitch } from '../shared/lang-switch';
+import { SiteFooter } from '../shared/site-footer';
 import { t } from '../core/i18n';
 
 @Component({
   selector: 'app-shell',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterOutlet, RouterLink, RouterLinkActive, MatToolbarModule, MatButtonModule, MatIconModule, MatMenuModule, Logo, LangSwitch],
+  imports: [RouterOutlet, RouterLink, RouterLinkActive, MatToolbarModule, MatButtonModule, MatIconModule, MatMenuModule, Logo, LangSwitch, SiteFooter],
   template: `
     <mat-toolbar class="toolbar">
       <a routerLink="/" class="brand"><app-logo [size]="28" /><span>Job Scout</span></a>
@@ -54,8 +55,10 @@ import { t } from '../core/i18n';
     }
 
     <main class="content"><router-outlet /></main>
+    <app-site-footer />
   `,
   styles: `
+    :host { display: flex; flex-direction: column; min-height: 100vh; }
     .toolbar { position: sticky; top: 0; z-index: 10; gap: 4px; border-bottom: 1px solid var(--js-border); padding: 0 16px; }
     .brand { display: inline-flex; align-items: center; gap: 10px; margin-right: 20px; color: inherit; text-decoration: none;
              font-weight: 650; font-size: 1.05rem; letter-spacing: -0.01em; }
@@ -72,7 +75,7 @@ import { t } from '../core/i18n';
     .menu-head { padding: 8px 16px; font-size: 0.8rem; color: var(--js-muted); border-bottom: 1px solid var(--js-border); }
     .demo { padding: 10px 16px; background: var(--js-ai-tint); border-bottom: 1px solid var(--js-ai-border); font-size: 0.92rem; }
     .suspended { padding: 12px 16px; background: var(--mat-sys-error-container); color: var(--mat-sys-on-error-container); }
-    .content { max-width: 1120px; margin: 0 auto; padding: 24px 16px 48px; }
+    .content { flex: 1; width: 100%; max-width: 1120px; margin: 0 auto; padding: 24px 16px 48px; box-sizing: border-box; }
     @media (max-width: 640px) {
       .brand span, .name { display: none; }
       .brand { margin-right: 8px; }

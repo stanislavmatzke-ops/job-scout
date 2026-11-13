@@ -11,6 +11,12 @@ export const routes: Routes = [
     loadComponent: () => import('./pages/login/login.page').then(m => m.LoginPage),
   },
   {
+    // Public – the privacy page (GDPR) must be readable before signing in, so it lives outside the shell's guards
+    path: 'privacy',
+    title: 'privacy',
+    loadComponent: () => import('./pages/privacy/privacy.page').then(m => m.PrivacyPage),
+  },
+  {
     path: '',
     component: ShellComponent,
     canActivate: [signedInGuard],

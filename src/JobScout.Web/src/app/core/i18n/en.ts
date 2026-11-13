@@ -1,4 +1,4 @@
-import { cs } from './cs';
+import { PrivacySection, cs } from './cs';
 
 export type Dict = typeof cs;
 
@@ -11,6 +11,7 @@ export const en: Dict = {
   titles: {
     login: 'Sign in', access: 'Access', matches: 'Jobs', matchDetail: 'Job detail',
     profile: 'Profile', admin: 'Administration', notFound: 'Page not found', feedback: 'Feedback',
+    privacy: 'Privacy',
   },
 
   lang: { label: 'Language', cs: 'Čeština', en: 'English' },
@@ -60,6 +61,7 @@ export const en: Dict = {
     enter: 'Enter',
     fine: 'You can sign in with a Google or Microsoft account',
     fineTest: ', or try the app as a test user',
+    consent: 'By signing in you acknowledge the processing of your data under our ', consentLink: 'privacy policy',
     demoAs: (name: string) => `as ${name}, a sample user – no sign-up`,
     failed: 'Sign-in failed.',
     errors: {
@@ -354,5 +356,99 @@ export const en: Dict = {
     title: 'Page not found',
     text: 'The address you opened doesn’t exist in the app. It may be an old link or a typo.',
     home: 'Go to jobs',
+  },
+
+  privacy: {
+    title: 'Privacy',
+    updated: (date: string) => `Last updated: ${date}`,
+    intro: 'Job Scout finds job postings, rates them against your CV with AI and drafts cover letters. That means we work with your personal data – here is exactly which data, why, and who else sees it.',
+    loadFailed: 'We couldn’t load the operator’s details. Please refresh the page.',
+    sections: (op: { name: string; email: string }): PrivacySection[] => [
+      {
+        title: 'Who is the controller',
+        text: [`The controller of your personal data is ${op.name}, who runs Job Scout as a personal project. Contact: ${op.email}.`],
+      },
+      {
+        title: 'What we store',
+        items: [
+          'From signing in with Microsoft or Google: your account identifier at the provider, your name and e-mail, the time of your last sign-in. We never see your account password.',
+          'Your access request and its outcome: your message, the approval, or the reason for a rejection or suspension.',
+          'The CV you upload – the file as you uploaded it (for Word only its text), always just the latest one; your notes and preferences; the profile the AI builds from them. The profile contains no name or contact details. We keep every version of the profile.',
+          'Settings: the grammatical gender for cover letters, whether you want the morning e-mail.',
+          'The jobs we find for you (public postings from jobs.cz), their ratings, cover letter drafts, statuses with their history, and your notes.',
+          'Jobs you add yourself (text, file, e-mail, link). Only you see them; they may contain details from what you added, such as a recruiter’s contact.',
+          'Feedback you send us.',
+          'Technical records: when, with which model and at what cost the AI was called (no content), records of the night search, and operational logs.',
+        ],
+      },
+      {
+        title: 'What it is for',
+        text: [
+          'Finding jobs that fit your profile, rating them and drafting cover letters; e-mails about new jobs and about your access; running and protecting the app (limits, logs).',
+          'The legal basis is providing the service you asked for; operational logs and protecting the app are our legitimate interest. We don’t sell your data, don’t use it for advertising and never send anything on your behalf – you decide about every application yourself.',
+        ],
+      },
+      {
+        title: 'Artificial intelligence',
+        text: [
+          'For the ratings we use the Claude model by Anthropic through its commercial API (servers in the USA). Anthropic processes the data as our processor.',
+        ],
+        items: [
+          'When your profile is analysed, we send your whole CV and your notes.',
+          'For filtering and rating jobs and for cover letters, we send the profile without your name and contact details, and the job postings.',
+          'When you add a job yourself, we send the text, file, e-mail or page content you added.',
+          'Under Anthropic’s terms, API data is not used to train models by default, and Anthropic deletes it within 30 days; it keeps it longer only when a usage-policy violation is suspected.',
+          'The AI’s results are suggestions. They can be wrong – you decide.',
+        ],
+      },
+      {
+        title: 'Who else gets it',
+        items: [
+          'Microsoft Azure – hosting of the app (Frankfurt, Germany) and the database (Warsaw, Poland); e-mails are sent by Azure Communication Services (data in Europe).',
+          'Anthropic – see Artificial intelligence (USA).',
+          'Microsoft and Google – only for signing in; they give us your name and e-mail.',
+          'jobs.cz – we send only search queries (profession, place, radius), nothing about you.',
+          'A page whose link you add is downloaded by our server.',
+          'Google Fonts – the icons in the app are loaded from Google’s servers, so Google sees your browser’s IP address.',
+        ],
+        text: ['We don’t share your data with anyone else.'],
+      },
+      {
+        title: 'How long',
+        text: [
+          'We keep your data as long as you have an account. There is no automatic deletion yet – on request we delete your account with all its data (CV, profiles, jobs, letters, notes).',
+          'Operational logs are deleted after 30 days, database backups after 7 days. Anthropic’s periods are listed above.',
+        ],
+      },
+      {
+        title: 'Cookies and browser storage',
+        items: [
+          '__Host-jobscout – keeps you signed in; valid for 14 days, renewed while you use the app.',
+          '.AspNetCore.Correlation.* and .AspNetCore.OpenIdConnect.Nonce.* – only for a few minutes while you sign in with Microsoft or Google.',
+          'Your language choice is remembered in your browser’s storage (localStorage).',
+        ],
+        text: ['We use only these necessary cookies – no analytics, advertising or tracking.'],
+      },
+      {
+        title: 'The demo account',
+        text: [
+          '“Try it without signing up” signs you in as the shared fictional user Honza Testovací. We store nothing about you, but whatever you write into notes or feedback may be seen by other visitors until the demo resets at night – please don’t write personal details there.',
+        ],
+      },
+      {
+        title: 'Your rights',
+        text: [
+          `You have the right to access your data, have it corrected or deleted, restrict its processing and take it with you, and you can object to the processing. Just write to ${op.email} – we will reply within a month.`,
+          'If you are not satisfied, you can turn to the Czech data protection authority, Úřad pro ochranu osobních údajů (uoou.gov.cz).',
+        ],
+      },
+    ],
+  },
+
+  footer: {
+    about: 'Job Scout – the AI finds and rates job postings against your CV. A personal project.',
+    links: 'Footer links',
+    privacy: 'Privacy',
+    project: 'About the project',
   },
 };

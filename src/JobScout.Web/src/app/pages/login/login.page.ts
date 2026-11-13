@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, OnInit, inject, input, signal } from '@angular/core';
-import { Router } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -10,6 +10,7 @@ import { AuthProviders } from '../../core/models';
 import { problemMessage } from '../../core/match-format';
 import { Logo } from '../../shared/logo';
 import { LangSwitch } from '../../shared/lang-switch';
+import { SiteFooter } from '../../shared/site-footer';
 import { t } from '../../core/i18n';
 
 /**
@@ -27,7 +28,7 @@ export const SAMPLE_PERSONA = 'sample';
 @Component({
   selector: 'app-login-page',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [FormsModule, MatButtonModule, MatFormFieldModule, MatInputModule, MatIconModule, Logo, LangSwitch],
+  imports: [FormsModule, RouterLink, MatButtonModule, MatFormFieldModule, MatInputModule, MatIconModule, Logo, LangSwitch, SiteFooter],
   template: `
     <main class="wrap">
       <section class="panel" aria-labelledby="title">
@@ -80,11 +81,14 @@ export const SAMPLE_PERSONA = 'sample';
         <p class="fine">
           {{ t().login.fine }}@if (providers()?.devSignIn || providers()?.demo) {<span>{{ t().login.fineTest }}</span>}.
         </p>
+        <p class="fine consent">{{ t().login.consent }}<a routerLink="/privacy">{{ t().login.consentLink }}</a>.</p>
       </section>
     </main>
+    <app-site-footer />
   `,
   styles: `
-    .wrap { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 32px 16px; box-sizing: border-box; }
+    :host { display: flex; flex-direction: column; min-height: 100vh; }
+    .wrap { flex: 1; display: flex; align-items: center; justify-content: center; padding: 32px 16px; box-sizing: border-box; }
     .panel {
       position: relative;
       width: 100%; max-width: 400px; padding: 36px 32px 24px; box-sizing: border-box;
@@ -112,6 +116,8 @@ export const SAMPLE_PERSONA = 'sample';
     .error { margin: 0 0 16px; text-align: left; }
     .demo-as { margin: 6px 0 0; font-size: 0.8rem; color: var(--js-muted); }
     .fine { margin: 24px 0 0; font-size: 0.8rem; color: var(--js-muted); line-height: 1.45; }
+    .consent { margin-top: 8px; }
+    .consent a { color: inherit; }
   `,
 })
 export class LoginPage implements OnInit {

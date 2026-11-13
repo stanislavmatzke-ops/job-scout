@@ -2,6 +2,9 @@
  * Czech texts – the source of truth for the shape of the dictionary (en.ts must have every key: Dict = typeof cs).
  * Rule for all texts (copilot-instructions.md): formal "vy", the product speaks as "we", no personal "I".
  */
+/** One section of the privacy page: paragraphs, a list, or both (paragraphs first). */
+export interface PrivacySection { title: string; text?: string[]; items?: string[] }
+
 export const cs = {
   fmt: { date: 'd. M. y', dateTime: 'd. M. y H:mm', dayMonth: 'd. M.', dayHeading: 'EEEE d. M.' },
 
@@ -10,6 +13,7 @@ export const cs = {
   titles: {
     login: 'Přihlášení', access: 'Přístup', matches: 'Nabídky', matchDetail: 'Detail nabídky',
     profile: 'Profil', admin: 'Správa', notFound: 'Stránka nenalezena', feedback: 'Zpětná vazba',
+    privacy: 'Ochrana osobních údajů',
   },
 
   lang: { label: 'Jazyk', cs: 'Čeština', en: 'English' },
@@ -61,6 +65,7 @@ export const cs = {
     enter: 'Vstoupit',
     fine: 'Přihlásit se můžete účtem Google nebo Microsoft',
     fineTest: ', případně si aplikaci vyzkoušet jako testovací uživatel',
+    consent: 'Přihlášením berete na vědomí zpracování údajů podle ', consentLink: 'zásad ochrany osobních údajů',
     demoAs: (name: string) => `jako ${name}, ukázkový uživatel – bez registrace`,
     failed: 'Přihlášení se nezdařilo.',
     errors: {
@@ -356,5 +361,100 @@ export const cs = {
     title: 'Stránka nenalezena',
     text: 'Adresa, kterou jste otevřeli, v aplikaci neexistuje. Možná jde o starý odkaz nebo překlep.',
     home: 'Přejít na nabídky',
+  },
+
+  /** The privacy page (GDPR) – keep it in line with the code; update PRIVACY_UPDATED in privacy.page.ts with every change. */
+  privacy: {
+    title: 'Ochrana osobních údajů',
+    updated: (date: string) => `Poslední změna: ${date}`,
+    intro: 'Job Scout hledá nabídky práce, hodnotí je podle vašeho životopisu pomocí AI a navrhuje průvodní dopisy. Proto pracujeme s vašimi osobními údaji – tady je přesně s jakými, proč a kdo další je vidí.',
+    loadFailed: 'Údaje o provozovateli se nepodařilo načíst. Zkuste prosím stránku obnovit.',
+    sections: (op: { name: string; email: string }): PrivacySection[] => [
+      {
+        title: 'Kdo je správce',
+        text: [`Správcem osobních údajů je ${op.name}, který Job Scout provozuje jako osobní projekt. Kontakt: ${op.email}.`],
+      },
+      {
+        title: 'Co ukládáme',
+        items: [
+          'Z přihlášení přes Microsoft nebo Google: identifikátor účtu u poskytovatele, jméno a e-mail, čas posledního přihlášení. Heslo k vašemu účtu nikdy nevidíme.',
+          'Žádost o přístup a její vyřízení: vaši zprávu, schválení, případně důvod zamítnutí nebo pozastavení.',
+          'Životopis, který nahrajete – soubor tak, jak jste ho nahráli (u Wordu jen jeho text), vždy jen ten poslední; vaše poznámky a preference; profil, který z nich sestaví AI. Profil neobsahuje jméno ani kontakty. Uchováváme všechny verze profilu.',
+          'Nastavení: rod pro průvodní dopisy, zda chcete ranní e-mail.',
+          'Nabídky, které pro vás najdeme (veřejné inzeráty z jobs.cz), jejich hodnocení, návrhy dopisů, stavy s historií a vaše poznámky.',
+          'Nabídky, které vložíte sami (text, soubor, e-mail, odkaz). Vidíte je jen vy; mohou obsahovat i údaje z vloženého materiálu, například kontakt na personalistu.',
+          'Zpětnou vazbu, kterou nám pošlete.',
+          'Technické záznamy: kdy, s jakým modelem a za kolik proběhla volání AI (bez obsahu), záznamy nočního hledání a provozní logy.',
+        ],
+      },
+      {
+        title: 'K čemu to slouží',
+        text: [
+          'K hledání nabídek podle vašeho profilu, k jejich hodnocení a k návrhům průvodních dopisů; k e-mailům o nových nabídkách a o vašem přístupu; k provozu a ochraně aplikace (limity, logy).',
+          'Právním základem je poskytování služby, o kterou jste požádali; provozní logy a ochrana aplikace jsou náš oprávněný zájem. Údaje neprodáváme, nepoužíváme k reklamě a nic neodesíláme za vás – o každé reakci na nabídku rozhodujete sami.',
+        ],
+      },
+      {
+        title: 'Umělá inteligence',
+        text: [
+          'K vyhodnocení používáme model Claude společnosti Anthropic přes její komerční API (servery v USA). Anthropic údaje zpracovává jako náš zpracovatel.',
+        ],
+        items: [
+          'Při vyhodnocení profilu posíláme celý životopis a vaše poznámky.',
+          'Pro třídění a hodnocení nabídek a pro návrhy dopisů posíláme profil bez jména a kontaktů a texty nabídek.',
+          'Při ručním vložení nabídky posíláme vložený text, soubor, e-mail nebo obsah stránky.',
+          'Podle podmínek Anthropicu se data z API ve výchozím stavu nepoužívají k trénování modelů a Anthropic je maže do 30 dnů; déle je uchovává jen při podezření na porušení pravidel použití.',
+          'Výsledky AI jsou návrhy. Mohou být nepřesné – rozhodujete vy.',
+        ],
+      },
+      {
+        title: 'Komu dál',
+        items: [
+          'Microsoft Azure – provoz aplikace (Frankfurt, Německo) a databáze (Varšava, Polsko); e-maily odesílá Azure Communication Services (data v Evropě).',
+          'Anthropic – viz Umělá inteligence (USA).',
+          'Microsoft a Google – jen kvůli přihlášení; dostáváme od nich vaše jméno a e-mail.',
+          'jobs.cz – posíláme jen vyhledávací dotazy (profese, místo, okruh), nic o vás.',
+          'Stránku, jejíž odkaz vložíte, stáhne náš server.',
+          'Google Fonts – ikony v aplikaci se načítají ze serverů Googlu, který tak vidí IP adresu vašeho prohlížeče.',
+        ],
+        text: ['Nikomu dalšímu údaje nepředáváme.'],
+      },
+      {
+        title: 'Jak dlouho',
+        text: [
+          'Údaje uchováváme, dokud máte účet. Automatické mazání zatím nemáme – na požádání smažeme váš účet se všemi daty (životopis, profily, nabídky, dopisy, poznámky).',
+          'Provozní logy mažeme po 30 dnech, zálohy databáze po 7 dnech. U Anthropicu platí lhůty uvedené výše.',
+        ],
+      },
+      {
+        title: 'Cookies a úložiště prohlížeče',
+        items: [
+          '__Host-jobscout – přihlášení; platí 14 dní a prodlužuje se, dokud aplikaci používáte.',
+          '.AspNetCore.Correlation.* a .AspNetCore.OpenIdConnect.Nonce.* – jen na pár minut během přihlášení přes Microsoft nebo Google.',
+          'Volbu jazyka si pamatujeme v úložišti vašeho prohlížeče (localStorage).',
+        ],
+        text: ['Používáme jen tyto nezbytné cookies – žádnou analytiku, reklamu ani sledování.'],
+      },
+      {
+        title: 'Ukázkový účet',
+        text: [
+          '„Vyzkoušet bez registrace“ vás přihlásí jako sdíleného fiktivního uživatele Honza Testovací. O vás nic neukládáme, ale co napíšete do poznámek nebo zpětné vazby, mohou do nočního obnovení ukázky vidět ostatní návštěvníci – nepište tam prosím osobní údaje.',
+        ],
+      },
+      {
+        title: 'Vaše práva',
+        text: [
+          `Máte právo na přístup ke svým údajům, jejich opravu, výmaz, omezení zpracování a přenositelnost a můžete vznést námitku. Stačí napsat na ${op.email} – odpovíme nejpozději do měsíce.`,
+          'Pokud nebudete spokojeni, můžete se obrátit na Úřad pro ochranu osobních údajů (uoou.gov.cz).',
+        ],
+      },
+    ],
+  },
+
+  footer: {
+    about: 'Job Scout – AI hledá a hodnotí nabídky práce podle vašeho životopisu. Osobní projekt.',
+    links: 'Odkazy v patičce',
+    privacy: 'Ochrana osobních údajů',
+    project: 'O projektu',
   },
 };
