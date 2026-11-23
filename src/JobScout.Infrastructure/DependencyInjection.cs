@@ -37,7 +37,13 @@ public static class DependencyInjection
                 "JobScout/0.1 (personal job search assistant; learning project)");
             c.DefaultRequestHeaders.AcceptLanguage.ParseAdd("cs-CZ");
             c.Timeout = TimeSpan.FromSeconds(30);
-        }).AddHttpMessageHandler(() => new PoliteDelayHandler(TimeSpan.FromSeconds(2)));
+        })
+        // No cookies: jobs.cz picks the classic site or the beta per visitor (cookie beta_bucket) – without one, every
+        // request gets its own pick instead of a whole run sticking to the beta (ClassicSiteHandler)
+        .ConfigurePrimaryHttpMessageHandler(() => new SocketsHttpHandler { UseCookies = false, AllowAutoRedirect = true })
+        // Outer first: a retry from the beta still waits its turn in the PoliteDelayHandler
+        .AddHttpMessageHandler(sp => new ClassicSiteHandler(sp.GetRequiredService<ILogger<ClassicSiteHandler>>()))
+        .AddHttpMessageHandler(() => new PoliteDelayHandler(TimeSpan.FromSeconds(2)));
         services.AddSingleton<IPageRenderer, PlaywrightPageRenderer>();
         // Job ads the user adds by hand (ADR-0013): any public page they paste a link to – never inside our network
         services.AddHttpClient<IWebPageReader, WebPageReader>(c =>
