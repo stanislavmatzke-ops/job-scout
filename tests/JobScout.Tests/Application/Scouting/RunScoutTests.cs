@@ -213,4 +213,24 @@ public sealed class RunScoutTests : IDisposable
 
         Assert.Equal(JobAge.ThreeDays, wednesday.Window.MaxAge);  // Tuesday's ads are not lost
     }
+
+    [Fact]
+    public async Task One_search_the_portal_wont_answer_is_skipped_the_rest_is_used_and_the_run_catches_up_later()
+    {
+        // 23 Nov 2026: jobs.cz kept sending one search to its beta site – the whole run used to fail for that user
+        Publish("Stavbyvedoucí");
+        _jobsCz.FailSearch = q => q.Location == "Praha"
+            ? new HttpRequestException("jobs.cz místo výsledků hledání vrátil jinou stránku (beta)")
+            : null;
+
+        var result = await RunAsync();
+
+        Assert.Equal(1, result.Recorded.Found);                   // the other searches still bring the ad
+        Assert.Equal(1, AiCalls(LlmPurpose.Evaluation));
+        Assert.Contains(result.Searches, s => s.Error is not null);
+        await using var db = _database.CreateContext();
+        var run = await db.ScoutRuns.SingleAsync();
+        Assert.Equal(ScoutRunStatus.Failed, run.Status);           // not complete – the next run searches back
+        Assert.Contains("přeskočeno", run.Error);
+    }
 }

@@ -45,11 +45,16 @@ internal sealed class FakeJobSource(string name = "fake.cz") : IJobSource
     /// <summary>When set, every search throws it (portal down).</summary>
     public Exception? SearchFailure { get; set; }
 
+    /// <summary>When set, the searches it returns an exception for throw it (one search the portal won't answer).</summary>
+    public Func<JobSearchQuery, Exception?>? FailSearch { get; set; }
+
     public Task<IReadOnlyList<JobListing>> SearchAsync(JobSearchQuery query, int maxPages = 1, CancellationToken ct = default)
     {
         SearchQueries.Add(query);
         if (SearchFailure is not null)
             throw SearchFailure;
+        if (FailSearch?.Invoke(query) is { } failure)
+            throw failure;
 
         return Task.FromResult<IReadOnlyList<JobListing>>(Listings.ToList());
     }

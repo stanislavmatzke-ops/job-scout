@@ -8,14 +8,22 @@ namespace JobScout.Infrastructure.JobsCz;
 /// most results rendered by JavaScript and without our date filter. Our parser reads the classic site only.
 /// Two parts: the HttpClient keeps no cookies (registered in DependencyInjection), so one unlucky first request no
 /// longer sends a whole morning run to the beta (13 and 23 Nov 2026: every search failed); and a request that still
-/// ends up there is simply asked again – every retry goes through the PoliteDelayHandler like any other request.
+/// ends up there is asked again – after a growing pause, because jobs.cz keeps sending the same address to the beta for
+/// a while (23 Nov: four tries two seconds apart all landed there). Every retry also waits in the PoliteDelayHandler.
+/// A search that stays on the beta is skipped by the run, not fatal (RunScout).
 /// </summary>
-internal sealed class ClassicSiteHandler(ILogger<ClassicSiteHandler> logger) : DelegatingHandler
+internal sealed class ClassicSiteHandler(ILogger<ClassicSiteHandler> logger, IReadOnlyList<TimeSpan>? pauses = null)
+    : DelegatingHandler
 {
     public const string BetaHost = "beta.jobs.cz";
 
-    /// <summary>At ≈ 20 % per request, four attempts end on the beta about twice in a thousand.</summary>
-    public const int MaxAttempts = 4;
+    /// <summary>Before the 2nd, 3rd and 4th attempt – under a minute in all (the HttpClient's timeout covers it).</summary>
+    public static readonly IReadOnlyList<TimeSpan> DefaultPauses =
+        [TimeSpan.FromSeconds(5), TimeSpan.FromSeconds(15), TimeSpan.FromSeconds(30)];
+
+    private readonly IReadOnlyList<TimeSpan> _pauses = pauses ?? DefaultPauses;
+
+    public int MaxAttempts => _pauses.Count + 1;
 
     protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken ct)
     {
@@ -25,9 +33,10 @@ internal sealed class ClassicSiteHandler(ILogger<ClassicSiteHandler> logger) : D
             if (response.RequestMessage?.RequestUri?.Host != BetaHost || attempt == MaxAttempts)
                 return response;     // the classic site – or give up: the parser then reports the page it doesn't know
 
-            logger.LogInformation("jobs.cz: {Url} přesměroval na betu – zkouším znovu ({Attempt}/{Max})",
-                request.RequestUri, attempt + 1, MaxAttempts);
+            logger.LogInformation("jobs.cz: {Url} přesměroval na betu – zkusím znovu za {Pause} s ({Attempt}/{Max})",
+                request.RequestUri, _pauses[attempt - 1].TotalSeconds, attempt + 1, MaxAttempts);
             response.Dispose();
+            await Task.Delay(_pauses[attempt - 1], ct);
         }
     }
 

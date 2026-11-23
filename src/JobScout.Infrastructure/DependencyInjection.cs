@@ -36,7 +36,7 @@ public static class DependencyInjection
             c.DefaultRequestHeaders.UserAgent.ParseAdd(
                 "JobScout/0.1 (personal job search assistant; learning project)");
             c.DefaultRequestHeaders.AcceptLanguage.ParseAdd("cs-CZ");
-            c.Timeout = TimeSpan.FromSeconds(30);
+            c.Timeout = TimeSpan.FromMinutes(2);      // covers the ClassicSiteHandler's pauses (under a minute) too
         })
         // No cookies: jobs.cz picks the classic site or the beta per visitor (cookie beta_bucket) – without one, every
         // request gets its own pick instead of a whole run sticking to the beta (ClassicSiteHandler)

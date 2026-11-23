@@ -13,6 +13,9 @@ public class ClassicSiteHandlerTests
 {
     private const string Search = "https://www.jobs.cz/prace/programator/?date=24h";
 
+    /// <summary>The real pauses are 5, 15 and 30 seconds – the tests don't wait.</summary>
+    private static readonly TimeSpan[] NoPauses = [TimeSpan.Zero, TimeSpan.Zero, TimeSpan.Zero];
+
     /// <summary>Answers in order: true = "redirected to the beta" (the final address is on beta.jobs.cz).</summary>
     private static (HttpClient Client, StubHttpHandler Stub) Create(params bool[] beta)
     {
@@ -23,7 +26,7 @@ public class ClassicSiteHandlerTests
             var final = toBeta ? new Uri("https://beta.jobs.cz/prace/programator/") : request.RequestUri!;
             return new HttpResponseMessage(HttpStatusCode.OK) { RequestMessage = new HttpRequestMessage(HttpMethod.Get, final) };
         });
-        var handler = new ClassicSiteHandler(NullLogger<ClassicSiteHandler>.Instance) { InnerHandler = stub };
+        var handler = new ClassicSiteHandler(NullLogger<ClassicSiteHandler>.Instance, NoPauses) { InnerHandler = stub };
         return (new HttpClient(handler), stub);
     }
 
@@ -58,7 +61,7 @@ public class ClassicSiteHandlerTests
         var response = await client.GetAsync(Search);
 
         Assert.Equal(ClassicSiteHandler.BetaHost, response.RequestMessage!.RequestUri!.Host);
-        Assert.Equal(ClassicSiteHandler.MaxAttempts, stub.Requests.Count);
+        Assert.Equal(4, stub.Requests.Count);
     }
 
     [Fact]
@@ -69,10 +72,17 @@ public class ClassicSiteHandlerTests
         {
             RequestMessage = new HttpRequestMessage(HttpMethod.Get, "https://kariera.example.cz/pozice/1"),
         });
-        var client = new HttpClient(new ClassicSiteHandler(NullLogger<ClassicSiteHandler>.Instance) { InnerHandler = stub });
+        var client = new HttpClient(new ClassicSiteHandler(NullLogger<ClassicSiteHandler>.Instance, NoPauses) { InnerHandler = stub });
 
         await client.GetAsync("https://www.jobs.cz/rpd/2001234567/");
 
         Assert.Single(stub.Requests);
+    }
+
+    [Fact]
+    public void Retries_wait_longer_each_time()
+    {
+        // jobs.cz keeps an address on the beta for a while – asking again two seconds later didn't help (23 Nov)
+        Assert.Equal([5, 15, 30], ClassicSiteHandler.DefaultPauses.Select(p => (int)p.TotalSeconds).ToArray());
     }
 }

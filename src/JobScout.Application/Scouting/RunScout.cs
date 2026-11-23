@@ -11,7 +11,8 @@ using Microsoft.Extensions.Logging;
 namespace JobScout.Application.Scouting;
 
 /// <summary>One search of the plan: what was asked, how many ads came back, how many were new in this run.</summary>
-public sealed record SourceSearch(string Source, PlannedSearch Search, int Found, int Added);
+/// <param name="Error">The search couldn't be done (the portal was down or sent a page we can't read) – it was skipped.</param>
+public sealed record SourceSearch(string Source, PlannedSearch Search, int Found, int Added, string? Error = null);
 
 public sealed record ScoutRunResult(
     ScoutRun Run,
@@ -79,7 +80,15 @@ public sealed class RunScout(
                 letters.Letters.Count, letters.Failed, letters.Remaining);
 
             var cost = await usageReport.ForRunAsync(started.Run.Id, ct);
-            await journal.SucceedAsync(started.Run, recorded.Found, recorded.NewForUser.Count, ct);
+
+            // Some searches skipped: the user still gets what was found, but the run counts as failed – the next run
+            // (the retry an hour later, or the next night) then searches back over the window and catches up
+            var skipped = searches.Where(s => s.Error is not null).ToList();
+            if (skipped.Count > 0)
+                await journal.FailAsync(started.Run, new IncompleteSearchException(
+                    $"Hledání neproběhlo celé – přeskočeno {skipped.Count} z {searches.Count}: {skipped[0].Error}"), ct);
+            else
+                await journal.SucceedAsync(started.Run, recorded.Found, recorded.NewForUser.Count, ct);
 
             return new ScoutRunResult(started.Run, started.Window, planned.IsNew, searches,
                 recorded, triage, evaluation, letters, cost);
@@ -99,10 +108,23 @@ public sealed class RunScout(
         var unique = new Dictionary<(string Source, string ExternalId), JobListing>();
         var searches = new List<SourceSearch>();
 
+        HttpRequestException? firstError = null;
         foreach (var source in sources)
         foreach (var search in plan.For(source.Name))
         {
-            var found = await source.SearchAsync(search.ToQuery(window), MaxPagesPerSearch, ct);
+            IReadOnlyList<JobListing> found;
+            try
+            {
+                found = await source.SearchAsync(search.ToQuery(window), MaxPagesPerSearch, ct);
+            }
+            catch (HttpRequestException ex)
+            {
+                // One search the portal won't answer (down, or its beta site) must not cost the user the others
+                firstError ??= ex;
+                searches.Add(new SourceSearch(source.Name, search, 0, 0, ex.Message));
+                logger.LogWarning("  {What}: přeskočeno – {Error}", search.Category ?? $"text \"{search.Keywords}\"", ex.Message);
+                continue;
+            }
             var added = found.Count(l => unique.TryAdd((l.Source, l.ExternalId), l));
             searches.Add(new SourceSearch(source.Name, search, found.Count, added));
 
@@ -112,6 +134,13 @@ public sealed class RunScout(
                 found.Count, added);
         }
 
+        // Not a single search went through – the source is out, the whole run fails (and the admins hear about it)
+        if (firstError is not null && searches.All(s => s.Error is not null))
+            throw firstError;
+
         return (unique.Values.ToList(), searches);
     }
 }
+
+/// <summary>Recorded with a run that skipped some searches – the run counts as failed, so the next one catches up.</summary>
+public sealed class IncompleteSearchException(string message) : Exception(message);
